@@ -356,48 +356,48 @@ elif page == "📁 Upload Data":
         # Save the file
         with open('swim_history.html', 'wb') as f:
             f.write(uploaded_file.getbuffer())
-      
-   st.info("💡 Data processing temporarily disabled. Use local scripts to process data, then view results here!")
+    
+    st.info("💡 Data processing temporarily disabled. Use local scripts to process data, then view results here!")
     
     if False:  # Temporarily disabled
         with st.spinner("Processing data..."):
-        # Import and run scripts
-        import subprocess
-        
-        progress_bar = st.progress(0)
-        status = st.empty()
-        
-        # Run scraper
-        status.text("⏳ Extracting data from HTML...")
-        result = subprocess.run(['python', 'scraper.py'], capture_output=True, text=True)  
-       
-                if result.returncode == 0:
-                    st.success("✅ Data extracted successfully")
-                    progress_bar.progress(33)
-                else:
-                    st.error(f"❌ Scraper failed: {result.stderr}")
-                    st.stop()
-                
-                # Run cleaner
-                status.text("⏳ Cleaning and formatting data...")
-                result = subprocess.run(['python', 'cleaner.py'], capture_output=True, text=True)
-                if result.returncode == 0:
-                    st.success("✅ Data cleaned successfully")
-                    progress_bar.progress(66)
-                else:
-                    st.error(f"❌ Cleaner failed: {result.stderr}")
-                    st.stop()
-                
-                # Run grader
-                status.text("⏳ Grading performances...")
-                result = subprocess.run(['python', 'grader.py'], capture_output=True, text=True)
-                if result.returncode == 0:
-                    st.success("✅ Data graded successfully")
-                    progress_bar.progress(100)
-                    st.balloons()
-                    status.text("✨ All done! Check the Dashboard to see your results.")
-                else:
-                    st.error(f"❌ Grader failed: {result.stderr}")
+            # Import and run scripts
+            import subprocess
+            
+            progress_bar = st.progress(0)
+            status = st.empty()
+            
+            # Run scraper
+            status.text("⏳ Extracting data from HTML...")
+            result = subprocess.run(['python', 'scraper.py'], capture_output=True, text=True)  
+            
+            if result.returncode == 0:
+                st.success("✅ Data extracted successfully")
+                progress_bar.progress(33)
+            else:
+                st.error(f"❌ Scraper failed: {result.stderr}")
+                st.stop()
+            
+            # Run cleaner
+            status.text("⏳ Cleaning and formatting data...")
+            result = subprocess.run(['python', 'cleaner.py'], capture_output=True, text=True)
+            if result.returncode == 0:
+                st.success("✅ Data cleaned successfully")
+                progress_bar.progress(66)
+            else:
+                st.error(f"❌ Cleaner failed: {result.stderr}")
+                st.stop()
+            
+            # Run grader
+            status.text("⏳ Grading performances...")
+            result = subprocess.run(['python', 'grader.py'], capture_output=True, text=True)
+            if result.returncode == 0:
+                st.success("✅ Data graded successfully")
+                progress_bar.progress(100)
+                st.balloons()
+                status.text("✨ All done! Check the Dashboard to see your results.")
+            else:
+                st.error(f"❌ Grader failed: {result.stderr}")
     
     st.markdown("---")
     
