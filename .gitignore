@@ -35,7 +35,7 @@ ENV/
 swim_history.html
 raw_swim_data.csv
 clean_swim_data.xlsx
-graded_swim_data.xlsx
+# graded_swim_data.xlsx
 Swim_Dashboard.xlsx
 
 # User data (personal information)
