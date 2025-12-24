@@ -356,38 +356,19 @@ elif page == "📁 Upload Data":
         # Save the file
         with open('swim_history.html', 'wb') as f:
             f.write(uploaded_file.getbuffer())
-        
-       if st.button("🔄 Process GoMotion Data", type="primary"):
+      
+    if st.button("🔄 Process GoMotion Data", type="primary"):
     with st.spinner("Processing data..."):
+        # Import and run scripts
+        import subprocess
+        
         progress_bar = st.progress(0)
         status = st.empty()
         
-        try:
-            # Run scraper directly
-            status.text("⏳ Extracting data from HTML...")
-            import scraper
-            scraper.main() if hasattr(scraper, 'main') else exec(open('scraper.py').read())
-            st.success("✅ Data extracted successfully")
-            progress_bar.progress(33)
-            
-            # Run cleaner
-            status.text("⏳ Cleaning and formatting data...")
-            import cleaner
-            cleaner.main() if hasattr(cleaner, 'main') else exec(open('cleaner.py').read())
-            st.success("✅ Data cleaned successfully")
-            progress_bar.progress(66)
-            
-            # Run grader
-            status.text("⏳ Grading performances...")
-            import grader
-            grader.main() if hasattr(grader, 'main') else exec(open('grader.py').read())
-            st.success("✅ Data graded successfully")
-            progress_bar.progress(100)
-            st.balloons()
-            status.text("✨ All done! Check the Dashboard to see your results.")
-            
-        except Exception as e:
-            st.error(f"❌ Error: {str(e)}")
+        # Run scraper
+        status.text("⏳ Extracting data from HTML...")
+        result = subprocess.run(['python', 'scraper.py'], capture_output=True, text=True)  
+       
                 if result.returncode == 0:
                     st.success("✅ Data extracted successfully")
                     progress_bar.progress(33)
