@@ -357,8 +357,10 @@ elif page == "📁 Upload Data":
         with open('swim_history.html', 'wb') as f:
             f.write(uploaded_file.getbuffer())
       
-    if st.button("🔄 Process GoMotion Data", type="primary"):
-    with st.spinner("Processing data..."):
+   st.info("💡 Data processing temporarily disabled. Use local scripts to process data, then view results here!")
+    
+    if False:  # Temporarily disabled
+        with st.spinner("Processing data..."):
         # Import and run scripts
         import subprocess
         
