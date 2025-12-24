@@ -1,0 +1,654 @@
+/* LESS: /cms/stylesheet/legacy-layout-adjust.less */
+html {
+  height: 100%;
+  width: 100%;
+}
+body {
+  box-sizing: border-box;
+  font-size: 0.9em;
+  background: none;
+  margin: 0px;
+  height: 100%;
+  overflow-y: auto !important;
+}
+body > .centerPiece {
+  padding: 1em;
+}
+body.Inner {
+  height: auto;
+  flex-direction: column;
+  -webkit-flex-direction: column;
+  display: flex;
+  flex: 1 1 auto;
+  -webkit-flex: 1 1 auto;
+}
+body:not(.modal-open) {
+  -webkit-overflow-scrolling: touch !important;
+}
+@media screen and (min-color-index: 0) and (-webkit-min-device-pixel-ratio: 0) {
+  body.ClassicLayout input,
+  body.ClassicLayout textarea,
+  body.ClassicLayout button,
+  body.ClassicLayout select {
+    -webkit-transform: translateZ(0px);
+  }
+}
+#container,
+#content,
+#colMain,
+#colMain_content {
+  flex-direction: column;
+  -webkit-flex-direction: column;
+  display: flex;
+  height: auto;
+  width: 100% !important;
+  margin: 0px;
+}
+#colMain {
+  float: none;
+}
+@media screen and (max-width: 991px) {
+  #colMain {
+    margin-top: 0em;
+    position: static;
+    top: unset;
+  }
+}
+@media screen and (max-width: 991px) {
+  #content {
+    margin-top: 0em;
+    position: static;
+    top: unset;
+  }
+}
+body td,
+body #container,
+body td > a.btn {
+  font-size: 1em;
+  font-family: inherit;
+}
+.LegacyCMSComponent.Documents #colMain_contentMain .link,
+.LegacyCMSComponent.Newsletter #colMain_contentMain .link,
+.LegacyCMSComponent.Links #colMain_contentMain .link {
+  font-size: 1em;
+}
+.LegacyCMSComponent.Documents #colMain_contentMain .link > a,
+.LegacyCMSComponent.Newsletter #colMain_contentMain .link > a,
+.LegacyCMSComponent.Links #colMain_contentMain .link > a {
+  font-size: 1em;
+}
+.CMSComponentSystemPage .ContactMe.LegacyCMSComponent .tabs {
+  display: none;
+}
+.CMSComponentSystemPage .ContactMe.LegacyCMSComponent #colMain_contentMain {
+  padding: 2em 0em !important;
+}
+.LegacyCMSComponent {
+  overflow: auto;
+}
+.LegacyCMSComponent .TeamEventWrapper .TextSearchInput .input-group .form-control,
+.LegacyCMSComponent .TeamEventWrapper .date-time-picker-wrapper i.input-group-addon {
+  z-index: unset;
+}
+@media screen and (max-width: 991px) {
+  .LegacyCMSComponent.Login5 #colMain #loginScreen {
+    margin-top: 0em !important;
+  }
+}
+.LegacyCMSComponent #colMain_contentMain #ama-main > .hidden-xs.hidden-sm {
+  margin: 0em !important;
+}
+.LegacyCMSComponent #colMain_contentMain #ama-main #fundraiser_box {
+  padding-top: 0em !important;
+}
+.LegacyCMSComponent #colMain_contentMain ul.tabs {
+  padding-left: 1em;
+  padding-top: 1em;
+  padding-right: 1em;
+}
+@media screen and (max-width: 991px) {
+  .LegacyCMSComponent #colMain_contentMain .mobile-menu {
+    display: none;
+  }
+}
+@media screen and (max-width: 767px) {
+  .LegacyCMSComponent .Error {
+    margin: 1em !important;
+  }
+}
+@media screen and (max-width: 991px) {
+  .LegacyCMSComponent .Error {
+    padding: 1em !important;
+    flex: 1 1 auto;
+    -webkit-flex: 1 1 auto;
+  }
+}
+.LegacyCMSComponent .mobile-nav-wrap,
+.LegacyCMSComponent .mobile-footer,
+.LegacyCMSComponent .mobile-nav {
+  display: none !important;
+}
+.LegacyCMSComponent #fundraiser_lane_line {
+  flex-direction: column;
+  -webkit-flex-direction: column;
+  display: flex;
+  flex-wrap: wrap;
+  -webkit-flex-wrap: wrap;
+}
+.LegacyCMSComponent * {
+  box-sizing: border-box;
+}
+.modal .modal-dialog * {
+  box-sizing: border-box;
+}
+.modal.TeamfeedModal .modal-dialog .modal-content {
+  max-width: 100%;
+}
+@media screen and (max-width: 575px) {
+  .TeamfeedFullHeightModal.ModalSelector {
+    left: 0;
+  }
+  .TeamfeedFullHeightModal.ModalSelector .modal-dialog {
+    width: 100%;
+  }
+}
+@media screen and (max-width: 767px) {
+  .TeamfeedFullHeightModal.ModalSelector .scrapbook-day-label,
+  .TeamfeedFullHeightModal.ModalSelector #scrapbook-day-selector {
+    width: 50%;
+  }
+  .TeamfeedFullHeightModal.ModalSelector .scrapbook-data-header {
+    flex-direction: row;
+    -webkit-flex-direction: row;
+    display: flex;
+  }
+  .TeamfeedFullHeightModal.ModalSelector .scrapbook-data-header .last-updated-header {
+    flex: 1 1 auto;
+    -webkit-flex: 1 1 auto;
+  }
+}
+#colMain_contentMain {
+  width: auto;
+  height: auto;
+  padding: 1em;
+  margin: 0px;
+}
+#colMain_contentMain .mobile-nav-wrap {
+  display: none !important;
+}
+#colMain_contentMain .wistia_playlist {
+  width: 100%;
+}
+#colMain_contentMain > .help_wrapper {
+  width: 100%;
+  height: 100%;
+  margin: 0px;
+}
+#colMain_contentMain > .help_wrapper > .help_page {
+  height: 100%;
+  margin: 0px;
+}
+#colMain_contentMain > .help_wrapper > .help_page > .help_container {
+  height: 100%;
+}
+#colMain_contentMain > .help_wrapper > .help_page > .help_container > .help_content {
+  margin-bottom: 1em;
+}
+#colMain_contentMain #tu-updates {
+  height: 100%;
+  margin: 0px;
+}
+#colMain_contentMain #calendar-main {
+  margin: 0px;
+  padding: 0px;
+  width: 100%;
+}
+#colMain_contentMain #calendar-main .calendar-notes,
+#colMain_contentMain #calendar-main .filter-wrapper,
+#colMain_contentMain #calendar-main .search-wrapper {
+  padding-left: 1em;
+  padding-right: 1em;
+}
+#colMain_contentMain #calendar-main .calendar-notes .filters-wrap,
+#colMain_contentMain #calendar-main .filter-wrapper .filters-wrap,
+#colMain_contentMain #calendar-main .search-wrapper .filters-wrap {
+  padding-left: 0px;
+  padding-right: 0px;
+}
+#colMain_contentMain #calendar-main .toggle-calendar > button {
+  margin-left: 0px;
+}
+#colMain_contentMain #calendar-main .content-wrapper {
+  padding: 1em;
+  padding-top: 0px;
+}
+#colMain_contentMain #calendar-main .content-wrapper .mini-calendar {
+  width: 25em;
+}
+#colMain_contentMain #ama-main {
+  height: 100%;
+  margin: 0px;
+}
+#colMain_contentMain #ama-main .mobile-menu {
+  display: none;
+}
+#colMain_contentMain #ama-main #teamProfileHeader .form-row h2 {
+  display: none;
+}
+@media screen and (max-width: 991px) {
+  #colMain_contentMain #ama-main #loginScreen {
+    margin-top: 1em !important;
+  }
+}
+#colMain_contentMain #ama-main #loginScreen .input-group {
+  z-index: 0;
+}
+#colMain_contentMain #ama-main #loginScreen .panel {
+  border-width: 0px;
+}
+#colMain_contentMain #ama-main #loginScreen .panel .panel-body {
+  max-width: 36em;
+  margin: auto;
+}
+#colMain_contentMain #ama-main #loginScreen .panel .checkbox > label > input {
+  flex-direction: row;
+  -webkit-flex-direction: row;
+  display: flex;
+  margin: 0px;
+  align-items: center;
+  margin-left: -1.5em;
+}
+#colMain_contentMain #ama-main #loginScreen .panel + p {
+  text-align: center;
+}
+#colMain_contentMain #ama-main .container-fluid .panel-group .panel-primary #featuresTools .row .col-sm-6 {
+  flex-direction: column;
+  -webkit-flex-direction: column;
+  display: flex;
+}
+#colMain_contentMain #ama-main .container-fluid .panel-group .panel-primary #featuresTools .row .col-sm-6 > a.btn {
+  flex-direction: row;
+  -webkit-flex-direction: row;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+#colMain_contentMain #ama-main .container-fluid .panel-group .panel-primary #featuresTools .row .col-sm-6 > a.btn span {
+  background: unset;
+  position: unset;
+  min-width: 5em;
+  margin-left: 0.5em;
+}
+#colMain_contentMain #ama-main .container-fluid .panel-group .panel-primary #featuresTools .row .col-sm-6 > a.btn strong {
+  margin-left: 0.5em;
+}
+#colMain_contentMain .SignupAdminRelay .ui-jqgrid,
+#colMain_contentMain .SignupAdminEvent .ui-jqgrid,
+#colMain_contentMain > .DeclinedAthelets .ui-jqgrid,
+#colMain_contentMain > .Undeclared .ui-jqgrid,
+#colMain_contentMain > .CommittedAthletes .ui-jqgrid,
+#colMain_contentMain .SignupAdminRelay .ui-jqgrid-view,
+#colMain_contentMain .SignupAdminEvent .ui-jqgrid-view,
+#colMain_contentMain > .DeclinedAthelets .ui-jqgrid-view,
+#colMain_contentMain > .Undeclared .ui-jqgrid-view,
+#colMain_contentMain > .CommittedAthletes .ui-jqgrid-view,
+#colMain_contentMain .SignupAdminRelay .ui-jqgrid-toppager,
+#colMain_contentMain .SignupAdminEvent .ui-jqgrid-toppager,
+#colMain_contentMain > .DeclinedAthelets .ui-jqgrid-toppager,
+#colMain_contentMain > .Undeclared .ui-jqgrid-toppager,
+#colMain_contentMain > .CommittedAthletes .ui-jqgrid-toppager,
+#colMain_contentMain .SignupAdminRelay .ui-pager-control,
+#colMain_contentMain .SignupAdminEvent .ui-pager-control,
+#colMain_contentMain > .DeclinedAthelets .ui-pager-control,
+#colMain_contentMain > .Undeclared .ui-pager-control,
+#colMain_contentMain > .CommittedAthletes .ui-pager-control,
+#colMain_contentMain .SignupAdminRelay .ui-jqgrid-hbox,
+#colMain_contentMain .SignupAdminEvent .ui-jqgrid-hbox,
+#colMain_contentMain > .DeclinedAthelets .ui-jqgrid-hbox,
+#colMain_contentMain > .Undeclared .ui-jqgrid-hbox,
+#colMain_contentMain > .CommittedAthletes .ui-jqgrid-hbox,
+#colMain_contentMain .SignupAdminRelay .ui-jqgrid-htable,
+#colMain_contentMain .SignupAdminEvent .ui-jqgrid-htable,
+#colMain_contentMain > .DeclinedAthelets .ui-jqgrid-htable,
+#colMain_contentMain > .Undeclared .ui-jqgrid-htable,
+#colMain_contentMain > .CommittedAthletes .ui-jqgrid-htable,
+#colMain_contentMain .SignupAdminRelay .ui-corner-bottom,
+#colMain_contentMain .SignupAdminEvent .ui-corner-bottom,
+#colMain_contentMain > .DeclinedAthelets .ui-corner-bottom,
+#colMain_contentMain > .Undeclared .ui-corner-bottom,
+#colMain_contentMain > .CommittedAthletes .ui-corner-bottom,
+#colMain_contentMain .SignupAdminRelay .ui-state-default.ui-jqgrid-hdiv,
+#colMain_contentMain .SignupAdminEvent .ui-state-default.ui-jqgrid-hdiv,
+#colMain_contentMain > .DeclinedAthelets .ui-state-default.ui-jqgrid-hdiv,
+#colMain_contentMain > .Undeclared .ui-state-default.ui-jqgrid-hdiv,
+#colMain_contentMain > .CommittedAthletes .ui-state-default.ui-jqgrid-hdiv,
+#colMain_contentMain .SignupAdminRelay .ui-jqgrid-bdiv,
+#colMain_contentMain .SignupAdminEvent .ui-jqgrid-bdiv,
+#colMain_contentMain > .DeclinedAthelets .ui-jqgrid-bdiv,
+#colMain_contentMain > .Undeclared .ui-jqgrid-bdiv,
+#colMain_contentMain > .CommittedAthletes .ui-jqgrid-bdiv {
+  font-size: 1em;
+  min-width: 100%;
+}
+#colMain_contentMain .SignupAdminRelay .ui-jqgrid .ui-pg-table,
+#colMain_contentMain .SignupAdminEvent .ui-jqgrid .ui-pg-table,
+#colMain_contentMain > .DeclinedAthelets .ui-jqgrid .ui-pg-table,
+#colMain_contentMain > .Undeclared .ui-jqgrid .ui-pg-table,
+#colMain_contentMain > .CommittedAthletes .ui-jqgrid .ui-pg-table,
+#colMain_contentMain .SignupAdminRelay .ui-jqgrid-view .ui-pg-table,
+#colMain_contentMain .SignupAdminEvent .ui-jqgrid-view .ui-pg-table,
+#colMain_contentMain > .DeclinedAthelets .ui-jqgrid-view .ui-pg-table,
+#colMain_contentMain > .Undeclared .ui-jqgrid-view .ui-pg-table,
+#colMain_contentMain > .CommittedAthletes .ui-jqgrid-view .ui-pg-table,
+#colMain_contentMain .SignupAdminRelay .ui-jqgrid-toppager .ui-pg-table,
+#colMain_contentMain .SignupAdminEvent .ui-jqgrid-toppager .ui-pg-table,
+#colMain_contentMain > .DeclinedAthelets .ui-jqgrid-toppager .ui-pg-table,
+#colMain_contentMain > .Undeclared .ui-jqgrid-toppager .ui-pg-table,
+#colMain_contentMain > .CommittedAthletes .ui-jqgrid-toppager .ui-pg-table,
+#colMain_contentMain .SignupAdminRelay .ui-pager-control .ui-pg-table,
+#colMain_contentMain .SignupAdminEvent .ui-pager-control .ui-pg-table,
+#colMain_contentMain > .DeclinedAthelets .ui-pager-control .ui-pg-table,
+#colMain_contentMain > .Undeclared .ui-pager-control .ui-pg-table,
+#colMain_contentMain > .CommittedAthletes .ui-pager-control .ui-pg-table,
+#colMain_contentMain .SignupAdminRelay .ui-jqgrid-hbox .ui-pg-table,
+#colMain_contentMain .SignupAdminEvent .ui-jqgrid-hbox .ui-pg-table,
+#colMain_contentMain > .DeclinedAthelets .ui-jqgrid-hbox .ui-pg-table,
+#colMain_contentMain > .Undeclared .ui-jqgrid-hbox .ui-pg-table,
+#colMain_contentMain > .CommittedAthletes .ui-jqgrid-hbox .ui-pg-table,
+#colMain_contentMain .SignupAdminRelay .ui-jqgrid-htable .ui-pg-table,
+#colMain_contentMain .SignupAdminEvent .ui-jqgrid-htable .ui-pg-table,
+#colMain_contentMain > .DeclinedAthelets .ui-jqgrid-htable .ui-pg-table,
+#colMain_contentMain > .Undeclared .ui-jqgrid-htable .ui-pg-table,
+#colMain_contentMain > .CommittedAthletes .ui-jqgrid-htable .ui-pg-table,
+#colMain_contentMain .SignupAdminRelay .ui-corner-bottom .ui-pg-table,
+#colMain_contentMain .SignupAdminEvent .ui-corner-bottom .ui-pg-table,
+#colMain_contentMain > .DeclinedAthelets .ui-corner-bottom .ui-pg-table,
+#colMain_contentMain > .Undeclared .ui-corner-bottom .ui-pg-table,
+#colMain_contentMain > .CommittedAthletes .ui-corner-bottom .ui-pg-table,
+#colMain_contentMain .SignupAdminRelay .ui-state-default.ui-jqgrid-hdiv .ui-pg-table,
+#colMain_contentMain .SignupAdminEvent .ui-state-default.ui-jqgrid-hdiv .ui-pg-table,
+#colMain_contentMain > .DeclinedAthelets .ui-state-default.ui-jqgrid-hdiv .ui-pg-table,
+#colMain_contentMain > .Undeclared .ui-state-default.ui-jqgrid-hdiv .ui-pg-table,
+#colMain_contentMain > .CommittedAthletes .ui-state-default.ui-jqgrid-hdiv .ui-pg-table,
+#colMain_contentMain .SignupAdminRelay .ui-jqgrid-bdiv .ui-pg-table,
+#colMain_contentMain .SignupAdminEvent .ui-jqgrid-bdiv .ui-pg-table,
+#colMain_contentMain > .DeclinedAthelets .ui-jqgrid-bdiv .ui-pg-table,
+#colMain_contentMain > .Undeclared .ui-jqgrid-bdiv .ui-pg-table,
+#colMain_contentMain > .CommittedAthletes .ui-jqgrid-bdiv .ui-pg-table,
+#colMain_contentMain .SignupAdminRelay .ui-jqgrid .ui-jqgrid-btable,
+#colMain_contentMain .SignupAdminEvent .ui-jqgrid .ui-jqgrid-btable,
+#colMain_contentMain > .DeclinedAthelets .ui-jqgrid .ui-jqgrid-btable,
+#colMain_contentMain > .Undeclared .ui-jqgrid .ui-jqgrid-btable,
+#colMain_contentMain > .CommittedAthletes .ui-jqgrid .ui-jqgrid-btable,
+#colMain_contentMain .SignupAdminRelay .ui-jqgrid-view .ui-jqgrid-btable,
+#colMain_contentMain .SignupAdminEvent .ui-jqgrid-view .ui-jqgrid-btable,
+#colMain_contentMain > .DeclinedAthelets .ui-jqgrid-view .ui-jqgrid-btable,
+#colMain_contentMain > .Undeclared .ui-jqgrid-view .ui-jqgrid-btable,
+#colMain_contentMain > .CommittedAthletes .ui-jqgrid-view .ui-jqgrid-btable,
+#colMain_contentMain .SignupAdminRelay .ui-jqgrid-toppager .ui-jqgrid-btable,
+#colMain_contentMain .SignupAdminEvent .ui-jqgrid-toppager .ui-jqgrid-btable,
+#colMain_contentMain > .DeclinedAthelets .ui-jqgrid-toppager .ui-jqgrid-btable,
+#colMain_contentMain > .Undeclared .ui-jqgrid-toppager .ui-jqgrid-btable,
+#colMain_contentMain > .CommittedAthletes .ui-jqgrid-toppager .ui-jqgrid-btable,
+#colMain_contentMain .SignupAdminRelay .ui-pager-control .ui-jqgrid-btable,
+#colMain_contentMain .SignupAdminEvent .ui-pager-control .ui-jqgrid-btable,
+#colMain_contentMain > .DeclinedAthelets .ui-pager-control .ui-jqgrid-btable,
+#colMain_contentMain > .Undeclared .ui-pager-control .ui-jqgrid-btable,
+#colMain_contentMain > .CommittedAthletes .ui-pager-control .ui-jqgrid-btable,
+#colMain_contentMain .SignupAdminRelay .ui-jqgrid-hbox .ui-jqgrid-btable,
+#colMain_contentMain .SignupAdminEvent .ui-jqgrid-hbox .ui-jqgrid-btable,
+#colMain_contentMain > .DeclinedAthelets .ui-jqgrid-hbox .ui-jqgrid-btable,
+#colMain_contentMain > .Undeclared .ui-jqgrid-hbox .ui-jqgrid-btable,
+#colMain_contentMain > .CommittedAthletes .ui-jqgrid-hbox .ui-jqgrid-btable,
+#colMain_contentMain .SignupAdminRelay .ui-jqgrid-htable .ui-jqgrid-btable,
+#colMain_contentMain .SignupAdminEvent .ui-jqgrid-htable .ui-jqgrid-btable,
+#colMain_contentMain > .DeclinedAthelets .ui-jqgrid-htable .ui-jqgrid-btable,
+#colMain_contentMain > .Undeclared .ui-jqgrid-htable .ui-jqgrid-btable,
+#colMain_contentMain > .CommittedAthletes .ui-jqgrid-htable .ui-jqgrid-btable,
+#colMain_contentMain .SignupAdminRelay .ui-corner-bottom .ui-jqgrid-btable,
+#colMain_contentMain .SignupAdminEvent .ui-corner-bottom .ui-jqgrid-btable,
+#colMain_contentMain > .DeclinedAthelets .ui-corner-bottom .ui-jqgrid-btable,
+#colMain_contentMain > .Undeclared .ui-corner-bottom .ui-jqgrid-btable,
+#colMain_contentMain > .CommittedAthletes .ui-corner-bottom .ui-jqgrid-btable,
+#colMain_contentMain .SignupAdminRelay .ui-state-default.ui-jqgrid-hdiv .ui-jqgrid-btable,
+#colMain_contentMain .SignupAdminEvent .ui-state-default.ui-jqgrid-hdiv .ui-jqgrid-btable,
+#colMain_contentMain > .DeclinedAthelets .ui-state-default.ui-jqgrid-hdiv .ui-jqgrid-btable,
+#colMain_contentMain > .Undeclared .ui-state-default.ui-jqgrid-hdiv .ui-jqgrid-btable,
+#colMain_contentMain > .CommittedAthletes .ui-state-default.ui-jqgrid-hdiv .ui-jqgrid-btable,
+#colMain_contentMain .SignupAdminRelay .ui-jqgrid-bdiv .ui-jqgrid-btable,
+#colMain_contentMain .SignupAdminEvent .ui-jqgrid-bdiv .ui-jqgrid-btable,
+#colMain_contentMain > .DeclinedAthelets .ui-jqgrid-bdiv .ui-jqgrid-btable,
+#colMain_contentMain > .Undeclared .ui-jqgrid-bdiv .ui-jqgrid-btable,
+#colMain_contentMain > .CommittedAthletes .ui-jqgrid-bdiv .ui-jqgrid-btable {
+  min-width: 100%;
+  font-size: 0.9em;
+}
+#colMain_contentMain .SignupAdminRelay .ui-corner-bottom,
+#colMain_contentMain .SignupAdminEvent .ui-corner-bottom,
+#colMain_contentMain > .DeclinedAthelets .ui-corner-bottom,
+#colMain_contentMain > .Undeclared .ui-corner-bottom,
+#colMain_contentMain > .CommittedAthletes .ui-corner-bottom,
+#colMain_contentMain .SignupAdminRelay .ui-jqgrid-toppager,
+#colMain_contentMain .SignupAdminEvent .ui-jqgrid-toppager,
+#colMain_contentMain > .DeclinedAthelets .ui-jqgrid-toppager,
+#colMain_contentMain > .Undeclared .ui-jqgrid-toppager,
+#colMain_contentMain > .CommittedAthletes .ui-jqgrid-toppager,
+#colMain_contentMain .SignupAdminRelay .ui-jqgrid-htable th.ui-th-column,
+#colMain_contentMain .SignupAdminEvent .ui-jqgrid-htable th.ui-th-column,
+#colMain_contentMain > .DeclinedAthelets .ui-jqgrid-htable th.ui-th-column,
+#colMain_contentMain > .Undeclared .ui-jqgrid-htable th.ui-th-column,
+#colMain_contentMain > .CommittedAthletes .ui-jqgrid-htable th.ui-th-column {
+  vertical-align: middle;
+  padding-top: 0.5em !important;
+  padding-bottom: 0.5em !important;
+}
+#colMain_contentMain .SignupAdminRelay #divGrid_myform_toppager_center,
+#colMain_contentMain .SignupAdminEvent #divGrid_myform_toppager_center,
+#colMain_contentMain > .DeclinedAthelets #divGrid_myform_toppager_center,
+#colMain_contentMain > .Undeclared #divGrid_myform_toppager_center,
+#colMain_contentMain > .CommittedAthletes #divGrid_myform_toppager_center {
+  font-size: 1.2em;
+}
+#colMain_contentMain .SignupAdminRelay #divGridPager_divGrid_myform_center .ui-pg-table,
+#colMain_contentMain .SignupAdminEvent #divGridPager_divGrid_myform_center .ui-pg-table,
+#colMain_contentMain > .DeclinedAthelets #divGridPager_divGrid_myform_center .ui-pg-table,
+#colMain_contentMain > .Undeclared #divGridPager_divGrid_myform_center .ui-pg-table,
+#colMain_contentMain > .CommittedAthletes #divGridPager_divGrid_myform_center .ui-pg-table {
+  font-size: 1em;
+}
+#colMain_contentMain .SignupAdminRelay .ui-state-default,
+#colMain_contentMain .SignupAdminEvent .ui-state-default,
+#colMain_contentMain > .DeclinedAthelets .ui-state-default,
+#colMain_contentMain > .Undeclared .ui-state-default,
+#colMain_contentMain > .CommittedAthletes .ui-state-default {
+  height: auto !important;
+}
+#colMain_contentMain .SignupAdminRelay .ui-jqgrid .ui-pg-table td,
+#colMain_contentMain .SignupAdminEvent .ui-jqgrid .ui-pg-table td,
+#colMain_contentMain > .DeclinedAthelets .ui-jqgrid .ui-pg-table td,
+#colMain_contentMain > .Undeclared .ui-jqgrid .ui-pg-table td,
+#colMain_contentMain > .CommittedAthletes .ui-jqgrid .ui-pg-table td,
+#colMain_contentMain .SignupAdminRelay .ui-jqgrid .ui-pg-table,
+#colMain_contentMain .SignupAdminEvent .ui-jqgrid .ui-pg-table,
+#colMain_contentMain > .DeclinedAthelets .ui-jqgrid .ui-pg-table,
+#colMain_contentMain > .Undeclared .ui-jqgrid .ui-pg-table,
+#colMain_contentMain > .CommittedAthletes .ui-jqgrid .ui-pg-table {
+  padding-bottom: 0em !important;
+}
+#colMain_contentMain .SignupAdminRelay .ui-jqgrid tr.ui-row-ltr td,
+#colMain_contentMain .SignupAdminEvent .ui-jqgrid tr.ui-row-ltr td,
+#colMain_contentMain > .DeclinedAthelets .ui-jqgrid tr.ui-row-ltr td,
+#colMain_contentMain > .Undeclared .ui-jqgrid tr.ui-row-ltr td,
+#colMain_contentMain > .CommittedAthletes .ui-jqgrid tr.ui-row-ltr td {
+  white-space: normal;
+}
+body.CMSPage_system_postviewer #ActionsDialogModal,
+body.CMSPage_system_videoviewer #ActionsDialogModal {
+  display: none;
+}
+body.CMSPage_system_postviewer #colMain_content,
+body.CMSPage_system_videoviewer #colMain_content,
+body.CMSPage_system_postviewer #colMain_contentMain,
+body.CMSPage_system_videoviewer #colMain_contentMain {
+  background-color: transparent !important;
+}
+body.CMSPage_system_postviewer #teamfeedContainer,
+body.CMSPage_system_videoviewer #teamfeedContainer {
+  background-color: transparent !important;
+  min-height: 10em;
+}
+body.CMSPage_system_postviewer .new-privacy-policy-no-close[role="dialog"],
+body.CMSPage_system_videoviewer .new-privacy-policy-no-close[role="dialog"] {
+  background-color: white;
+  padding: 1em;
+  border-radius: 0.5em;
+}
+body.CMSPage_system_postviewer .new-privacy-policy-no-close[role="dialog"] .ui-dialog-title,
+body.CMSPage_system_videoviewer .new-privacy-policy-no-close[role="dialog"] .ui-dialog-title {
+  font-weight: bold;
+}
+body.CMSPage_system_postviewer .new-privacy-policy-no-close[role="dialog"] .ui-dialog-buttonset,
+body.CMSPage_system_videoviewer .new-privacy-policy-no-close[role="dialog"] .ui-dialog-buttonset {
+  flex-direction: row;
+  -webkit-flex-direction: row;
+  display: flex;
+  justify-content: flex-end;
+}
+body #cms_Section_cms_Primary .LegacyCMSComponent {
+  padding: 0em !important;
+}
+body #cms_Section_cms_Primary .LegacyCMSComponent.videoviewer #header,
+body #cms_Section_cms_Primary .LegacyCMSComponent.postviewer #header,
+body #cms_Section_cms_Primary .LegacyCMSComponent.videoviewer #footer,
+body #cms_Section_cms_Primary .LegacyCMSComponent.postviewer #footer,
+body #cms_Section_cms_Primary .LegacyCMSComponent.videoviewer #loadingScreen,
+body #cms_Section_cms_Primary .LegacyCMSComponent.postviewer #loadingScreen,
+body #cms_Section_cms_Primary .LegacyCMSComponent.videoviewer #utilities,
+body #cms_Section_cms_Primary .LegacyCMSComponent.postviewer #utilities,
+body #cms_Section_cms_Primary .LegacyCMSComponent.videoviewer #main_menu,
+body #cms_Section_cms_Primary .LegacyCMSComponent.postviewer #main_menu,
+body #cms_Section_cms_Primary .LegacyCMSComponent.videoviewer #column_space,
+body #cms_Section_cms_Primary .LegacyCMSComponent.postviewer #column_space,
+body #cms_Section_cms_Primary .LegacyCMSComponent.videoviewer #column_side,
+body #cms_Section_cms_Primary .LegacyCMSComponent.postviewer #column_side {
+  display: none;
+}
+body #cms_Section_cms_Primary .LegacyCMSComponent #colMain_contentMain {
+  padding: 0em;
+}
+body #cms_Section_cms_Primary .LegacyCMSComponent #colMain_contentMain .calendar-notes {
+  margin-top: 2em;
+  margin-bottom: 2em;
+  padding-left: 2em;
+  padding-right: 2em;
+}
+body #cms_Section_cms_Primary .LegacyCMSComponent #colMain_contentMain .filters-wrap {
+  margin-top: 0em;
+  padding-left: 2em;
+  padding-right: 2em;
+}
+body #cms_Section_cms_Primary .LegacyCMSComponent #colMain_contentMain .filters-wrap > * {
+  padding: 0em;
+}
+body #cms_Section_cms_Primary .LegacyCMSComponent #colMain_contentMain .search-wrapper {
+  padding-left: 2em;
+  padding-right: 2em;
+}
+body #cms_Section_cms_Primary .LegacyCMSComponent #colMain_contentMain .search-wrapper > #CurrentViewStatus {
+  padding: 0em;
+}
+body #cms_Section_cms_Primary .LegacyCMSComponent #colMain_contentMain .content-wrapper {
+  padding-left: 2em;
+  padding-right: 2em;
+}
+body #cms_Section_cms_Primary .LegacyCMSComponent > .Error {
+  max-width: 36em;
+  margin: auto;
+  margin-top: 2em;
+  background-color: #ffeded;
+  border: 0.1em solid #f4c4c2;
+  border-radius: 0.2em;
+  padding: 1em;
+  margin-bottom: 1em;
+  align-items: center;
+  color: red;
+  font-size: 1.2em;
+  padding: 2em;
+}
+#teamProfilePortal div.Header div.Action > span,
+#teamProfilePortal div.Footer div.Action > span {
+  font-size: 1em;
+}
+/* Fundraiser progress bug */
+#fundraiser_lane_line #lane_line_on,
+#fundraiser_lane_line #lane_line_on_line,
+#fundraiser_lane_line #lane_line_off,
+#fundraiser_lane_line #lane_line_off_line {
+  float: none;
+}
+/*Fixed button style of ama*/
+#ama-main a.btn:not(.btn-link):not(.cancel) {
+  line-height: 1.5;
+  padding: 0.4em 1em;
+  height: auto;
+}
+#ama-main a.btn-link.cancel {
+  line-height: 25px;
+  background: none;
+}
+#ama-main a.btn-link.cancel:hover {
+  background: none;
+}
+#ama-main .DeploymentActions {
+  flex-direction: row;
+  -webkit-flex-direction: row;
+  display: flex;
+}
+#ama-main .DeploymentActions a.btn + a.btn {
+  margin-left: 1em;
+}
+@media screen and (max-width: 1199px) {
+  #ama-main .OverviewReportWrapper .DetailSummary > div > div > span.Number {
+    margin-top: 0em;
+  }
+}
+.introjs-helperLayer .introjs-tooltip {
+  margin-left: -1.5em;
+}
+.introjs-helperLayer .introjs-tooltip .Bottom {
+  min-height: 9em;
+  position: relative;
+}
+.introjs-helperLayer .introjs-tooltip .Bottom.CustomizeFilters {
+  left: -4em;
+}
+.introjs-helperLayer .introjs-tooltip .Bottom.CustomizeColumns {
+  left: -9em !important;
+}
+.TUMoneyEventNonActive {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5em;
+}
+.CMSComponentFullTeamFeed #timelineInstance,
+body.Teamfeed:not(.InCMSComponent) #timelineInstance {
+  padding-bottom: 3em;
+}
+#alert_content .alert_item .alert_description_content img {
+  max-width: 100%;
+  height: auto !important;
+}
+@media screen and (min-width: 992px) {
+  #alert_content .alert_item .alert_description_content img {
+    max-width: 80em;
+  }
+}
+.sys-viewport.lg > #alert_content .alert_item .alert_description_content img {
+  max-width: 80em;
+}
+/*# sourceMappingURL=legacy-layout-adjust.css.map */
+
+

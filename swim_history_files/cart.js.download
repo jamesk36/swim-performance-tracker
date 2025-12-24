@@ -1,0 +1,274 @@
+var taxPercent = 0.0;
+var shippingCost = 0.0;
+var volumeDisc = 0.0;
+var reloadCartOnQty = false;
+var g_Ship2Zip;
+var g_Ship2State;
+var g_bReg = false;
+var g_dWt = 0;
+var g_bUps = true;
+var g_cookieType;
+
+function swCartPageInit(taxPercent2Set, shippingCost2Set, ship2Zip, ship2State, volumeDisc2Set) {
+  taxPercent = taxPercent2Set;
+  if (volumeDisc2Set)
+    volumeDisc = volumeDisc2Set;
+  shippingCost = shippingCost2Set;
+  g_Ship2Zip = ship2Zip;
+  g_Ship2State = ship2State;
+}
+
+ 
+function showItemAddedPopup(quantity) {
+  clearInterval(numInterval);
+  var numValue = 0;
+  var symbol = '+';
+  if(quantity < 0)
+  {
+    symbol = '-';
+    quantity = quantity * -1;
+    itemAddedPopup.find('p').html('items removed from cart.');
+  }
+  else
+  {
+    itemAddedPopup.find('p').html('items added to cart.');
+  }
+  itemAddedPopup.find('h2').html(symbol+numValue);
+
+  numInterval = setInterval(function(){
+    itemAddedPopup.find('h2').html(symbol+numValue);
+    if(numValue != quantity)
+    {
+      numValue += 1;
+    }
+    else
+    {
+      clearInterval(numInterval);
+    }
+  }, 60);
+
+  itemAddedPopup.css({
+    'margin-top':   30,
+    'opacity':    0
+  }).show().animate({
+    'opacity':    1.4,
+    'margin-top':   0
+  }, 600, 'easeOutBounce', function(){
+    itemAddedPopup.delay(1000).animate({
+      'opacity':  0
+    }, function(){
+      itemAddedPopup.hide();
+    });
+  });
+  
+  $('.cart span').html('2');
+}
+
+
+function modifyCartItem(event){
+  var target = $(event.currentTarget);
+  var item   = target.parent();
+
+  var ckey = item.find('.ckey').attr('value');
+  var quantity  = item.find('.cart-item-quantity').attr('value');
+  var old_qty  = item.find('.cart-item-old_qty').attr('value');
+  if (quantity == '' || quantity == ' ') {
+    return;
+  }
+
+  if(quantity < 0) {
+    item.find('.cart-item-quantity').attr('value', 0);
+    quantity = 0;
+  }
+
+  if( target.hasClass('delete-button') ) {
+    item.find('.cart-item-quantity').attr('value', 0);
+    quantity = 0;
+  }
+  // set old_qty = new
+  item.find('.cart-item-old_qty').val(quantity);
+  
+  $.ajax({
+    url: '/Bind/SwCartUpdateQty.jsp?team=' + sw_team_dir +
+      '&qty=' + quantity +  
+      '&old_qty=' + old_qty +
+      '&old_wt=' + g_dWt +
+      '&ups=' + (g_bUps ? 1 : 0) +  
+      '&zip=' + g_Ship2Zip +  
+      '&state=' + g_Ship2State +  
+      '&ckey=' + ckey +
+      '&ctype=' + g_cookieType
+      ,
+    complete: function() {
+    },
+    success: function(data) {
+      if(quantity == 0) {
+        item.animate({ 'opacity': 0 }, 200, function(){
+          item.animate({
+            'height':  0,
+            'padding': 0
+          }, 400, 'easeOutQuint', function(){
+            if (reloadCartOnQty) {
+              var url = window.location.pathname + window.location.search;
+              window.location = url;
+            } else {
+              swUpdateCartTotal(null, data);
+              
+            }
+          });
+        });
+      } else {
+        if (reloadCartOnQty) {
+          var url = window.location.pathname + window.location.search;
+          window.location = url;
+        } else {
+          swUpdateCartTotal(item, data);
+        }
+      }
+    }
+  });
+}
+
+function initFields(){
+  var origValue = null;
+
+  $('.cart-item input[type="text"]').bind('focus', function(event){
+    var target          = $(event.currentTarget);
+    origValue           = target.attr('value');
+
+    target.keyup(function(event){
+      if(event.keyCode == 13)
+      {
+        target.blur();
+      }
+      {
+        swUpdateCartTotal();
+      }
+    });
+
+    target.bind('blur', function(event){
+      var target = $(event.currentTarget);
+
+      if(target.attr('value') == '')
+      {
+        target.attr('value', origValue);
+      }
+
+      swUpdateCartTotal();
+    });
+  });
+}
+
+
+
+function copyBilling2Shipping() {
+  $('#sfirst_name').val($('#bfirst_name').val());
+  $('#slast_name').val($('#blast_name').val());
+  $('#sphone').val($('#bphone').val());
+  $('#saddress').val($('#baddress').val());
+  $('#saddress2').val($('#baddress2').val());
+  $('#scity').val($('#bcity').val());
+  
+  var state = $('#bstate_sel').val();
+  $('#sstate_sel option').eq(state).attr('selected', 'selected');
+  
+  $('#sstate').val($('#bstate').val());
+  
+  $('#szip').val($('#bzip').val());
+  $('#scountry').val($('#bcountry').val());
+}
+
+function swUpdateCartTotal(item, discCsv) {
+  if (discCsv) {
+    var idx1 = discCsv.indexOf('!');
+    var idx2 = discCsv.lastIndexOf('!');
+    if (idx1 != -1) {
+      var arr = discCsv.substring(idx1 + 1, idx2).split('@');
+      if (arr.length == 5) {
+        if (item) {
+          item.find('.item-bulk-disc').attr('value', arr[0]);
+          item.find('.item-team-disc').attr('value', arr[1]);
+          item.find('.item-coupon').attr('value', arr[2]);
+        }
+        g_dWt = arr[3] - 0;
+        volumeDisc = arr[4] - 0;
+      }
+    }
+
+  }
+  
+  var totalCost         = 0;
+  var totalTeamDisc     = 0;
+  var totalBulkDisc     = 0;
+  var totalCoupon       = 0;
+  var totalItems        = 0;
+  var cartItems       = $('.cart-item');
+  if(cartItems.length > 0) {
+    // Loop throught items and calculate totals
+    for(var i=0; i < cartItems.length; i++) {
+      var curItem         = $(cartItems[i]);
+
+      var unitTeamDisc    = curItem.find('.item-team-disc').attr('value') - 0;
+      var unitPrice       = curItem.find('.item-price').attr('value') - 0 - unitTeamDisc;
+      var quantity        = curItem.find('input[type="text"]').attr('value') * 1;
+      
+      var unitBulkDisc    = curItem.find('.item-bulk-disc').attr('value') - 0;
+      var unitCoupon      = curItem.find('.item-coupon').attr('value') - 0;
+      
+      var unitSave        = unitBulkDisc + unitCoupon;
+      
+      var savings = unitSave * quantity;
+      var itemTotal       = unitPrice * quantity;
+      
+      var teamDiscTotal   = unitTeamDisc * quantity;
+      var bulkDiscTotal   = unitBulkDisc * quantity;
+      var couponTotal     = unitCoupon * quantity;
+
+      curItem.find('.cart-item-price').html(
+          '<sup>$</sup>' + (unitPrice - unitSave).toFixed(2) + 
+          (unitBulkDisc > 0 ? '<div class=disc_small>Savings: $-' + unitBulkDisc.toFixed(2) + "</div>": '') +
+          (unitCoupon > 0 ? '<div class=disc_small>Coupon: $-' + unitCoupon.toFixed(2) + "</div>": '')
+          );
+      
+      curItem.find('.cart-item-total').html(
+          '<sup>$</sup>' + (itemTotal - unitSave * quantity).toFixed(2) +
+          (savings > 0 ? '<div class=disc_small>Savings: $-' + savings.toFixed(2) + "</div>": '')
+          );
+
+      totalCost += itemTotal;
+      totalTeamDisc += teamDiscTotal;
+      totalBulkDisc += bulkDiscTotal;
+      totalCoupon += couponTotal;
+      totalItems += quantity;
+    }
+  }
+
+  // Update summary box
+  $('#cart-summary-box h2').html('<sup>$</sup>' + totalCost.toFixed(2));
+  $('#cart-summary-box h1').html(totalItems);
+  if (totalCost - totalCoupon < (0 - volumeDisc)) 
+    volumeDisc = 0 - (totalCost - totalCoupon);
+  var totalSavings = totalBulkDisc + totalCoupon;
+  var cartTax           = Math.round((totalCost - totalSavings + volumeDisc) * taxPercent * 100 + 0.0001)/100;
+  var grandTotal        = cartTax + totalCost + shippingCost - totalSavings + volumeDisc;
+
+  if (g_bReg) {
+    $('#sw_cart-subtotal').html('<sup>$</sup>' + (totalCost - totalSavings) .toFixed(2));
+//    $('#sw_cart-savings').html('<font color=red><sup>$</sup>-' + totalSavings.toFixed(2)) + "</font>";
+    $('#sw_cart-tax').html('<sup>$</sup>' + cartTax.toFixed(2));
+    $('#sw_cart-volume_disc').html('<sup>$</sup>' + volumeDisc.toFixed(2));
+    $('#sw_cart-shipping').html('FREE');
+    $('#sw_cart-total').html('<sup>$</sup>' + grandTotal.toFixed(2));
+
+    $('#sw_grand_tot').val(grandTotal.toFixed(2));
+    updateFinal();
+  } else {
+    $('#cart-subtotal').html('<sup>$</sup>' + (totalCost - totalSavings).toFixed(2));
+//    $('#cart-savings').html('<font color=red><sup>$</sup>-' + totalSavings.toFixed(2)) + "</font>";
+    $('#cart-tax').html('<sup>$</sup>' + cartTax.toFixed(2));
+    $('#cart-volume_disc').html('<sup>$</sup>' + volumeDisc.toFixed(2));
+    $('#cart-shipping').html('FREE');
+    $('#cart-total').html('<sup>$</sup>' + grandTotal.toFixed(2));
+    $('#cart-summary-box h2').html('<sup>$</sup>' + grandTotal.toFixed(2));
+  }
+}

@@ -1,0 +1,2237 @@
+span.tu-update-count {
+  font-size: 11px;
+  line-height: 1;
+  position: absolute;
+  background: #ee3423;
+  border-radius: 8px;
+  padding: 2px 5px;
+  box-shadow: 0 0 3px rgba(0, 0, 0, 0.4);
+  top: 8px;
+  right: 60px;
+  color: #fff;
+}
+
+div.jewel, #side_menu_header .jewel {
+  float: right;
+  margin-right: 5px;
+  font-size: 11px;
+  line-height: 1;
+  background: #ee3423;
+  border-radius: 8px;
+  padding: 2px 5px;
+  box-shadow: 0 0 3px rgba(0, 0, 0, 0.4);
+  color: #fff;
+}
+
+.RefundWarningPane {
+	border: 2px solid #ee3423;
+	padding:5px;
+	margin:5px
+}
+
+P {
+  margin-top: 4px;
+  margin-bottom: 4px;
+  padding-top: 2px;
+  padding-bottom: 2px
+}
+
+#divMainSubTitle img {
+  display: block
+}
+
+#divTabTitle {
+  /*position:absolute;
+    width:800px;
+  overflow:scroll;
+  */
+}
+
+.manage-btn {
+  color: #b90000 !important;
+  cursor: pointer;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, .6);
+  background: #e6f0ff;
+  border: 1px solid #c3d2ed;
+  padding: 2px 8px;
+  text-decoration: none;
+  margin: 10px;
+  height: 30px;
+  border-radius: 2px;
+  position: relative;
+}
+
+.manage-btn:hover {
+  background: #f0f6ff;
+}
+
+td {
+  font-size: 7.5pt;
+  font-family: Verdana, Tahoma, Arial, Helvetica, sans-serif;
+}
+
+.newsDesc {
+  font-size: 8.5pt;
+  font-family: Verdana, Tahoma, Arial, Helvetica, sans-serif;
+}
+
+input {
+  font-size: 7.5pt;
+  font-family: Verdana, Tahoma, Arial, Helvetica, sans-serif;
+}
+
+.cbox,
+.cbox input {
+  font-size: 7.5pt;
+  font-family: Verdana, Tahoma, Arial;
+  height: 14px;
+}
+
+.inputLabel {
+  font-size: 7.5pt;
+  font-family: Verdana, Tahoma, Arial, Helvetica, sans-serif;
+  width: 55px;
+  height: 12px;
+  border: none;
+  text-align: right;
+}
+
+.inputLabelRed {
+  font-size: 7.5pt;
+  color: red;
+  font-family: Verdana, Tahoma, Arial, Helvetica, sans-serif;
+  width: 55px;
+  height: 12px;
+  border: none;
+  text-align: right;
+}
+
+.inputLabelBold {
+  font-size: 7.5pt;
+  font-weight: bold;
+  font-family: Verdana, Tahoma, Arial, Helvetica, sans-serif;
+  width: 55px;
+  height: 12px;
+  border: none;
+  text-align: right;
+}
+
+.inputLabelBoldRed {
+  font-size: 7.5pt;
+  color: red;
+  font-weight: bold;
+  font-family: Verdana, Tahoma, Arial, Helvetica, sans-serif;
+  width: 55px;
+  height: 12px;
+  border: none;
+  text-align: right;
+}
+
+.smallbold {
+  font-family: Arial, Helvetica;
+  font-weight: bold;
+  font-size: 7.5pt;
+  text-decoration: none;
+}
+
+.smallredbold {
+  color: red;
+  font-family: Arial, Helvetica;
+  font-weight: bold;
+  font-size: 7.5pt;
+  text-decoration: none;
+}
+
+.subheadlines_blk {
+  FONT-FAMILY: Verdana;
+  Font-Weight: normal;
+  COLOR: #000000;
+  font-size: 11px;
+  line-height: 1.5em;
+}
+
+.supportTeam {
+  FONT-FAMILY: Verdana;
+  Font-Weight: Bold;
+  background-color: #868D97;
+  COLOR: white;
+  font-size: 8pt;
+}
+
+.supportTeamPic {
+  FONT-FAMILY: Verdana;
+  Font-Weight: Bold;
+  background-color: #ddd;
+  COLOR: black;
+  font-size: 8pt;
+}
+
+.headlines2 {
+  FONT-FAMILY: Verdana;
+  Font-Weight: Bold;
+  COLOR: #ffcc00;
+  font-size: 9pt;
+}
+
+/* for button menu items */
+TR.btnRow TD {
+  vertical-align: middle;
+  border: 1px solid;
+  border-color: #fff #666 #666;
+  border-left: none;
+  font-size: 8pt;
+}
+
+TR.btnRow TD.btnBorder {
+  background-color: #ccc;
+  border-right: none;
+  font-size: 8pt;
+}
+
+.btnTxt {
+  font-family: arial;
+  background-color: #ddd;
+  font-weight: normal;
+  color: #000;
+  font-size: 8pt;
+}
+
+.btnTxt A:link, .btnTxt A:visited {
+  text-decoration: none;
+  color: #000;
+}
+
+.btnTxt A:hover {
+  text-decoration: none;
+  color: red;
+}
+
+/* for button menu items; RED */
+TR.btnRowRed TD {
+  vertical-align: middle;
+  border: 1px solid;
+  border-color: #fff #be2705 #be2705;
+  border-left: none;
+  font-size: 8pt;
+}
+
+TR.btnRowRed TD.btnBorderRed {
+  background-color: #be2705;
+  border-right: none;
+  font-size: 8pt;
+}
+
+.btnTxtRed {
+  font-family: arial;
+  /*	background-color: #FF6600; */
+  background-color: #d72d07;
+
+  font-weight: bold;
+  color: white;
+  font-size: 8pt;
+}
+
+.btnTxtRed A:link, .btnTxtRed A:visited {
+  text-decoration: none;
+  color: white;
+}
+
+.btnTxtRed A:hover {
+  text-decoration: none;
+  color: yellow;
+}
+
+.caltitle {
+  FONT-FAMILY: Verdana;
+  Font-Weight: Bold;
+  background-color: black;
+  COLOR: #ffcc00;
+  font-size: 7.5pt;
+}
+
+.calday {
+  FONT-FAMILY: Verdana;
+  COLOR: #0066CC;
+  background-color: #f0f0f0;
+  font-size: 7.5pt;
+}
+
+.calday td {
+  FONT-FAMILY: Verdana;
+  COLOR: #0066CC;
+  background-color: #f0f0f0;
+  font-size: 7.5pt;
+}
+
+.calday A {
+  FONT-FAMILY: Verdana;
+  COLOR: #0066CC;
+  background-color: #f0f0f0;
+  font-size: 7.5pt;
+}
+
+.calday A:visited {
+  FONT-FAMILY: Verdana;
+  background-color: #f0f0f0;
+  COLOR: #0066CC;
+}
+
+.calday A:active {
+  FONT-FAMILY: Verdana;
+  background-color: #f0f0f0;
+  COLOR: #ffcc00;
+}
+
+.calday A:hover {
+  FONT-FAMILY: Verdana;
+  background-color: #f0f0f0;
+  COLOR: #ffcc00;
+}
+
+.calfocus {
+  FONT-FAMILY: Verdana;
+  COLOR: black;
+  font-size: 7.5pt;
+}
+
+.calfocus A {
+  FONT-FAMILY: Verdana;
+  COLOR: black;
+  font-size: 7.5pt;
+}
+
+.calfocus A:visited {
+  FONT-FAMILY: Verdana;
+  COLOR: black;
+}
+
+.calfocus A:active {
+  FONT-FAMILY: Verdana;
+  COLOR: blue;
+}
+
+.calfocus A:hover {
+  FONT-FAMILY: Verdana;
+  COLOR: blue;
+}
+
+.link {
+  FONT-FAMILY: Verdana;
+  COLOR: #0066CC;
+  font-size: 8pt;
+}
+
+.link A {
+  FONT-FAMILY: Verdana;
+  COLOR: #0066CC;
+  font-size: 8pt;
+}
+
+.link A:visited {
+  FONT-FAMILY: Verdana;
+  COLOR: #0066CC;
+}
+
+.link A:active {
+  FONT-FAMILY: Verdana;
+  COLOR: #CC9900;
+}
+
+.link A:hover {
+  FONT-FAMILY: Verdana;
+  COLOR: #CC9900;
+}
+
+.body_title {
+  FONT-FAMILY: Arial;
+  font-weight: bold;
+  font-size: 14pt;
+  color: white;
+}
+
+.copyright {
+  FONT-SIZE: 7pt;
+  FONT-FAMILY: Verdana;
+  COLOR: #999999;
+}
+
+.blurb {
+  FONT-SIZE: 70%;
+  FONT-FAMILY: Verdana;
+  color: #CCCCCC;
+}
+
+.form_label {
+  font-size: 8pt;
+  font-family: verdana;
+  font-weight: normal;
+}
+
+.tuGearLink {
+  font-size: 10px;
+  font-family: verdana, arial;
+  color: #006699;
+  font-weight: bold;
+}
+
+.tuGearLink A {
+  font-size: 10px;
+  color: #006699;
+  font-weight: bold;
+  text-decoration: underline;
+}
+
+.tuGearLink A:link {
+  font-size: 10px;
+  color: #006699;
+  font-weight: bold;
+  text-decoration: underline;
+}
+
+.tuGearLink A:visited {
+  color: #006699;
+  font-weight: bold;
+  text-decoration: underline;
+}
+
+.tuGearLink A:hover {
+  color: #CC9900;
+  font-weight: bold;
+  text-decoration: none;
+}
+
+.tuGearLink A:active {
+  color: #006699;
+  font-weight: bold;
+  text-decoration: none;
+}
+
+.tuGearTab {
+  font-size: 7.5pt;
+  font-family: verdana, arial;
+  color: white;
+  font-weight: bold;
+}
+
+.tuGearTab A {
+  font-size: 7.5pt;
+  color: white;
+  font-weight: bold;
+  text-decoration: none;
+}
+
+.tuGearTab A:link {
+  font-size: 7.5pt;
+  color: white;
+  font-weight: bold;
+  text-decoration: none;
+}
+
+.tuGearTab A:visited {
+  color: white;
+  font-weight: bold;
+  text-decoration: none;
+}
+
+.tuGearTab A:hover {
+  color: yellow;
+  font-weight: bold;
+  text-decoration: none;
+}
+
+.tuGearTab A:active {
+  color: white;
+  font-weight: bold;
+  text-decoration: none;
+}
+
+.tuGearTabSel {
+  font-size: 7.5pt;
+  font-family: verdana, arial;
+  color: yellow;
+  font-weight: bold;
+  background-color: #666
+}
+
+.tuGearTabSel A {
+  font-size: 7.5pt;
+  color: yellow;
+  font-weight: bold;
+  text-decoration: none;
+  background-color: #666
+}
+
+.tuGearTabSel A:link {
+  font-size: 7.5pt;
+  color: yellow;
+  font-weight: bold;
+  text-decoration: none;
+  background-color: #666
+}
+
+.tuGearTabSel A:visited {
+  color: yellow;
+  font-weight: bold;
+  text-decoration: none;
+  background-color: #666
+}
+
+.tuGearTabSel A:hover {
+  color: yellow;
+  font-weight: bold;
+  text-decoration: none;
+  background-color: #666
+}
+
+.tuGearTabSel A:active {
+  color: yellow;
+  font-weight: bold;
+  text-decoration: none;
+  background-color: #666
+}
+
+.store_crumb {
+  font-size: 10px;
+  font-family: verdana, arial;
+  color: #cc3300;
+  font-weight: normal;
+}
+
+.store_crumb A {
+  font-size: 10px;
+  color: #cc3300;
+  font-weight: normal;
+  text-decoration: none;
+}
+
+.store_crumb A:link {
+  font-size: 10px;
+  color: #cc3300;
+  font-weight: normal;
+  text-decoration: none;
+}
+
+.store_crumb A:visited {
+  color: #cc3300;
+  font-weight: normal;
+  text-decoration: none;
+}
+
+.store_crumb A:hover {
+  color: #ff9900;
+  font-weight: normal;
+  text-decoration: none;
+}
+
+.store_crumb A:active {
+  color: #cc3300;
+  font-weight: normal;
+  text-decoration: none;
+}
+
+.store_crumb_last {
+  font-size: 11px;
+  font-family: verdana, arial;
+  color: #666666;
+  font-weight: bold;
+}
+
+.store_cat_title {
+  font-size: 20px;
+  font-family: verdana, arial;
+  color: #333333;
+  font-weight: normal;
+  margin: 10px 0
+}
+
+.store_cat_title2,
+.store_cat_title2 a {
+  font-size: 14px;
+  font-family: verdana, arial;
+  color: #006699;
+  font-weight: normal;
+  margin: 10px 0
+}
+
+.store_box_title {
+  font-size: 11px;
+  font-family: verdana, arial;
+  color: #333333;
+  font-weight: bold;
+}
+
+.store_box_link {
+  font-size: 10px;
+  font-family: verdana, arial;
+  color: #cc3300;
+  font-weight: normal;
+}
+
+.store_box_link A {
+  font-size: 10px;
+  color: #cc3300;
+  font-weight: normal;
+  text-decoration: underline;
+}
+
+.store_box_link A:link {
+  font-size: 10px;
+  color: #cc3300;
+  font-weight: normal;
+  text-decoration: underline;
+}
+
+.store_box_link A:visited {
+  color: #cc3300;
+  font-weight: normal;
+  text-decoration: underline;
+}
+
+.store_box_link A:hover {
+  color: #ff9900;
+  font-weight: normal;
+  text-decoration: none;
+}
+
+.store_box_link A:active {
+  color: #cc3300;
+  font-weight: normal;
+  text-decoration: none;
+}
+
+.store_img_roll {
+  font-size: 10px;
+  font-family: verdana, arial;
+  color: #666600;
+  font-weight: normal;
+}
+
+.store_cart_prod {
+  font-size: 12px;
+  font-family: verdana, arial;
+  color: #cc3300;
+  font-weight: bold;
+}
+
+.store_cart_prod A {
+  font-size: 12px;
+  color: #cc3300;
+  font-weight: bold;
+  text-decoration: underline;
+}
+
+.store_cart_prod A:link {
+  font-size: 12px;
+  color: #cc3300;
+  font-weight: bold;
+  text-decoration: underline;
+}
+
+.store_cart_prod A:visited {
+  color: #cc3300;
+  font-weight: normal;
+  text-decoration: underline;
+}
+
+.store_cart_prod A:hover {
+  color: #ff9900;
+  font-weight: bold;
+  text-decoration: none;
+}
+
+.store_cart_prod A:active {
+  color: #cc3300;
+  font-weight: bold;
+  text-decoration: underline;
+}
+
+.store_cart_prod_black {
+  font-size: 11px;
+  font-family: verdana, arial;
+  color: black;
+  font-weight: bold;
+  text-decoration: underline;
+}
+
+.store_cart_prod_black A {
+  font-size: 11px;
+  color: black;
+  font-weight: bold;
+  text-decoration: underline;
+}
+
+.store_cart_prod_black A:link {
+  font-size: 11px;
+  color: black;
+  font-weight: bold;
+  text-decoration: underline;
+}
+
+.store_cart_prod_black A:visited {
+  color: black;
+  font-weight: normal;
+  text-decoration: underline;
+}
+
+.store_cart_prod_black A:hover {
+  color: #ff9900;
+  font-weight: bold;
+  text-decoration: none;
+}
+
+.store_cart_prod_black A:active {
+  color: black;
+  font-weight: bold;
+  text-decoration: underline;
+}
+
+.subhead {
+  color: black;
+  font-weight: normal;
+  font-size: 9pt;
+  margin: 1px 4px;
+}
+
+.navcolor {
+  color: white;
+  background-color: #006699;
+  font-weight: bold;
+  font-size: 8pt;
+  font-family: Verdana, Tahoma, Arial, Helvetica, sans-serif;
+}
+
+.navcolor A {
+  color: white;
+  background-color: #006699;
+  font-weight: bold;
+  font-size: 8pt;
+  text-decoration: none;
+}
+
+.navcolor A:visited {
+  color: white;
+  background-color: #006699;
+  font-weight: bold;
+  font-size: 8pt;
+  text-decoration: none;
+}
+
+.navcolor A:active {
+  color: white;
+  background-color: #006699;
+  font-weight: bold;
+  font-size: 8pt;
+  text-decoration: none;
+}
+
+.navcolor A:hover {
+  color: #FFCC00;
+  background-color: #006699;
+  font-weight: bold;
+  font-size: 8pt;
+  text-decoration: none;
+}
+
+#titlebox {
+  background-image: url(images/pageheader_bg-2_top.gif);
+}
+
+#subheadbox {
+  background-image: url(images/pageheader_bg-2_bottom.gif);
+}
+
+.secondarycolor {
+  background-color: #B0C4DE;
+  background-image: url(images/sidebar_bg-2.gif);
+}
+
+.tabunselect {
+  /*	background-color: #B0C4DE; */
+  background-color: #CCCCCC;
+  font-weight: normal;
+  font-size: 8pt;
+  margin: 2px;
+}
+
+.tabunselect A {
+  color: #000000;
+  text-decoration: none
+}
+
+.tabunselect A:link {
+  color: #000000;
+  text-decoration: none
+}
+
+.tabunselect A:visited {
+  color: #000000;
+  text-decoration: none
+}
+
+.tabunselect A:hover {
+  color: red;
+  text-decoration: underline
+}
+
+.tabselect {
+  background-color: #4682B4;
+  color: #FFFFFF;
+  font-weight: bold;
+  font-size: 8pt;
+  margin: 2px;
+}
+
+.sidebar {
+  color: white;
+  font-weight: bold;
+  font-size: 8pt;
+  font-variant: small-caps;
+  vertical-align: middle;
+}
+
+.tabspace {
+  width: 2px;
+}
+
+.menuBackground {
+  background-color: #868D97;
+  FONT-FAMILY: Verdana;
+  Font-Weight: Bold;
+  COLOR: #FFFFFF;
+  TEXT-DECORATION: none
+}
+
+.menuBackground td {
+  background-color: #868D97;
+  FONT-FAMILY: Verdana;
+  Font-Weight: Bold;
+  COLOR: #FFFFFF;
+  TEXT-DECORATION: none
+}
+
+.submenuBackground {
+  background-color: #868D97;
+  FONT-FAMILY: Verdana;
+  Font-Weight: Bold;
+  COLOR: #FFFFFF;
+  TEXT-DECORATION: none
+}
+
+.submenuBackground td {
+  background-color: #868D97;
+  FONT-FAMILY: Verdana;
+  Font-Weight: Bold;
+  COLOR: #FFFFFF;
+  TEXT-DECORATION: none
+}
+
+.submenuBackground_20,
+.submenuBackground_20 td {
+  height: 20px;
+  padding: 3px 3px;
+  background-color: #868D97;
+  FONT-FAMILY: Verdana;
+  Font-Weight: Bold;
+  COLOR: #FFFFFF;
+  TEXT-DECORATION: none
+}
+
+.tabUnSel,
+.tabUnSel A,
+.tabUnSel A:link,
+.tabUnSel A:visited,
+.tabUnSel A:active,
+.tabUnSel td {
+  font-size: 7.5pt;
+  FONT-FAMILY: Verdana;
+  Font-Weight: normal;
+  TEXT-DECORATION: none;
+}
+
+.tabUnSel a:hover {
+  COLOR: yellow;
+  TEXT-DECORATION: none;
+}
+
+.tabSel,
+.tabSel A,
+.tabSel A:link,
+.tabSel A:visited,
+.tabSel A:active,
+.tabSel td {
+  font-size: 7.5pt;
+  FONT-FAMILY: Verdana;
+  Font-Weight: Bold;
+  COLOR: black;
+  TEXT-DECORATION: none;
+}
+
+.tabSel a:hover {
+  COLOR: red;
+  TEXT-DECORATION: none;
+}
+
+.submenuBackground td {
+  background-color: #868D97;
+  FONT-FAMILY: Verdana;
+  Font-Weight: Bold;
+  COLOR: #FFFFFF;
+  TEXT-DECORATION: none
+}
+
+.centerPiece {
+  background-color: white;
+  FONT-FAMILY: Verdana;
+  COLOR: black;
+  TEXT-DECORATION: none;
+}
+
+.header,
+.header A:link,
+.header A:visited,
+.header A:active {
+  font-size: 10px;
+  FONT-FAMILY: Verdana;
+  Font-Weight: Bold;
+  COLOR: #FFFFFF;
+  TEXT-DECORATION: none;
+  background-color: #868D97;
+  height: 20px;
+  padding: 4px 0;
+}
+
+.header A:hover {
+  COLOR: #333333;
+  background-color: #cccccc;
+}
+
+.alert {
+  color: red;
+  font-weight: bold;
+}
+
+.alert dt {
+  color: red;
+  font-weight: bold;
+}
+
+.cright {
+  font-size: 8pt;
+}
+
+.cright td {
+  font-size: 8pt;
+}
+
+/*----------------------------------------*/
+.dbtable {
+  background-color: #cccccc;
+}
+
+.dbtable th {
+  color: black;
+  background-color: white;
+  font-weight: bold;
+  font-size: 7.5pt;
+}
+
+.dbtable .off {
+  color: black;
+  background-color: white;
+  font-weight: normal;
+  font-size: 7.5pt;
+  text-decoration: none;
+}
+
+.dbtable .off A {
+  color: black;
+  background-color: white;
+  font-weight: normal;
+  font-size: 7.5pt;
+  text-decoration: underline;
+}
+
+.dbtable .on {
+  color: black;
+  background-color: #ADD8E6;
+  font-weight: normal;
+  font-size: 7.5pt;
+  text-decoration: none;
+}
+
+.dbtable .on A {
+  color: black;
+  background-color: #ADD8E6;
+  font-weight: normal;
+  font-size: 7.5pt;
+  text-decoration: underline;
+}
+
+.dbtable .hover {
+  background-color: black;
+  color: white;
+  font-weight: normal;
+  font-size: 7.5pt;
+}
+
+.dbtable .hover A {
+  background-color: black;
+  color: yellow;
+  font-weight: normal;
+  font-size: 7.5pt;
+}
+
+/*----------------------------------------*/
+
+.dbtable_colheader {
+  color: white;
+  background-color: #868D97;
+  font-weight: bold;
+  font-size: 7.5pt;
+}
+
+.dbtable_colheader A {
+  text-decoration: underline;
+}
+
+.dbtable_colheader A:link {
+  text-decoration: underline;
+}
+
+.dbtable_colheader A:visited {
+  color: white;
+}
+
+.dbtable_colheader A:active {
+  color: #FFD700;
+  text-decoration: none;
+}
+
+.dbtable_colheader A:hover {
+  color: #FFD700;
+  text-decoration: none;
+}
+
+.dbtable_shadow {
+  color: black;
+  background-color: #ADD8E6;
+  font-weight: normal;
+  font-size: 7.5pt;
+}
+
+.dbtable_shadow A {
+  color: black;
+  text-decoration: underline;
+}
+
+.dbtable_shadow A:link {
+  color: black;
+  text-decoration: underline;
+}
+
+.dbtable_shadow A:visited {
+  color: black;
+}
+
+.dbtable_shadow A:active {
+  color: black;
+  text-decoration: none;
+}
+
+.dbtable_shadow A:hover {
+  color: red;
+  text-decoration: none;
+}
+
+.dbtable_over {
+  color: black;
+  background-color: lightyellow;
+  font-weight: normal;
+  font-size: 7.5pt;
+}
+
+.dbtable_over A {
+  color: black;
+  text-decoration: underline;
+}
+
+.dbtable_over A:link {
+  color: black;
+  text-decoration: underline;
+}
+
+.dbtable_over A:visited {
+  color: black;
+}
+
+.dbtable_over A:active {
+  color: black;
+  text-decoration: none;
+}
+
+.dbtable_normal {
+  color: black;
+  background-color: white;
+  font-weight: normal;
+  font-size: 7.5pt;
+}
+
+.dbtable_normal A {
+  color: black;
+  text-decoration: underline;
+}
+
+.dbtable_normal A:link {
+  color: black;
+  text-decoration: underline;
+}
+
+.dbtable_normal A:visited {
+  color: black;
+}
+
+.dbtable_normal A:active {
+  color: black;
+}
+
+.dbtable_normal A:hover {
+  color: red;
+  text-decoration: none;
+}
+
+.smalltext {
+  font-family: Arial, Helvetica, sans-serif;
+  color: black;
+  font-weight: normal;
+  font-size: 9px;
+}
+
+.smalltext A,
+.smalltext A:link,
+.smalltext A:visited,
+.smalltext A:active {
+  font-family: Arial, Helvetica, sans-serif;
+  color: black;
+  font-weight: normal;
+  text-decoration: underline;
+  font-size: 9px;
+}
+
+.smalltext A:hover {
+  font-family: Arial, Helvetica, sans-serif;
+  color: red;
+  font-weight: normal;
+  text-decoration: none;
+  font-size: 9px;
+}
+
+.boxtab {
+  color: white;
+  background-color: gray;
+  font-size: 8pt;
+  font-weight: bold
+}
+
+#divCC {
+  z-index: 1;
+  visibility: visible;
+}
+
+#divCheck {
+  z-index: 1;
+  visibility: visible;
+}
+
+#divIndent20 {
+  padding: 0 0 0 20px
+}
+
+#divIndent10 {
+  padding: 0 0 0 10px
+}
+
+#divDemoBlink {
+  padding: 5px;
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 80px;
+  height: 20px;
+  color: white;
+  background-color: red;
+  font-weight: bold;
+}
+
+#divLogOutMsg {
+  padding: 2px;
+  width: auto;
+  height: auto;
+  color: white;
+  background-color: red;
+  font-size: 15px;
+  font-weight: bold;
+}
+
+#divIndent20Border {
+  border: 1px solid #cccccc;
+  padding: 0 0 0 20px;
+  margin: 2px 0 2px 0;
+}
+
+.blue_anc,
+.blue_anc a:link,
+.blue_anc a:visited,
+.blue_anc a:active,
+.blue_anc a:hover {
+  color: blue;
+  background-color: white;
+  font-weight: normal;
+  font-size: 7.5pt;
+}
+
+.blue_anc_b,
+.blue_anc_b a:link,
+.blue_anc_b a:visited,
+.blue_anc_b a:active,
+.blue_anc_b a:hover {
+  color: blue;
+  background-color: white;
+  font-weight: bold;
+  font-size: 7.5pt;
+}
+
+#divWizardStep {
+  font-family: Verdana, Tahoma, Arial, Helvetica, sans-serif;
+  color: black;
+  font-weight: bold;
+  font-size: 12pt;
+  border-bottom: 1px solid #cccccc;
+  padding: 5px;
+}
+
+#divSubMenu {
+  height: 20px;
+  padding: 4px 0 0 0;
+}
+
+#divSubMenu:hover {
+  border: 1px solid white;
+}
+
+a.tipAnchor {
+  color: black;
+  font-weight: bold;
+  font-family: verdana;
+  text-decoration: none;
+  border-bottom: 1px dashed blue;
+}
+
+a.tipAnchor:hover {
+  color: black;
+  font-weight: bold;
+  font-family: verdana;
+  text-decoration: none;
+  background-color: #ccffff;
+  border-bottom: 1px dashed blue;
+}
+
+a.EventEditLink,
+a.EventEditLink:link,
+a.EventEditLink:visited {
+  color: black;
+  font-size: 7pt;
+  font-weight: normal;
+  font-family: verdana;
+  text-decoration: none;
+}
+
+a.EventEditLink:hover {
+  color: red;
+  font-size: 7pt;
+  font-weight: normal;
+  font-family: verdana;
+  text-decoration: underline;
+}
+
+.edMeetEventTime {
+  text-align: right
+}
+
+#divTopSellTitle {
+  color: #666666;
+  font-weight: bold;
+  font-size: 12pt;
+  font-family: verdana;
+}
+
+.TopSellItem,
+.TopSellItem A,
+.TopSellItem A:visited,
+.TopSellItem A:active,
+.TopSellItem A:hover {
+  color: #cc0000;
+  font-weight: normal;
+  font-size: 8pt;
+  font-family: verdana;
+}
+
+#divBox {
+  border: 1px solid #666666;
+  padding: 2px;
+  background-color: white;
+  margin: 10px 0 0 0;
+}
+
+#divTitle {
+  font-weight: bold;
+  font-size: 12px;
+  color: white;
+  background-color: #666666;
+  padding: 4px;
+}
+
+/* For Store -------------------------- */
+#storemainNav {
+  float: left;
+  clear: left;
+  width: 100%;
+  background: #ccc url(/css/images/bg_mainNav.gif) bottom repeat-x;
+  border-top: 1px solid #fff;
+  border-bottom: 1px solid #fff;
+  border-left: 1px solid #ccc;
+  border-right: 1px solid #ccc;
+  height: 30px;
+  padding: 2px;
+}
+
+#storemainNav ul {
+  list-style: none;
+  margin-left: 5px;
+}
+
+#storemainNav ul li {
+  margin-left: 0px;
+  float: left;
+  /*		line-height: 30px; */
+  padding: 0 10px;
+  background: url(/css/images/bg_mainNav-div.gif) right no-repeat;
+}
+
+#storemainNav ul li a {
+  color: #333;
+  font-weight: bold;
+  text-decoration: none;
+}
+
+#storemainNav ul li a:hover {
+  color: #fff;
+}
+
+#storemainNav ul li.focus {
+  background: #999;
+}
+
+#storemainNav ul li.focus a {
+  color: #fff;
+}
+
+#storemainNav ul li.focus a:hover {
+  color: #fff;
+}
+
+/* For Store End -------------------------- */
+
+#divBannerMemReg {
+  font-weight: normal;
+  font-size: 9pt;
+  padding: 5px;
+  border-left: 1px solid #336699;
+  border-bottom: 3px solid #336699;
+  border-right: 3px solid #336699;
+}
+
+/* CSS For Advertisements */
+.adspace_billing_account_info_1,
+.adspace_billing_account_info_2,
+.adspace_billing_account_info_3,
+.adspace_billing_account_info_4 {
+  margin-right: 10px;
+  float: left;
+}
+
+.adspace_meet_decl_memdetail {
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+  margin-bottom: 8px;
+}
+
+.adspace_home_top_banner {
+  display: block;
+  margin-bottom: 2px;
+  margin-top: 8px;
+}
+
+/* START BUTTONS */
+#tum_button_left {
+  float: left;
+  width: 2px;
+  height: 19px;
+  margin-left: 4px;
+}
+
+#tum_button_right {
+  float: left;
+  width: 2px;
+  height: 19px;
+}
+
+#tum_button_lg_left {
+  float: left;
+  width: 4px;
+  height: 41px;
+}
+
+#tum_button_lg_right {
+  float: left;
+  width: 4px;
+  height: 41px;
+}
+
+#tum_button_gray_sm {
+  height: 21px;
+  float: left;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 11px;
+  font-weight: bold;
+  color: #555;
+  background-image: url(/img/tum/images/button_gray_back.png);
+  padding-top: 3px;
+  padding-right: 3px;
+  padding-left: 3px;
+  background-repeat: repeat-x;
+  text-align: center;
+}
+
+#tum_button_gray_sm a:hover {
+  color: #ce0000;
+  text-decoration: none;
+}
+
+.tum_button_gray_sm_link {
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 11px;
+  color: #555;
+  font-weight: bold;
+  text-align: center;
+  text-decoration: none;
+}
+
+.tum_button_gray_sm_link a:hover {
+  color: #ce0000;
+  text-decoration: none;
+}
+
+#tum_button_gray {
+  height: 21px;
+  float: left;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 11px;
+  font-weight: bold;
+  color: #555;
+  background-image: url(/img/tum/images/button_gray_back.png);
+  padding-top: 3px;
+  padding-right: 8px;
+  padding-left: 8px;
+  background-repeat: repeat-x;
+  text-align: center;
+}
+
+#tum_button_gray a:hover {
+  color: #ce0000;
+  text-decoration: none;
+}
+
+.tum_button_gray_link {
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 11px;
+  color: #555;
+  font-weight: bold;
+  text-align: center;
+  text-decoration: none;
+}
+
+.tum_button_gray_link a:hover {
+  color: #ce0000;
+  text-decoration: none;
+}
+
+#tum_button_gray_lg {
+  height: 41px;
+  float: left;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 13px;
+  font-weight: bold;
+  color: #555;
+  background-image: url(/img/tum/images/button_gray_lg_back.png);
+  padding-top: 11px;
+  padding-right: 8px;
+  padding-left: 8px;
+  background-repeat: repeat-x;
+  text-align: center;
+}
+
+#tum_button_gray_lg a:hover {
+  color: #ce0000;
+  text-decoration: none;
+}
+
+.tum_button_gray_lg_link {
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 15px;
+  color: #555;
+  font-weight: bold;
+  text-align: center;
+  text-decoration: none;
+}
+
+.tum_button_gray_lg_link a:hover {
+  color: #ce0000;
+  text-decoration: none;
+}
+
+#tum_button_red {
+  height: 21px;
+  float: left;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 11px;
+  font-weight: bold;
+  color: #ffe4e4;
+  background-image: url(/img/tum/images/button_red_back.png);
+  padding-top: 3px;
+  padding-right: 8px;
+  padding-left: 8px;
+  background-repeat: repeat-x;
+  text-align: center;
+}
+
+#tum_button_red a:hover {
+  color: #fff;
+  text-decoration: none;
+}
+
+.tum_button_red_link {
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 11px;
+  color: #ffe4e4;
+  font-weight: bold;
+  text-align: center;
+  text-decoration: none;
+}
+
+.tum_button_red_link a:hover {
+  color: #fff;
+  text-decoration: none;
+}
+
+#tum_button_green {
+  height: 21px;
+  float: left;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 11px;
+  font-weight: bold;
+  color: #e4ffec;
+  background-image: url(/img/tum/images/button_green_back.png);
+  padding-top: 3px;
+  padding-right: 8px;
+  padding-left: 8px;
+  background-repeat: repeat-x;
+  text-align: center;
+}
+
+#tum_button_green a:hover {
+  color: #fff;
+  text-decoration: none;
+}
+
+.tum_button_green_link {
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 11px;
+  color: #e4ffec;
+  font-weight: bold;
+  text-align: center;
+  text-decoration: none;
+}
+
+.tum_button_green_link a:hover {
+  color: #fff;
+  text-decoration: none;
+}
+
+#tum_button_green_lg {
+  height: 41px;
+  width: 120px;
+  float: left;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 13px;
+  font-weight: bold;
+  color: #dfffe0;
+  background-image: url(/img/tum/images/button_green_lg_back.png);
+  padding-top: 11px;
+  padding-right: 8px;
+  padding-left: 8px;
+  background-repeat: repeat-x;
+  text-align: center;
+}
+
+#tum_button_green_lg a:hover {
+  color: #fff;
+  text-decoration: none;
+}
+
+.tum_button_green_lg_link {
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 15px;
+  color: #dfffe0;
+  font-weight: bold;
+  text-align: center;
+  text-decoration: none;
+}
+
+.tum_button_green_lg_link a:hover {
+  color: #fff;
+  text-decoration: none;
+}
+
+/* END BUTTONS */
+
+/* Touchpad Live */
+.touchpad_live {
+  width: 188px;
+  padding: 10px;
+  height: 158px;
+  background: url('/img/touchpad_live/bg.jpg') center no-repeat;
+  text-align: center;
+}
+
+.touchpad_live a {
+  float: left;
+  width: 100%;
+  height: 100%;
+  color: #fff;
+  text-decoration: none;
+  font-family: "Arial Black", Gadget, sans-serif;
+  text-shadow: 0 1px 0 rgba(0, 0, 0, .7);
+  font-size: 16px;
+  line-height: 20px;
+  cursor: pointer;
+}
+
+.touchpad_meet_name {
+  display: block;
+  width: 100%;
+  padding-bottom: 5px;
+  margin-bottom: 10px;
+  border-bottom: 1px solid #666;
+}
+
+.touchpad_event_footer, .touchpad_today {
+  float: left;
+  width: 100%;
+  color: #fff;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, .5);
+  padding: 6px 0;
+  text-align: center;
+  line-height: 16px;
+  font-weight: bold;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 1);
+  -webkit-border-radius: 3px;
+  -moz-border-radius: 3px;
+  border-radius: 3px;
+  border: 1px solid #900;
+  margin-top: 10px;
+  background: #FC7979;
+  background: -moz-linear-gradient(top, #FC7979 0%, #EE2F32 4%, #AA0F14 100%);
+  background: -webkit-gradient(linear, left top, left bottom, color-stop(0%, #FC7979), color-stop(4%, #EE2F32), color-stop(100%, #AA0F14));
+  background: -webkit-linear-gradient(top, #FC7979 0%, #EE2F32 4%, #AA0F14 100%);
+  background: -o-linear-gradient(top, #FC7979 0%, #EE2F32 4%, #AA0F14 100%);
+  background: -ms-linear-gradient(top, #FC7979 0%, #EE2F32 4%, #AA0F14 100%);
+  background: linear-gradient(to bottom, #FC7979 0%, #EE2F32 4%, #AA0F14 100%);
+}
+
+.touchpad_event_header {
+  display: block;
+  width: 100%;
+  text-transform: uppercase;
+  font-size: 12px;
+  margin-bottom: 10px;
+  color: #e8e4ac;
+}
+
+.touchpad_event {
+  display: block;
+  width: 100%;
+  font-size: 30px;
+  margin-bottom: 10px;
+  color: #e8e4ac;
+}
+
+.touchpad_time {
+  display: block;
+  width: 100%;
+  font-size: 20px;
+  margin-bottom: 10px;
+  color: #e8e4ac;
+}
+
+.betalink-img {
+  background: url(/css/pro/images/try-new-ama.png) top center no-repeat;
+  width: 717px;
+  height: 54px;
+  display: inline-block;
+  margin-bottom: 5px;
+}
+
+.inner-beta-link {
+  padding: 5px 115px 5px 5px;
+  width: 50%;
+  display: inline-block;
+  float: right;
+}
+
+.dlg_memReg_addNew_button {
+  background: transparent !important;
+  border: 0 !important;
+}
+
+.dlg_memReg_addNew_button:focus {
+  outline: 0;
+}
+
+.dlg_memReg_addNew_button span.ui-button-text {
+  background: url('/v2/images/add.png') left no-repeat;
+  padding-left: 28px;
+  position: relative;
+  font-weight: normal;
+}
+
+.dlg_memReg_addNew_button span.ui-button-text:hover {
+  background: url('/v2/images/add-over.png') left no-repeat;
+}
+
+.dlg_ok_button {
+  padding: 9px 15px 8px 15px;
+  font-size: 12px;
+  line-height: 12px;
+  text-shadow: 0 1px 0 rgba(0, 0, 0, .6);
+  border: 1px solid #154a9e !important;
+  border-radius: 3px;
+  text-decoration: none;
+  font-family: Helvetica, Arial, sans-serif;
+  background: #3366cc !important;
+  cursor: pointer;
+  margin: 0;
+  white-space: nowrap;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+}
+
+.dlg_ok_button span {
+  color: #fff !important;
+  font-weight: normal;
+}
+
+.dlg_ok_button:hover {
+  background: #4b83db !important;
+}
+
+.deadline-passed {
+  padding: 5px;
+  margin: 10px auto;
+  background-color: red;
+  color: white;
+  font-weight: bold;
+  font-size: 14px;
+  border-radius: 4px;
+  -moz-border-radius: 4px;
+  -webkit-border-radius: 4px;
+}
+
+.event-restriction-table {
+  border: 1px solid #ccc;
+  width: 100%;
+  border-spacing: 0;
+  border-collapse: collapse;
+  background: #fff;
+}
+
+.description-table, .main-acct-event-info {
+  border-spacing: 0;
+  border-collapse: collapse;
+  width: 100%;
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+.description-table td {
+  padding: 3px 8px 8px 10px;
+  width: 25%;
+  vertical-align: top;
+  font-size: 12px;
+}
+
+.main-acct-event-info td {
+  padding: 3px 8px 8px 10px;
+  width: 25%;
+  vertical-align: top;
+  font-size: 12px;
+}
+
+.athlete-info-table td {
+  padding: 3px 8px 8px 10px;
+  width: 33.3%;
+  vertical-align: top;
+  font-size: 12px;
+}
+
+.main-acct-event-info td:nth-child(2) {
+  width: 50%;
+}
+
+.main-acct-event-info textarea {
+  border-radius: 4px;
+  -moz-border-radius: 4px;
+  -webkit-border-radius: 4px;
+  border-color: #bbb;
+}
+
+.description-table th, .main-acct-event-info th, .athlete-info-table th {
+  padding: 10px 8px 0;
+  color: #777;
+  font-size: 12px;
+  font-weight: normal;
+  text-align: left;
+}
+
+.event-title {
+  background: #ddd;
+  color: #333;
+  font-size: 16px !important;
+  padding-top: 10px !important;
+  padding-bottom: 10px !important;
+  font-weight: bold;
+}
+
+.sub-info {
+  font-size: 10px;
+  clear: both;
+  display: block;
+}
+
+.event-restriction-table td {
+  padding: 8px 15px;
+  border-bottom: 1px solid #ccc;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 12px;
+}
+
+.alerts-wrap {
+  color: #a94442;
+  font-weight: bold;
+  font-size: 12px;
+  text-align: center;
+  background-color: #f2dede;
+  border: 1px solid #ebccd1;
+  padding: 10px;
+  width: 90%;
+  border-radius: 8px;
+  -moz-border-radius: 8px;
+  -webkit-border-radius: 8px;
+  display: table;
+  margin: 10px auto;
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+.alerts-wrap a {
+  color: #fff;
+  background: red;
+  border: 1px solid #b70000;
+  border-radius: 6px;
+  -moz-border-radius: 6px;
+  -webkit-border-radius: 6px;
+  padding: 3px 8px;
+  font-size: 12px;
+  font-weight: normal;
+  letter-spacing: .04em;
+  line-height: 1em;
+  text-decoration: none;
+}
+
+.alerts-message {
+  display: table;
+  width: 100%;
+}
+
+.event-dbtable .dbtable2 {
+  background-color: #fff;
+  border-spacing: 0;
+  border-collapse: collapse;
+}
+
+.event-dbtable .dbtable2 th {
+  color: #777;
+  padding: 10px 10px 0;
+  font-size: 12px;
+  font-weight: normal;
+}
+
+.event-dbtable .dbtable2 td:first-child {
+  padding: 8px 5px;
+}
+
+.event-dbtable .dbtable2 td {
+  padding: 8px 10px;
+  border-bottom: 1px solid #ccc;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 12px;
+}
+
+.small-alert * {
+  font-size: 12px !important;
+}
+
+.small-alert span a {
+  font-size: 12px !important;
+  padding: 0;
+  color: red;
+  background: transparent;
+  border: none;
+  font-weight: bold;
+}
+
+/* UI Grid Fix on table */
+
+.ui-jqgrid tr.ui-row-ltr td {
+  vertical-align: middle;
+
+}
+
+.vm_invite_wrap {
+  padding: 10px;
+  background: #eee;
+}
+
+.vm_date {
+  font-weight: bold;
+  font-size: 14px;
+  font-family: Verdana, Tahoma, Arial, Helvetica, sans-serif;
+}
+
+.vm_event_name {
+  color: #0077b3;
+  font-weight: bold;
+  font-size: 26px;
+  margin-top: 10px;
+  font-family: Verdana, Tahoma, Arial, Helvetica, sans-serif;
+}
+
+.vm_event_descr {
+  font-size: 12px;
+  margin: 5px;
+  font-family: Verdana, Tahoma, Arial, Helvetica, sans-serif;
+}
+
+.vm_banner {
+  margin-left: 5px;
+}
+
+#divEventCat {
+  padding: 3px;
+  margin: 0;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  -moz-border-radius: 4px;
+  -webkit-border-radius: 4px;
+  background-color: #eee;
+  width: 100%;
+}
+
+.edit-links-wrap {
+  margin: 0 10px 10px;
+}
+
+.entry h3 {
+  margin-top: 0 !important;
+  position: relative;
+  font-family: arial, helvetica, sans-serif;
+  font-weight: normal;
+}
+
+.entry h3 > a {
+  display: inline-block;
+  max-width: 600px;
+}
+
+.cb_touchpad, #del {
+  font-size: 12px;
+  float: left;
+  margin-top: 5px;
+}
+
+.event-title-link {
+  font-size: 26px;
+  line-height: 26px;
+}
+
+.event-date {
+  font-size: 14px;
+  color: #333;
+  clear: both;
+  display: block;
+}
+
+.event-images {
+  margin-top: 5px;
+}
+
+.vm-banner-img {
+  margin: 10px 10px 10px 5px;
+}
+
+.vm-banner-img img {
+  width: 100%;
+  height: auto;
+}
+
+.btn-wrap {
+  margin-left: 90px;
+}
+
+.event-descr {
+  font-size: 14px;
+}
+
+.event-heading {
+  margin-top: 5px;
+  clear: both;
+  display: table;
+  width: 100%;
+}
+
+h2.event-title-left {
+  float: left;
+  display: inline;
+}
+
+.event-details-img {
+  display: inline;
+  float: right;
+}
+
+.event-descr-wrap {
+  display: inline-block;
+  clear: right;
+}
+
+.event-descr-wrap h3 {
+  margin-top: 5px !important;
+}
+
+.event-descr-wrap h3, .event-descr-wrap p {
+  max-width: 570px;
+}
+
+.forms-docs h3, .photos h3 {
+  margin-top: 0 !important;
+  font-family: arial, helvetica, sans-serif;
+}
+
+.event-banner {
+  margin-top: 10px;
+  margin-bottom: 10px;
+}
+
+.clearfix {
+  display: block;
+  clear: both;
+}
+
+ul.document-list {
+  padding-left: 10px;
+}
+
+ul.document-list input[type=checkbox] {
+  padding: 0 10px 0 0;
+  margin-top: 2px !important;
+}
+
+ul.document-list > li > a {
+  text-decoration: none;
+  color: #5fa8dc;
+  font-size: 14px;
+}
+
+ul.document-list > li > a:hover {
+  color: #5293c0;
+}
+
+ul.document-list > li {
+  display: block;
+  clear: left;
+  margin-bottom: 10px;
+}
+
+.inline30 {
+  float: left;
+  display: inline-block;
+  width: 33.333%;
+  /*		margin-right: 2%; */
+}
+
+.inline30 input[type=checkbox] {
+  display: block;
+  clear: both;
+  float: none !important;
+}
+
+.inline30 img {
+  display: block;
+  margin: 15px auto;
+  max-width: 80%;
+  max-height: 100px;
+  min-height: 100px;
+  border-radius: 4px;
+}
+
+.img-name {
+  display: block;
+  text-align: center;
+  font-size: 14px;
+  margin-top: 10px;
+  color: #777;
+  font-family: arial, helvetica, sans-serif;
+}
+
+.del-input-wrap {
+  position: relative;
+  background: #ddd;
+  padding: 2px;
+  margin: 5px;
+}
+
+.del-input-wrap:after {
+  content: '';
+  position: absolute;
+  width: 0;
+  height: 0;
+  border-left: 10px solid transparent;
+  border-right: 10px solid transparent;
+  border-top: 6px solid #ddd;
+  left: 50%;
+  margin-left: -10px;
+  top: 24px;
+}
+
+.ui-dialog {
+  z-index: 152;
+}
+
+.ui-tabs .ui-tabs-nav li.ui-tabs-active {
+  padding-bottom: 0 !important
+}
+
+ul.footer-links {
+  padding: 0;
+  margin: 10px 0 0;
+  list-style: none;
+}
+
+ul.footer-links > li {
+  display: inline-block;
+}
+
+ul.footer-links > li + li {
+  border-left: 1px solid;
+}
+
+ul.footer-links > li > a {
+  padding: 4px 10px;
+  font-size: 12px;
+  margin: 0 3px 0 6px;
+  color: #ee3423;
+  /* Permalink - use to edit and share this gradient: http://colorzilla.com/gradient-editor/#fcfcfc+89,dddddd+100 */
+  background: rgb(252, 252, 252); /* Old browsers */
+  background: -moz-linear-gradient(top, rgba(252, 252, 252, 1) 89%, rgba(221, 221, 221, 1) 100%); /* FF3.6-15 */
+  background: -webkit-linear-gradient(top, rgba(252, 252, 252, 1) 89%, rgba(221, 221, 221, 1) 100%); /* Chrome10-25,Safari5.1-6 */
+  background: linear-gradient(to bottom, rgba(252, 252, 252, 1) 89%, rgba(221, 221, 221, 1) 100%); /* W3C, IE10+, FF16+, Chrome26+, Opera12+, Safari7+ */
+  filter: progid:DXImageTransform.Microsoft.gradient(startColorstr='#fcfcfc', endColorstr='#dddddd', GradientType=0); /* IE6-9 */
+  border-radius: 3px;
+  box-shadow: 0 1px 10px rgba(0, 0, 0, 0.2);
+  -moz-transition: all 0.2s;
+  -webkit-transition: all 0.2s;
+  transition: all 0.2s;
+}
+
+ul.footer-links > li > a:hover {
+  color: #ce301e !important;
+  /* Permalink - use to edit and share this gradient: http://colorzilla.com/gradient-editor/#dddddd+0,fcfcfc+51 */
+  background: rgb(221, 221, 221); /* Old browsers */
+  background: -moz-linear-gradient(top, rgba(221, 221, 221, 1) 0%, rgba(252, 252, 252, 1) 51%); /* FF3.6-15 */
+  background: -webkit-linear-gradient(top, rgba(221, 221, 221, 1) 0%, rgba(252, 252, 252, 1) 51%); /* Chrome10-25,Safari5.1-6 */
+  background: linear-gradient(to bottom, rgba(221, 221, 221, 1) 0%, rgba(252, 252, 252, 1) 51%); /* W3C, IE10+, FF16+, Chrome26+, Opera12+, Safari7+ */
+  filter: progid:DXImageTransform.Microsoft.gradient(startColorstr='#dddddd', endColorstr='#fcfcfc', GradientType=0); /* IE6-9 */
+
+}
+
+#TB_window {
+  z-index: 151;
+}
+
+.USA-reg-year {
+  display: inline-block;
+  float: right;
+  margin-right: 5px;
+  background: url(/img/USA-swimming-reg-year.png) no-repeat center;
+  background-size: contain;
+  width: 60px;
+  height: 25px;
+  font-family: "Helvetica Neue", Arial, sans-serif;
+  font-weight: bold;
+  font-size: 13px;
+  letter-spacing: -0.1em;
+  margin-top: -5px;
+  margin-bottom: -10px;
+  padding: 5px 11px;
+  text-align: right;
+  color: #fff;
+}
+
+.USA-reg-year.legacy {
+  width: 39px;
+  height: 15px;
+  float: none;
+  display: block;
+  margin-top: 4px;
+  margin-bottom: 3px;
+  line-height: 15px;
+}
+.lesson-class-reg {
+	text-align: center;
+	font-size: 14px;
+	color: #A94442;
+}
+.lesson-class-notes {
+	clear: both;
+	padding: 0 15px 0 15px;
+}
+#tu_tabs2 .ui-state-active {
+	border: 1px solid #c5c5c5;
+}
+#tu_tabs2 .ui-state-active a {
+  color: #000;
+  font-weight: bold;
+}
+#colMain .ui-tabs ul.ui-tabs-nav {
+  display: flex;
+  justify-content: flex-start;
+  flex-wrap: wrap;
+}

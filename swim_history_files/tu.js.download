@@ -1,0 +1,75 @@
+var timeout	= 500;
+var closetimer	= 0;
+var ddmenuitem	= 0;
+
+// open hidden layer
+function mopen(id)
+{
+	// cancel close timer
+	mcancelclosetime();
+
+	// close old layer
+	if(ddmenuitem) ddmenuitem.style.visibility = 'hidden';
+
+	// get new layer and show it
+	ddmenuitem = document.getElementById(id);
+	ddmenuitem.style.visibility = 'visible';
+}
+
+// close showed layer
+function mclose()
+{
+	if(ddmenuitem) ddmenuitem.style.visibility = 'hidden';
+}
+
+// go close timer
+function mclosetime()
+{
+	closetimer = window.setTimeout(mclose, timeout);
+}
+
+// cancel close timer
+function mcancelclosetime()
+{
+	if(closetimer)
+	{
+		window.clearTimeout(closetimer);
+		closetimer = null;
+	}
+}
+
+// Deal with mobile browsers onclick event
+function mbrowser(id, event)
+{
+	ddmenuitem = document.getElementById(id);
+
+	if (navigator.userAgent.indexOf('iPhone') != -1 || navigator.userAgent.indexOf('iPad') != -1 || navigator.userAgent.indexOf('iPod') != -1 || navigator.userAgent.indexOf('Android') != -1) {
+		if (ddmenuitem.style.visibility == 'visible') {
+			return true;
+		}
+		mopen(id);
+		event.preventDefault();
+	    return false;
+	} else {
+	    return true;
+	}
+}
+
+// Capture and deal with mouseover event first
+function mover(id, event)
+{
+	if (navigator.userAgent.indexOf('iPhone') != -1 || navigator.userAgent.indexOf('iPad') != -1 || navigator.userAgent.indexOf('iPod') != -1 || navigator.userAgent.indexOf('Android') != -1) {
+		event.preventDefault();
+	    return false;
+	} else {
+		mopen(id);
+	    return true;
+	}
+}
+
+var enableMultipleSelectedOptions = function(elementIds, size) {
+    elementIds.forEach(function(elementId) {
+        $(elementId).attr('multiple', true);
+        $(elementId).attr('size', size);
+    });
+  }

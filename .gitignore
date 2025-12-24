@@ -1,0 +1,79 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual environments
+.venv
+venv/
+ENV/
+
+# Streamlit
+.streamlit/
+
+# Data files (too large or personal)
+swim_history.html
+raw_swim_data.csv
+clean_swim_data.xlsx
+graded_swim_data.xlsx
+Swim_Dashboard.xlsx
+
+# User data (personal information)
+# IMPORTANT: Only commit template versions, not actual data
+# Uncomment these if you want to keep your actual data private:
+# high_school_swims.csv
+# goals.csv
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Logs
+*.log
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Jupyter Notebooks
+.ipynb_checkpoints/
+*.ipynb
+
+# pytest
+.pytest_cache/
+.coverage
+htmlcov/
+
+# mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Temporary files
+*.tmp
+*.bak
+*.backup

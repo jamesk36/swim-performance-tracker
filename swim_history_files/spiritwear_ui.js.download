@@ -1,0 +1,301 @@
+var dropdown = null;
+var cartDropdown = null;
+var dropdownHidden = false;
+var detailSpinner = null;
+var numInterval = null;
+var itemAddedPopup = null;
+
+var sw_team_dir;
+var sw_cookie_type;
+var sw_store_id;
+var sw_order_type = 0;
+
+function swSetFrameHeight() {
+  if (typeof top.setFrameHeight == 'function')
+    top.setFrameHeight($(document).height());
+}
+
+function swLoadCartDropDown() {
+  $('#cart-dropdown').load('/Bind/SwCartEmbed.jsp?team=' + sw_team_dir + '&cookie_type=' + sw_cookie_type + '&order_type=' + sw_order_type, '&store_id=' + sw_store_id);
+  swUpdateCartCountSpan();
+}
+
+function swUpdateCartCountSpan() {
+  setTimeout(function() { 
+    var txt = $('#cart-dropdown-count').text(); 
+    if (txt) 
+      $('#header_cart_items').text(txt);
+  }, 500);
+}
+
+function swTopNavInit(team_dir, cookie_type, store_id, order_type) {
+  if ($.browser.msie && parseInt($.browser.version, 10) <= 8)
+    $('#eventbanner').css({
+      'background': '#EAA200'
+    });
+
+  swDisableEnter();
+  sw_team_dir = team_dir;
+  sw_cookie_type = cookie_type;
+  sw_store_id = store_id;
+  sw_order_type = order_type;
+  $("ul.topnav li a").hover(function() {
+    $(this).parent().find("ul.subnav").slideDown('fast').show(); //Drop down the subnav on click
+
+    $(this).parent().hover(function() {
+    }, function(){  
+      $(this).parent().find("ul.subnav").slideUp('slow'); //When the mouse hovers out of the subnav, move it back up
+    });
+
+    }).hover(function() { 
+      $(this).addClass("subhover"); //On hover over, add class "subhover"
+    }, function(){  //On Hover Out
+      $(this).removeClass("subhover"); //On hover out, remove class "subhover"
+  });
+  itemAddedPopup = $('#item-added-popup');
+  swCartInit();
+  setTimeout('swSetFrameHeight()', 200);
+  
+  popboxInit();
+
+}
+
+function popboxInit() {
+  $('.popboxtrigger').click(function() {
+    var detailID = $(this).attr('href').replace('#','');
+
+    if (detailID.indexOf('popSizing') == 0) {
+      var arr = detailID.split("_");
+      if (arr.length >= 2)
+        $('#'+detailID).load('/Bind/SwStoreSizeChart.jsp?team=' + sw_team_dir + "&prod_id=" + arr[1]);
+    }
+    
+    $('#'+detailID).fadeIn('slow');
+    $(".innerpage").css("opacity", ".25");
+    $('#'+detailID).show();
+    $("#designselector").css("opacity", ".25");
+      
+    return false;
+  });
+  $('.close').click(function() {
+    $(this).parent('.popbox').fadeOut('slow');
+    $(".innerpage").css("opacity", "1");
+    $("#designselector").css("opacity", "1");
+    $("#cart-content").css("opacity", "1");
+    return false;
+  });
+  $('body').click(function() {
+    $('.popbox').not('.nobodyclose').fadeOut('slow');
+    $(".innerpage").css("opacity", "1");
+    $("#designselector").css("opacity", "1");
+    $("#cart-content").css("opacity", "1");
+  });
+}
+
+function swToolbarInit() {
+  $('.toolbar .viewThumb').click(function() {
+    $('.toolbar a').removeClass('active');
+    $(this).toggleClass('active', '');
+    $('.categoryList').attr('class', 'category');
+    return false;
+  });
+  $('.toolbar .viewList').click(function() {
+    $('.toolbar a').removeClass('active');
+    $(this).toggleClass('active', '');
+    $('.category').attr('class', 'categoryList');
+    return false;
+  });
+  $('.category li').mouseenter(productOverHandler);
+  $('.category li').mouseleave(productOutHandler);
+}
+
+function swCartInit() {
+  dropdown = $('#dropdown');
+  cartDropdown = $('#cart-dropdown');
+
+  $('.cart').bind('mouseenter', showCartDropdown);
+
+  cartDropdown.bind('mouseleave', hideCartDropdown);
+  $('.cart-dropdown-item').click(function(event){
+    window.location.href = $(event.currentTarget).find('.product-url').attr('value');
+  });
+  swLoadCartDropDown();
+}
+
+function initSpinner() {
+  var opts = {
+    lines: 16, // The number of lines to draw
+    length: 0, // The length of each line
+    width: 2, // The line thickness
+    radius: 19, // The radius of the inner circle
+    color: '#1b1d1d', // #rgb or #rrggbb
+    speed: 1.4, // Rounds per second
+    trail: 100, // Afterglow percentage
+    shadow: false // Whether to render a shadow
+  };
+  var target = document.getElementById('image-loading-spinner');
+  var spinner = new Spinner(opts).spin(target);
+
+  detailSpinner = $('#image-loading-spinner');
+  detailSpinner.css('opacity', 0);
+}
+
+function initSocialPopup() {
+  var popup = $('#social-popup');
+  var button = $('#social-icons');
+
+  button.mouseenter(function(){
+    popup.stop().css({'display': 'block', 'margin-top': 10}).animate({
+      'opacity':    1,
+      'margin-top':   0
+    }, 300, 'easeOutQuint');
+
+    popup.mouseleave(function(){
+      popup.stop().animate({
+        'opacity': 0
+      }, 200, function(){
+        popup.hide();
+      });
+    });
+  });
+}
+
+function onCartProd(cookieKey) {
+  top.location.href = '/SpiritWear.jsp?team=' + sw_team_dir + '&page=Prod' + '&store_id=' + sw_store_id + '&ckey=' + cookieKey;
+}
+
+
+
+function productOverHandler(event)
+{
+  var target = $(event.currentTarget);
+
+  target.find('.wall').stop().animate({
+    'height':           126,
+    'background-color':       '#fff'
+  }, 400, 'easeOutQuint');
+
+  target.find('.preview').stop().animate({
+    'top':            -16,
+    'margin-top':         -55
+  }, 400, 'easeOutQuint');
+
+  target.find('.product-blurb').hide();
+  target.find('.product-description').fadeIn(300);
+  target.find('.btn').show();
+}
+
+function productOutHandler(event)
+{
+  var target = $(event.currentTarget);
+
+  target.find('.wall').stop().animate({
+    'height':           55,
+    'margin-top':         0,
+    'background-color':       '#eee'
+  }, 400, 'easeOutExpo');
+
+  target.find('.preview').stop().animate({
+    'top':            0,
+    'margin-top':         0
+  }, 400, 'easeOutExpo');
+
+  target.find('.product-blurb').fadeIn(300);
+  target.find('.product-description').hide();
+  target.find('.btn').hide();
+}
+
+//function initHoverStates()
+//{
+//
+//  var whiteFlushButtons = $('.btn');
+//  whiteFlushButtons.css({
+//    'box-shadow': '0px 1px 0px #ffffff'
+//  });
+//
+//  whiteFlushButtons.mouseenter(function(event){
+//    var target = $(event.currentTarget);
+//    target.stop().animate({
+//      'box-shadow': '0px 4px 8px #ccc'
+//    }, 200);
+//  });
+//
+//  whiteFlushButtons.mouseleave(function(event){
+//    var target = $(event.currentTarget);
+//    target.stop().animate({
+//      'box-shadow': '0px 1px 0px #ffffff'
+//    }, 200);
+//  });
+//
+//  // TU
+//  $('.tubtn_red').css('font-weight', "bold");
+//  $('.tubtn_red').css('color', "white");
+//  $('.tubtn_red').css('padding', "5px 20px");
+//  //--------------
+//}
+
+function addCartItemRollovers() {
+  $('#cart-dropdown .cart-dropdown-item').mouseenter(function(event){
+    $(event.currentTarget).stop().animate({
+      'background-color':   '#f3f3f3'
+    }, 300);
+  });
+
+  $('#cart-dropdown .cart-dropdown-item').mouseleave(function(event){
+    $(event.currentTarget).stop().animate({
+      'background-color':   '#ffffff'
+    }, 400);
+  });
+}
+
+function showCartDropdown(event) {
+  hideDropdown();
+  addCartItemRollovers();
+
+  $('#cart-dropdown-items').hide();
+
+  cartDropdown.css('opacity', 0).show().stop().animate({
+    opacity:    1
+  }, 200, 'easeOutQuint', function(){
+    $('#cart-dropdown-items').slideDown(300);
+  });
+}
+
+function hideCartDropdown(event) {
+  $('#cart-dropdown-items').slideUp(200, function(){
+    cartDropdown.stop().animate({
+      opacity:    0
+    }, 300, 'easeOutQuint', function(){
+      cartDropdown.hide();
+    });
+  });
+}
+
+function showDropdown() {
+  if(dropdownHidden == true) 
+  {
+    dropdownHidden = false;
+    dropdown.stop().animate({
+      top:        70
+    }, 400, 'easeOutQuint');
+  }
+}
+
+function hideDropdown() {
+  if(dropdownHidden == false) 
+  {
+    dropdownHidden = true;
+    dropdown.stop().animate({
+      top:        -300
+    }, 250, 'easeInQuint');
+  }
+}
+
+function swDisableEnter() {
+  $("input").keypress(function (evt) {
+  var charCode = evt.charCode || evt.keyCode;
+  if (charCode  == 13) { //Enter key's keycode
+    return false;
+  }
+  });
+}

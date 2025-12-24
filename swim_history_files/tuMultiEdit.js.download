@@ -1,0 +1,48 @@
+function multiEditField(checkboxField, valueField, label) {
+  this.checkboxField = checkboxField;
+  this.valueField = valueField;
+  this.label = label;
+}
+
+function checkErrorField(f, label) {
+  if (!f.value || f.value < 0) {
+    alert("Please enter [" + label + "].");
+    return false;
+  }
+  else
+    return true;
+}
+
+function checkError(fields) {
+
+  var anyChecked = false;
+  for (i = 0; i < fields.length; i++) {
+    if (fields[i].checkboxField.checked) {
+      anyChecked = true;
+      break;
+    }
+  }
+  if (!anyChecked) {
+    alert('Please select at least one item to change!');
+    return false;
+  }
+  for (i = 0; i < fields.length; i++) {
+    if (fields[i].checkboxField.checked && !checkErrorField(fields[i].valueField, fields[i].label))
+    return false;
+  }
+  return true;
+}
+
+function onToggleSel(divId, bShow) {
+  divShow(divId, bShow);
+  return;
+}
+
+function onCheckErrorAndSubmit(fields) {
+  if (!checkError(fields))
+    return;
+  if (!confirm('Do you really want to make the changes now?'))
+    return;
+  frm.submit();
+}
+

@@ -1,0 +1,374 @@
+/* Template CSS: /v2/util/widgets/AccountSelectionDialog.xhtml */
+body .DynamicTemplate_v2_util_widgets_AccountSelectionDialog_xhtml {
+  width: 45em;
+  max-height: 60em;
+  overflow: hidden;
+}
+body .DynamicTemplate_v2_util_widgets_AccountSelectionDialog_xhtml .AnonId__v2_util_widgets_AccountSelectionDialog_xhtml_filterView {
+  width: 30em;
+  padding: 1em;
+}
+body .DynamicTemplate_v2_util_widgets_AccountSelectionDialog_xhtml .AnonId__v2_util_widgets_AccountSelectionDialog_xhtml_accountSelectionView,
+body .DynamicTemplate_v2_util_widgets_AccountSelectionDialog_xhtml .AnonId__v2_util_widgets_AccountSelectionDialog_xhtml_accountSelectionView .AnonId_mainContainer {
+  overflow: hidden;
+}
+body .DynamicTemplate_v2_util_widgets_AccountSelectionDialog_xhtml .AnonId__v2_util_widgets_AccountSelectionDialog_xhtml_accountSelectionView .AnonId_dataTableContainer {
+  overflow: auto;
+}
+body .DynamicTemplate_v2_util_widgets_AccountSelectionDialog_xhtml .AnonId__v2_util_widgets_AccountSelectionDialog_xhtml_accountSelectionView,
+body .DynamicTemplate_v2_util_widgets_AccountSelectionDialog_xhtml .AnonId__v2_util_widgets_AccountSelectionDialog_xhtml_accountSelectionView .AnonId_mainContainer,
+body .DynamicTemplate_v2_util_widgets_AccountSelectionDialog_xhtml .AnonId__v2_util_widgets_AccountSelectionDialog_xhtml_accountSelectionView .AnonId_dataTableContainer {
+  flex: 1 1 1em;
+  -webkit-flex: 1 1 1em;
+}
+
+
+/* Template CSS: /v2/util/widgets/AccountSelectionView.xhtml */
+body .DynamicTemplate_v2_util_widgets_AccountSelectionView_xhtml > * + * {
+  margin-top: 1em;
+}
+.DynamicTemplate_v2_util_widgets_AccountSelectionView_xhtml .AnonId__v2_util_widgets_AccountSelectionView_xhtml_mainContainer .Unused {
+  display: none;
+}
+.DynamicTemplate_v2_util_widgets_AccountSelectionView_xhtml .AnonId__v2_util_widgets_AccountSelectionView_xhtml_mainContainer {
+  margin-top: 0em;
+}
+.DynamicTemplate_v2_util_widgets_AccountSelectionView_xhtml .AnonId__v2_util_widgets_AccountSelectionView_xhtml_mainContainer > * {
+  margin-top: 1em;
+}
+.DynamicTemplate_v2_util_widgets_AccountSelectionView_xhtml .AnonId__v2_util_widgets_AccountSelectionView_xhtml_propertiesWidget {
+  align-items: flex-end;
+}
+.DynamicTemplate_v2_util_widgets_AccountSelectionView_xhtml .AnonId__v2_util_widgets_AccountSelectionView_xhtml_propertiesWidget .AnonId_editorsContainer {
+  flex-direction: row;
+  -webkit-flex-direction: row;
+  display: flex;
+}
+.DynamicTemplate_v2_util_widgets_AccountSelectionView_xhtml .AnonId__v2_util_widgets_AccountSelectionView_xhtml_propertiesWidget .AnonId_editorsContainer > * + * {
+  margin-left: 1em;
+  margin-top: 0em;
+}
+.DynamicTemplate_v2_util_widgets_AccountSelectionView_xhtml .AnonId__v2_util_widgets_AccountSelectionView_xhtml_propertiesWidget .AnonId_editorsContainer .widget_ComplexEditor.EditorBox {
+  flex-direction: row;
+  -webkit-flex-direction: row;
+  display: flex;
+}
+.DynamicTemplate_v2_util_widgets_AccountSelectionView_xhtml .AnonId__v2_util_widgets_AccountSelectionView_xhtml_propertiesWidget .AnonId_editorsContainer .widget_ComplexEditor.EditorBox > * + * {
+  margin-left: 1em;
+  margin-top: 0em;
+}
+.DynamicTemplate_v2_util_widgets_AccountSelectionView_xhtml .widget_DataTable > table td > .CellContentWrapper > hbox {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+body .DynamicTemplate_v2_util_widgets_AccountSelectionView_xhtml.InfiniteScroll .AnonId__v2_util_widgets_AccountSelectionView_xhtml_paginator {
+  display: none;
+}
+.DynamicTemplate_v2_util_widgets_AccountSelectionView_xhtml .AnonId__v2_util_widgets_AccountSelectionView_xhtml_dataTableContainer table td:not(:first-child),
+.DynamicTemplate_v2_util_widgets_AccountSelectionView_xhtml .AnonId__v2_util_widgets_AccountSelectionView_xhtml_dataTableContainer table th:not(:first-child) > * > * {
+  border-left: solid 1px #DDD;
+  box-sizing: border-box;
+}
+.DynamicTemplate_v2_util_widgets_AccountSelectionView_xhtml .AnonId__v2_util_widgets_AccountSelectionView_xhtml_dataTableContainer table tbody > tr:nth-child(2n+1) > td {
+  background-color: rgba(0, 0, 0, 0.02);
+}
+.DynamicTemplate_v2_util_widgets_AccountSelectionView_xhtml .AnonId__v2_util_widgets_AccountSelectionView_xhtml_dataTableContainer {
+  margin-top: 0em;
+}
+.DynamicTemplate_v2_util_widgets_AccountSelectionView_xhtml .AnonId__v2_util_widgets_AccountSelectionView_xhtml_extraDataTableHeader {
+  justify-content: flex-end;
+  padding-top: 0.2em;
+  padding-bottom: 0em;
+  color: #469ADB;
+  font-weight: bold;
+}
+.DynamicTemplate_v2_util_widgets_AccountSelectionView_xhtml .AnonId__v2_util_widgets_AccountSelectionView_xhtml_extraDataTableHeader a {
+  flex-direction: row;
+  -webkit-flex-direction: row;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  font-size: 0.9em;
+  padding: 0.2em 0em;
+}
+.DynamicTemplate_v2_util_widgets_AccountSelectionView_xhtml .AnonId__v2_util_widgets_AccountSelectionView_xhtml_extraDataTableHeader a:hover {
+  text-decoration: underline;
+}
+.DynamicTemplate_v2_util_widgets_AccountSelectionView_xhtml .AnonId__v2_util_widgets_AccountSelectionView_xhtml_extraDataTableHeader a icon {
+  font-size: 1.5em;
+  font-weight: normal;
+  margin-right: 0.2em;
+}
+.DynamicTemplate_v2_util_widgets_AccountSelectionView_xhtml .AnonId__v2_util_widgets_AccountSelectionView_xhtml_actionRow {
+  align-items: center;
+  margin-bottom: 0.5em;
+}
+.DynamicTemplate_v2_util_widgets_AccountSelectionView_xhtml .AnonId__v2_util_widgets_AccountSelectionView_xhtml_actionRow .AnonId__v2_util_widgets_AccountSelectionView_xhtml_propertiesWidget .AnonId_textTitle {
+  display: none;
+}
+.DynamicTemplate_v2_util_widgets_AccountSelectionView_xhtml .AnonId__v2_util_widgets_AccountSelectionView_xhtml_actionRow .AnonId__v2_util_widgets_AccountSelectionView_xhtml_propertiesWidget input.AnonId_textInput {
+  min-width: 16em;
+}
+.DynamicTemplate_v2_util_widgets_AccountSelectionView_xhtml .AnonId__v2_util_widgets_AccountSelectionView_xhtml_dataTable .AccountInfo {
+  align-items: center;
+}
+.DynamicTemplate_v2_util_widgets_AccountSelectionView_xhtml .AnonId__v2_util_widgets_AccountSelectionView_xhtml_dataTable .AccountInfo .Avatar {
+  width: 1.6em;
+  height: 1.6em;
+  border-radius: 50%;
+  overflow: hidden;
+  margin-right: 0.5em;
+}
+
+
+/* Template CSS: /v2/util/widgets/CommunicationDialog.xhtml */
+.DynamicTemplate_v2_util_widgets_CommunicationDialog_xhtml .Invalid {
+  opacity: 50%;
+  pointer-events: none;
+}
+.DynamicTemplate_v2_util_widgets_CommunicationDialog_xhtml .Invalid > hbox:not(:first-child) > .Icon {
+  background-color: gray;
+}
+.DynamicTemplate_v2_util_widgets_CommunicationDialog_xhtml .Item {
+  align-items: center;
+  justify-content: space-between;
+  width: 30em;
+}
+.DynamicTemplate_v2_util_widgets_CommunicationDialog_xhtml .Item:not(:first-child) {
+  padding-top: 1em;
+}
+.DynamicTemplate_v2_util_widgets_CommunicationDialog_xhtml .Item:not(:last-child) {
+  padding-bottom: 1em;
+  border-bottom: solid 1px #CCC;
+}
+.DynamicTemplate_v2_util_widgets_CommunicationDialog_xhtml .Item > hbox {
+  align-items: center;
+}
+.DynamicTemplate_v2_util_widgets_CommunicationDialog_xhtml .Item > hbox > label {
+  margin-left: 0.5em;
+  font-weight: 500;
+}
+.DynamicTemplate_v2_util_widgets_CommunicationDialog_xhtml .Item > hbox > .Icon {
+  background-color: #84C55F;
+  padding: 0.4em;
+  border-radius: 50%;
+  margin-left: 1em;
+}
+.DynamicTemplate_v2_util_widgets_CommunicationDialog_xhtml .Item > hbox > .Icon > icon {
+  color: white;
+}
+
+
+/* Template CSS: /v2/util/widgets/CommunicationMsgDialog.xhtml */
+.DynamicTemplate_v2_util_widgets_CommunicationMsgDialog_xhtml .Entry > .widget_ScrollbarlessScrollView {
+  min-height: 5.2em;
+}
+.DynamicTemplate_v2_util_widgets_CommunicationMsgDialog_xhtml .Entry > .widget_ScrollbarlessScrollView > .AnonId_container > .AnonId_recipients {
+  background-color: transparent;
+  border: none;
+}
+.DynamicTemplate_v2_util_widgets_CommunicationMsgDialog_xhtml .Entry > .widget_ScrollbarlessScrollView > .AnonId_container > .AnonId_recipients > .Item {
+  border: solid 1px #CCCCCC;
+  background-color: transparent;
+  color: #000000;
+  pointer-events: none;
+}
+.DynamicTemplate_v2_util_widgets_CommunicationMsgDialog_xhtml .Entry > .widget_ScrollbarlessScrollView > .AnonId_container > .AnonId_recipients > .Item > .Icon {
+  background-color: #84C55F;
+  padding: 0.2em;
+  border-radius: 50%;
+  margin-left: 0.5em;
+}
+.DynamicTemplate_v2_util_widgets_CommunicationMsgDialog_xhtml .Entry > .widget_ScrollbarlessScrollView > .AnonId_container > .AnonId_recipients > .Item > .Icon > icon {
+  color: white;
+}
+.DynamicTemplate_v2_util_widgets_CommunicationMsgDialog_xhtml .Entry > .widget_ScrollbarlessScrollView > .AnonId_container > .AnonId_recipients > .Item > .Invalid {
+  background-color: gray;
+  opacity: 50%;
+}
+body .DynamicTemplate_v2_util_widgets_CommunicationMsgDialog_xhtml {
+  min-width: 40em;
+  max-width: 70em;
+  flex: 1 1 auto;
+  -webkit-flex: 1 1 auto;
+}
+body .DynamicTemplate_v2_util_widgets_CommunicationMsgDialog_xhtml .EmailTemplate {
+  margin-left: auto;
+  margin-bottom: -1.5em;
+}
+.DynamicTemplate_v2_util_widgets_CommunicationMsgDialog_xhtml .AnonId__v2_util_widgets_CommunicationMsgDialog_xhtml_countRecipients {
+  margin-left: 0.5em;
+  color: #469ADB;
+  font-weight: bold;
+}
+.DynamicTemplate_v2_util_widgets_CommunicationMsgDialog_xhtml .AnonId__v2_util_widgets_CommunicationMsgDialog_xhtml_messageEditor {
+  max-width: 60em;
+}
+.DynamicTemplate_v2_util_widgets_CommunicationMsgDialog_xhtml .Entry > * + * {
+  margin-top: 0.2em;
+}
+.DynamicTemplate_v2_util_widgets_CommunicationMsgDialog_xhtml .Entry + .Entry {
+  margin-top: 1em;
+}
+.DynamicTemplate_v2_util_widgets_CommunicationMsgDialog_xhtml .ToInfoLabel {
+  color: #26bcd6;
+  font-size: 1.2em;
+}
+.DynamicTemplate_v2_util_widgets_CommunicationMsgDialog_xhtml .ToInfoLabel:hover {
+  decoration: underline;
+}
+.DynamicTemplate_v2_util_widgets_CommunicationMsgDialog_xhtml .ToInfoLabel:not(:first-child) {
+  margin-top: 0.5em;
+}
+.DynamicTemplate_v2_util_widgets_CommunicationMsgDialog_xhtml .MoreToInfoLabel {
+  color: #666666;
+}
+.DynamicTemplate_v2_util_widgets_CommunicationMsgDialog_xhtml .FieldName {
+  font-weight: bold;
+}
+.DynamicTemplate_v2_util_widgets_CommunicationMsgDialog_xhtml .Container {
+  margin-top: 1em;
+}
+.DynamicTemplate_v2_util_widgets_CommunicationMsgDialog_xhtml .Container:not(.ShowLayout) {
+  display: none;
+}
+.DynamicTemplate_v2_util_widgets_CommunicationMsgDialog_xhtml .Container > vbox > hbox > label + label {
+  margin-left: 0.5em;
+}
+.DynamicTemplate_v2_util_widgets_CommunicationMsgDialog_xhtml .ForEmail > vbox > hbox > label + label {
+  display: none;
+}
+
+
+/* Template CSS: /v2/util/widgets/FacebookSettings.xhtml */
+body .DialogFrame_FacebookSettings .AnonId_dialogBody {
+  padding: 0em;
+}
+body .DialogFrame_FacebookSettings .AnonId_dialogFooter {
+  background-color: #e0e0e0;
+}
+body .DynamicTemplate_v2_util_widgets_FacebookSettings_xhtml {
+  min-width: 40em;
+}
+.DynamicTemplate_v2_util_widgets_FacebookSettings_xhtml .Title {
+  font-weight: bold;
+  margin: 1em;
+  color: grey;
+}
+.DynamicTemplate_v2_util_widgets_FacebookSettings_xhtml .Item {
+  display: flex;
+  background-color: white;
+  padding: 0.5em 1em;
+  align-items: center;
+}
+.DynamicTemplate_v2_util_widgets_FacebookSettings_xhtml .Item input {
+  margin-right: 0.5em;
+}
+.DynamicTemplate_v2_util_widgets_FacebookSettings_xhtml .Item img {
+  width: 3em;
+  height: 3em;
+  margin-right: 1em;
+  border: solid 1px rgba(0, 0, 0, 0.2);
+}
+.DynamicTemplate_v2_util_widgets_FacebookSettings_xhtml .Item span {
+  font-weight: 500;
+}
+.DynamicTemplate_v2_util_widgets_FacebookSettings_xhtml .Item a {
+  color: #ee3423;
+  cursor: pointer;
+  text-decoration: none;
+  font-weight: bold;
+}
+.DynamicTemplate_v2_util_widgets_FacebookSettings_xhtml .Item a:hover,
+.DynamicTemplate_v2_util_widgets_FacebookSettings_xhtml .Item .DynamicTemplate_v2_util_widgets_FacebookSettings_xhtml a:focus {
+  color: #ee3423;
+  text-decoration: underline;
+}
+.DynamicTemplate_v2_util_widgets_FacebookSettings_xhtml .Item:not(:first-child) {
+  border-top: 1px #ddd solid;
+}
+.DynamicTemplate_v2_util_widgets_FacebookSettings_xhtml .AnonId__v2_util_widgets_FacebookSettings_xhtml_avatar {
+  border-radius: 50%;
+}
+.DynamicTemplate_v2_util_widgets_FacebookSettings_xhtml .Hidden {
+  display: none;
+}
+
+
+/* Template CSS: /v2/util/widgets/VideosDialog.xhtml */
+body .DynamicTemplate_v2_util_widgets_VideosDialog_xhtml {
+  flex: 1 1 1em;
+  -webkit-flex: 1 1 1em;
+  flex-direction: column;
+  -webkit-flex-direction: column;
+  display: flex;
+  box-sizing: border-box;
+  max-width: 80em;
+  min-width: 80em;
+}
+@media screen and (max-width: 1199px) {
+  body .DynamicTemplate_v2_util_widgets_VideosDialog_xhtml {
+    max-width: 65em;
+    min-width: 65em;
+  }
+}
+@media screen and (max-width: 991px) {
+  body .DynamicTemplate_v2_util_widgets_VideosDialog_xhtml {
+    max-width: 55em;
+    min-width: 55em;
+  }
+}
+@media screen and (max-width: 767px) {
+  body .DynamicTemplate_v2_util_widgets_VideosDialog_xhtml {
+    max-width: 45em;
+    min-width: 45em;
+  }
+}
+body .DynamicTemplate_v2_util_widgets_VideosDialog_xhtml > .AnonId__v2_util_widgets_VideosDialog_xhtml_mediaView {
+  flex: 1 1 1em;
+  -webkit-flex: 1 1 1em;
+  flex-direction: column;
+  -webkit-flex-direction: column;
+  display: flex;
+}
+body .DynamicTemplate_v2_util_widgets_VideosDialog_xhtml > .AnonId__v2_util_widgets_VideosDialog_xhtml_mediaView.NoMedia {
+  display: none;
+}
+body .DynamicTemplate_v2_util_widgets_VideosDialog_xhtml > .AnonId__v2_util_widgets_VideosDialog_xhtml_messageLabel {
+  flex-direction: column;
+  -webkit-flex-direction: column;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 1em;
+  font-size: 1.5em;
+}
+body .DynamicTemplate_v2_util_widgets_VideosDialog_xhtml > .AnonId__v2_util_widgets_VideosDialog_xhtml_messageLabel:not(.NoMedia) {
+  display: none;
+}
+
+
+/* Template CSS: /v2/util/phone/widgets/SMSVerifyDialog.xhtml */
+body .DynamicTemplate_v2_util_phone_widgets_SMSVerifyDialog_xhtml {
+  width: 25em;
+}
+body .DynamicTemplate_v2_util_phone_widgets_SMSVerifyDialog_xhtml .Entry {
+  flex-direction: column;
+  -webkit-flex-direction: column;
+  display: flex;
+}
+body .DynamicTemplate_v2_util_phone_widgets_SMSVerifyDialog_xhtml .Entry label.FieldName {
+  min-width: 6em;
+  font-weight: bold;
+}
+body .DynamicTemplate_v2_util_phone_widgets_SMSVerifyDialog_xhtml .Entry > * + * {
+  margin-top: 0.2em;
+}
+body .DynamicTemplate_v2_util_phone_widgets_SMSVerifyDialog_xhtml .Entry + .Entry {
+  margin-top: 1em;
+}
+body .DynamicTemplate_v2_util_phone_widgets_SMSVerifyDialog_xhtml .AnonId__v2_util_phone_widgets_SMSVerifyDialog_xhtml_smsCode {
+  margin-top: 0.2em;
+}
+
+

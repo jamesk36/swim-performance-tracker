@@ -1,0 +1,128 @@
+var wrappedWindowLocation = {};
+(function (scope) {
+    function processUrl(url) {
+        if (!url) return "";
+        if (url.indexOf("javascript:") == 0) return url;
+        if (url.indexOf("http://") == 0 || url.indexOf("https://") == 0) {
+            return url;
+        }
+
+        var qs = "";
+        var start = "";
+        var end = "";
+        if (url.match(/^([^\?]+)\?([^#]+)((#.*)?)$/)) {
+            start = RegExp.$1;
+            qs = RegExp.$2;
+            end = RegExp.$3;
+        } else {
+            url.match(/^([^#]+)((#.*)?)$/);
+            start = RegExp.$1;
+            end = RegExp.$2;
+        }
+
+        var PARAM = "use-empty-layout=true";
+
+        var found = false;
+        if (qs) {
+            var parts = qs.split(/\&/);
+            parts.forEach(function (p) {
+                if (p == PARAM) found = true;
+            });
+        }
+        if (!found) {
+            if (qs) qs += "&";
+            qs += PARAM;
+        }
+
+        url = start + "?" + qs + end;
+
+        return url;
+    }
+
+    window.processUrl = processUrl;
+
+    window._open = window.open;
+    window.open = function(url, windowName, features) {
+        var openFn;
+        if ((typeof(url) == "string" && url.length == 0) || (windowName && windowName != "_self")) {
+            if (url && url.match(/^[a-zA-Z0-9\-_]+\.(jsp|do).+$/)) url = "/" + url;
+            openFn = function() { return window._open(url, windowName, features); };
+        } else {
+            var href = processUrl(url);
+            openFn = function() { window.location.href = href;};
+        }
+
+        var wd = window;
+        while (wd.parent && (wd != wd.top)) wd = wd.parent;
+        if (typeof wd.confirmIfSwitchingTeam == "function") {
+            return wd.confirmIfSwitchingTeam(url, windowName, openFn);
+        } else {
+            return openFn();
+        }
+    }
+
+    /* wrapper for window.location.href */
+    Object.defineProperty(wrappedWindowLocation, "href", {
+        get: function() {
+            return window.location.href;
+        },
+        set: function(href) {
+            window.open(href, "_self");
+        },
+        enumerable: true
+    });
+
+    /* fixed form location setting */
+    scope.wrapForm = function (form) {
+        var wrapper = {
+            form: form
+        };
+
+        Object.defineProperty(wrapper, "action", {
+            get: function() {
+                return this.form.action;
+            },
+            set: function(action) {
+                this.form.action = processUrl(action);
+            },
+            enumerable: true
+        });
+
+        return wrapper;
+    };
+
+   document.addEventListener("click", function(e) {
+        e = e || window.event;
+        var element = e.target || e.srcElement;
+
+        if (element.tagName.toUpperCase() == 'A') {
+            var href = element.getAttribute("href") || "";
+            var isURL = href.match(/^\/.+/) || href.match(/^(?:(?:https?:)?\/\/)\w+[\w-]*(?:\.[\w\.-]+)+.*/);
+            if (isURL) {
+                window.open(href, element.target);
+                e.preventDefault();
+            }
+        }
+    });
+
+    window.addEventListener("load", function(e) {
+        var topWindow = window.parent ? window.parent : undefined;
+        if (window === window.top && topWindow?.CMSCommon?.context?.isAdminContext) {
+            var link = document.createElement('link');
+            link.href = "/cms/stylesheet/cms-admin.less";
+            link.rel = 'stylesheet';
+            link.type = 'text/css';
+            var head = document.getElementsByTagName('head')[0];
+            if (head) {
+                if (typeof(head.append) == "function") {
+                    head.append(link);
+                } else if (typeof(head.appendChild) == "function") {
+                    head.appendChild(link);
+                } else {
+                    console.log("Unable append cms-admin css to head...");
+                }
+            }
+        }
+    });
+
+})(window);

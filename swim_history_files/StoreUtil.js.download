@@ -1,0 +1,32 @@
+var g_scatDivSel = "";
+var g_storeCatEmpty=false;
+var g_storeProdId = 0;
+
+function onStorePlusMinus(bLg, catid, scatDiv, scatids, teamdir)
+{
+	var divUL = scatDiv + "_ul";
+	var divULSel = g_scatDivSel + "_ul";
+	
+	var divImg = scatDiv + "_img";
+	var divImgSel = g_scatDivSel + "_img";
+	
+	if (g_scatDivSel)
+	{
+		$('#' + divULSel).hide();
+		$('#' + divImgSel).attr('src', '/css/pro/images/gray_plus.gif');
+	}
+	$('#' + divUL).slideDown();
+	$('#' + divImg).attr('src', '/css/pro/images/gray_minus.gif');
+	
+	g_scatDivSel = scatDiv;
+	$('#storecat_bottom').html("");
+	$('#storecat_right').load('/Bind/StoreCatProdList.jsp?' + (bLg?"lg=1&":"") + 'catid=' + catid + '&scatids=' + scatids + '&team=' + teamdir);
+}
+
+function onStoreSCat3(bLg, catid, scat3ids, teamdir)
+{
+	$('#storecat_bottom').html("");
+	$('#storecat_right').load('/Bind/StoreCatProdList.jsp?' + (bLg?"lg=1&":"") + 'catid=' + catid + '&scat3ids=' + scat3ids + '&team=' + teamdir);
+}
+
+

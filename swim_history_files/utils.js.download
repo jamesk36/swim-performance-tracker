@@ -1,0 +1,275 @@
+
+function isFunction(func) {
+  return typeof(func) == "function"
+}
+function phoneFormat(x) {
+  if (!x)
+    return '';
+  return x.replace(/(\d{3})(\d{3})(\d{4})/, '$1-$2-$3');
+}
+function validateEmail(email) {
+  var re = /^([\w-]+(?:\.[\w-]+)*)@((?:[\w-]+\.)*\w[\w-]{0,66})\.([a-z]{2,6}(?:\.[a-z]{2})?)$/i;
+  return re.test(email);
+}
+
+function numberWithCommas(x) {
+  if (!x)
+    return 0;
+  return x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+}
+
+function confirmCOPPA(callbackOnYes) {
+
+  $.prompt(
+    'Age verification is required to access this part of the system.<br>Are you over 13 years of age?',
+    {
+      buttons: {'Yes': true, 'No': false},
+      submit: function(e,v,m,f) {
+        if (e == true || v == true) {
+            callbackOnYes();
+        } else {
+          setTimeout(function() {
+            $.prompt('Sorry, only people over the age of 13 may complete a registration process.');
+          }, 10);
+        }
+      }
+    });
+}
+
+function confirmCOPPADob(dob, callbackOnYes) {
+  var today = moment(new Date()).startOf('day');
+  if (today.diff(dob, 'years') >= 13) {
+    return callbackOnYes();
+  } else {
+    alert('In compliance with the Child Online Privacy Protection Rule, only users who are 13 years or older are permitted to create an account.');
+
+    return false;
+  }
+}
+
+
+var previewEmail = function(ele, emailTypeId) {
+  var emailType = "Login";
+  if (emailTypeId == 2)
+    emailType = "PayIntro";
+  else if (emailTypeId == 3)
+    emailType = "OnDeckInvite";
+  angular.element(ele).scope().previewEmail(emailType);
+}
+
+var tuTeamNeeded = function() {
+  alert("This functionality is only available for TeamUnify SwimOffice customers.  For more details, please call (888) 326-8643 or email info@teamunify.com to learn more.");
+}
+var superUserNeeded = function() {
+  alert("This functionality is only available for SuperUser administrators. Please contact your team administration if you need to perform this function.");
+}
+var permissionNeeded = function () {
+  alert("No permission to perform this functionality. Please contact your team administration if you need to perform this function.");
+}
+var tuGetToday = function() {
+  var todayDate = new Date();
+  todayDate.setHours(0, 0, 0, 0);
+  return todayDate;
+}
+
+var tuDlgShow = function(htmlContent) {
+  $('#tuDlgBody').html(htmlContent);
+  $('#tuDlg').modal('show');
+}
+
+var tuDlgHide = function() {
+  $('#tuDlg').modal('hide');
+}
+
+var tuDlgShowProcessing = function() {
+  var content =
+    '<div class="text-center fade-in-fade-out">' +
+    '<p class="lead text-muted">Processing request... Please wait</p>' +
+    '<i class="fa fa-spinner fa-2x fa-spin text-primary"></i>' +
+    '</div>';
+  tuDlgShow(content);
+}
+
+var tuDlgShowProcessingResults = function(resultsHtml) {
+  var content =
+    '<div class="fade-in-fade-out">' +
+      '<div style="font-size: 10pt">' +
+        '<div><b>Processing Results:</b></div>' +
+         resultsHtml +
+      '</div>' +
+    '</div>';
+  tuDlgShow(content);
+}
+
+var g_restAngularErrorAlert = true;
+var setRestAngularErrorAlert = function(enabled) {
+  g_restAngularErrorAlert = enabled;
+}
+var tuInitRestAngular = function(restangularProvider) {
+  if (restangularProvider) {
+    restangularProvider.setBaseUrl('/rest');
+    restangularProvider.setErrorInterceptor(function (response, deferred, responseHandler) {
+      if (g_restAngularErrorAlert) {
+        if (response && response.data && response.data.error)
+          alert('HTTP ' + response.status + ' - ' + response.data.error);
+        else
+          alert('HTTP ' + response.status + ' - ' + response.statusText);
+      }
+      return true; // error not handled
+    });
+  }
+}
+
+
+function validatePasswords(pwd1, pwd2) {
+  var rv = {
+    pwdErrors: '',
+    pwdErrorsShow: false,
+    pwdErrorType: ''
+  };
+  if (typeof pwd1 === 'undefined' || typeof pwd2 === 'undefined') {
+    rv.pwdErrors = 'Password fields are empty';
+    rv.pwdErrorsShow = true;
+    rv.pwdErrorType = 'empty';
+  } else if (pwd1 != pwd2) {
+    rv.pwdErrors = 'Passwords do not match';
+    rv.pwdErrorsShow = true;
+    rv.pwdErrorType = 'misMatching';
+  } else if (pwd1.length < 8 || pwd1.length > 60) {
+    rv.pwdErrors = 'Password must be at least 8 characters and no more than 60 characters in length';
+    rv.pwdErrorsShow = true;
+    rv.pwdErrorType = 'tooShort';
+  } else if (!pwd1.match(/[\d|\W]/) || !pwd1.match(/[A-Z]/) || !pwd1.match(/[a-z]/)) {
+    rv.pwdErrors = 'Password does not meet the minimum password requirements';
+    rv.pwdErrorsShow = true;
+    rv.pwdErrorType = 'rules';
+  }
+  return rv;
+}
+
+function noTag(str) {
+  return str.replace(/(<([^>]+)>)/ig,"");
+}
+
+/*
+ * Reads and writes to cookie.
+ * Supports writing and reading arrays.
+ *
+ * https://stackoverflow.com/a/25774602/87972
+ */
+var cookieMonster = {
+  append: function(cookieName, item, expDays) {
+    item = cookieMonster.cm_clean(item);
+    var cookievalue = cookieMonster.get(cookieName);
+    if (cookievalue instanceof Array) {
+      cookievalue[cookievalue.length] = item;
+      cookieMonster.cm_createCookie(cookieName, cookieMonster.cm_arrayAsString(cookievalue), expDays);
+    } else {
+      cookieMonster.cm_createCookie(cookieName, cookievalue + item, expDays);
+    }
+  },
+  splice: function(cookieName, index, numberToRemove, expDays) {
+    var cookievalue = cookieMonster.get(cookieName);
+    if (cookievalue instanceof Array) {
+      cookievalue.splice(index, numberToRemove);
+      cookieMonster.cm_createCookie(cookieName, cookieMonster.cm_arrayAsString(cookievalue), expDays);
+    }
+  },
+  get: function(cookieName) {
+    var cstring = cookieMonster.cm_readCookie(cookieName);
+
+    if (cstring) {
+      if (cstring.indexOf('<#&type=ArrayVals>') != -1) {
+
+        var carray = cstring.split(',');
+
+        for (var i = 0; i < carray.length; i++) {
+          carray[i] = cookieMonster.cm_dirty(carray[i]);
+        }
+
+        if (carray[0] == '<#&type=ArrayVals>') {
+          carray.splice(0, 1);
+        }
+
+        return carray;
+
+      } else {
+
+        return cookieMonster.cm_dirty(cstring);
+      }
+    } else {
+      return null;
+    }
+  },
+  set: function(cookieName, value, expDays) {
+    if (value instanceof Array) {
+      cookieMonster.cm_createCookie(cookieName, cookieMonster.cm_arrayAsString(value), expDays);
+    } else {
+      cookieMonster.cm_createCookie(cookieName, cookieMonster.cm_clean(value), expDays);
+    }
+  },
+  eraseCookie: function(name) {
+    cookieMonster.cm_createCookie(name, "", -1);
+  },
+  cm_replaceAll: function(str, find, replace) {
+    return str.replace(new RegExp(find, 'g'), replace);
+  },
+  cm_clean: function(ret) {
+    ret = cookieMonster.cm_replaceAll(ret.toString(), ',', '&#44');
+    ret = cookieMonster.cm_replaceAll(ret.toString(), ';', '&#59');
+    return ret;
+  },
+  cm_dirty: function(ret) {
+    ret = cookieMonster.cm_replaceAll(ret, '&#44', ',');
+    ret = cookieMonster.cm_replaceAll(ret, '&#59', ';');
+    return ret;
+  },
+  cm_createCookie: function(name, value, days) {
+    if (days) {
+      var date = new Date();
+      date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
+      var expires = "; expires=" + date.toGMTString();
+    } else
+      var expires = "";
+    document.cookie = name + "=" + value + expires + "; path=/";
+  },
+  cm_readCookie: function(name) {
+    var nameEQ = name + "=";
+    var ca = document.cookie.split(';');
+    for (var i = 0; i < ca.length; i++) {
+      var c = ca[i];
+      while (c.charAt(0) == ' ')
+        c = c.substring(1, c.length);
+      if (c.indexOf(nameEQ) == 0)
+        return c.substring(nameEQ.length, c.length);
+    }
+    return null;
+  },
+  cm_arrayAsString: function(array) {
+    var ret = "<#&type=ArrayVals>"; //escapes, tells that string is array
+    for (var i = 0; i < array.length; i++) {
+      ret = ret + "," + cookieMonster.cm_clean(array[i]);
+    }
+    return ret;
+  }
+};
+
+var timeZoneHelper = {
+  LOCAL_TIMEZONE_COOKIE_NAME: "localTimeZone",
+  storeLocalTimeZone: function() {
+    var localTimeZone = cookieMonster.get(timeZoneHelper.LOCAL_TIMEZONE_COOKIE_NAME);
+    var currentLocalTimeZone = moment.tz.guess();
+
+    if (localTimeZone) {
+      if (localTimeZone != currentLocalTimeZone) {
+        timeZoneHelper.saveToCookieAndReload(timeZoneHelper.LOCAL_TIMEZONE_COOKIE_NAME, currentLocalTimeZone, 1);
+      }
+    } else {
+      timeZoneHelper.saveToCookieAndReload(timeZoneHelper.LOCAL_TIMEZONE_COOKIE_NAME, currentLocalTimeZone, 1);
+    }
+  },
+  saveToCookieAndReload: function(name, value, maxAge) {
+    cookieMonster.set(name, value, maxAge);
+    location.reload();
+  }
+};

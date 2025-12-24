@@ -1,0 +1,193 @@
+
+function onVaultUseCard(record, win) {
+  if (win.parent && isFunction(win.parent.onUseCardCallBack)) {
+    win.parent.onUseCardCallBack(record, win);
+  } else if (win.opener && isFunction(win.opener.onUseCardCallBack)) {
+    win.opener.onUseCardCallBack(record, win);
+    win.close();
+  } else if (top && isFunction(top.onUseCardCallBack)) {
+    top.onUseCardCallBack(record, top);
+  } else {
+  }
+}
+
+function getVaultCC_BillingInfo(record) {
+  var rv =
+    '<address>' +
+    '<label>Credit Card Billing Info</label><br>' +
+    '<strong>' + record.first_name + ' ' + record.last_name + '</strong>' + '<br>' +
+    record.address + '<br>' +
+    record.city + ', ' + record.state + ' ' + record.zip + '<br>' +
+    '<abbr title="phone">P:</abbr>' + phoneFormat(record.phone) + // from utils.js
+    '</address>'
+    ;
+  return rv;
+}
+
+var g_paymentIntentAmount = 0;
+
+var g_cardTypes = [
+  {id: 10, name: 'Visa', type: 'visa', img: '/img/VISA-s.gif'},
+  {id: 20, name: 'MasterCard', type: 'mastercard', img: '/img/MC-s.gif'}
+];
+
+if(typeof g_team === "undefined" || g_team.isUKishTeam == "false") {
+  g_cardTypes.push({id: 30, name: 'Discover', type: 'discover', img: '/img/Discover-s.gif'});
+}
+
+var g_isStripeGateway = false;
+if( ((typeof g_team !== "undefined" && g_team.isStripeGateway == "true") || (typeof g_teamEdit !== "undefined" && g_teamEdit.isStripeGateway == "true")) && 
+    !(typeof g_team !== "undefined" && typeof g_teamEdit !== "undefined" && g_team.id != g_teamEdit.id && g_teamEdit.isStripeGateway != "true") ) {
+	//g_cardTypes.push({id: 40, name: 'American Express', type: 'amex', img: '/img/AMEX-s.png'});
+	g_cardTypes.push({id: 50, name: 'Diners Club', type: 'DinnerClub', img: ''});
+	g_cardTypes.push({id: 60, name: 'JCB', type: 'jcb', img: ''});
+		  
+	g_isStripeGateway = true;
+}
+
+function getVault_CCTypeName(ccType) {
+  for (var i = 0; i < g_cardTypes.length; i++) {
+    if (g_cardTypes[i].id == ccType)
+      return g_cardTypes[i].name;
+  }
+  return '';
+}
+
+function getVault_CCImage(ccType) {
+  for (var i = 0; i < g_cardTypes.length; i++) {
+    if (g_cardTypes[i].id == ccType)
+      return g_cardTypes[i].img;
+  }
+  return '';
+}
+
+function getVault_CardLine(record) {
+  var ccTypeName = getVault_CCTypeName(record.cardType);
+  var rv = ccTypeName + " ending " + record.last4 + " <br>(Expires " + record.expM + "/" + record.expY + ")";
+  return rv;
+}
+
+function getVault_CCTypeImage(record) {
+  var ccImage = getVault_CCImage(record.cardType);
+  return ccImage;
+}
+
+function getVault_onVaultCC(team, accountId) {
+  tuWinOpen("/EPaymentCCProfile.jsp?team=" + team + "&account_id=" + accountId, 700, 600);
+}
+
+/*
+function initVaultCC() {
+  if (<%=vaultCCUse != null%>) {
+    var record = <%=EPaymentUtils.getCCInfoJSON(vaultCCUse)%>;
+    onUseCardCallBack(record);
+  }
+}
+initVaultCC();
+*/
+
+
+if (window.mainModule) {
+  mainModule.service("epaymentService",
+    function (Restangular) {
+      var paymentMethods = {
+        CreditCard: 10,
+        Check: 20,
+        ACH: 30,
+        ManualACH: 40,
+        None: -1
+      };
+
+      var cardTypes = g_cardTypes;
+      var bankAccountHolderTypes = [
+        {id: 1, name: 'Personal Bank Account'},
+        {id: 2, name: 'Business Bank Account'},
+      ];
+      var bankAccountTypes = [
+        {id: 1, name: 'Checking Account'},
+        {id: 2, name: 'Savings Account'},
+      ];
+
+      return {
+
+        copyFromAccountInfo: function (card, account) {
+          if (card && account) {
+            card.cc_first_name = account.first_name;
+            if (account.last_name != '_LessonCheckoutTmp_')
+              card.cc_last_name = account.last_name;
+            card.cc_address = account.address;
+            card.cc_city = account.city;
+            card.cc_state = account.state;
+            card.cc_zip = account.zip;
+            card.cc_phone = account.phone_h;
+          }
+        },
+        getAllCCRecordsUrl: function (accountId) {
+          return Restangular.all('/vaultClient/cc/' + accountId);
+        },
+        getPaymentMethods: function () {
+          return paymentMethods;
+        },
+        getCardTypes: function () {
+          return cardTypes;
+        },
+        getBankAccountHolderTypes: function () {
+          return bankAccountHolderTypes;
+        },
+        getBankAccountTypes: function () {
+          return bankAccountTypes;
+        },
+
+        getCardLine: function (record) {
+          return getVault_CardLine(record);
+        },
+        getAchCardLine: function (record) {
+          return record.bankName + " - " + this.getAchAccTypeName(record.acc_type) + " ending " + record.last4;
+        },
+        splitExpiry: function (expiry) {
+          if (!expiry || (expiry.length != 6 && expiry.length != 7))
+            return [0, 0];
+          else {
+            if (expiry.indexOf("/") != -1) {
+              var mm = expiry.substring(0, 2) - 0;
+              var yyyy = expiry.substring(3, 7) - 0;
+              return [mm, yyyy];
+            } else {
+              var mm = expiry.substring(0, 2) - 0;
+              var yyyy = expiry.substring(2, 6) - 0;
+              return [mm, yyyy];
+            }
+          }
+        },
+        getCCType: function (cardType) {
+          var rv = _.findWhere(cardTypes, {type: cardType});
+          return rv == null ? 0 : rv.id;
+        },
+        getCCTypeByName: function (cardName) {
+          cardName = cardName.toUpperCase();
+          for(var i = 0; i < cardTypes.length; i++) {
+            var card = cardTypes[i];
+            if(card.name.toUpperCase() === cardName) {
+              return card.id;
+            }
+          }
+          return 0;
+//          var rv = _.findWhere(cardTypes, {name: cardName});
+//          return rv == null ? 0 : rv.id;
+        },
+        getCCTypeName: function (ccType) {
+          return getVault_CCTypeName(ccType);
+        },
+        getAchAccTypeName: function (accType) {
+          var rv = _.findWhere(bankAccountTypes, {id: accType});
+          return rv == null ? '' : rv.name;
+        },
+        getCCTypeImg: function (ccType) {
+          var rv = _.findWhere(cardTypes, {id: ccType});
+          return rv == null ? '#' : rv.img;
+        }
+
+      }
+    });
+
+}

@@ -1,0 +1,166 @@
+var g_gridProd;
+var g_ProdRowId = 0;
+var g_teamDir = '#';
+
+function sw_initGrid(teamDir, gridTitle, gridData) {
+  g_teamDir = teamDir;
+  // prod grid
+  //---------------------------------------------------------
+  g_gridProd = $("#divGridProd").jqGrid({
+    datatype: "local",
+    height: 500,
+    width: 690,
+    rowNum:1000,
+    colNames: gridTitle,
+    colModel:[
+      {name:'id',index:'id', width:0,hidden:true},
+      {name:'colors',index:'colors', width:0,hidden:true},
+      {name:'designs',index:'designs', width:0,hidden:true},
+      {name:'designs_back',index:'designs_back', width:0,hidden:true},
+      {name:'name',index:'name', width:34,align:'left'},
+      {name:'cat',index:'cat', width:17,align:'center'},
+      {name:'price',index:'price', width:10,align:'right'},
+      {name:'deco',index:'deco', width:12,align:'center'},
+      {name:'custom',index:'custom', width:8,align:'center'},
+      {name:'brand',index:'brand', width:15,align:'center'},
+      {name:'prod_id',index:'prod_id', width:0,hidden:true},
+      {name:'front_design_type',index:'front_design_type', width:0,hidden:true},
+      {name:'back_design_type',index:'back_design_type', width:0,hidden:true},
+      {name:'front_design_required',index:'front_design_required', width:0,hidden:true},
+      {name:'back_design_required',index:'back_design_required', width:0,hidden:true}
+    ],
+    multiselect: true, caption: ""
+  });
+  var mydata = gridData;
+  for(var i=0;i<=mydata.length;i++) {
+    g_ProdRowId++;
+    $("#divGridProd").jqGrid('addRowData',g_ProdRowId,mydata[i]);
+  }
+}
+
+function onAddProd() {
+  tuWinOpen("/SwProdFind.jsp?team=" + g_teamDir + "&prods=" + gridProdIdsAdded(), 760, 1120);
+}
+
+function onEditProd(id) {
+  var aRowId = $('#divGridProd').jqGrid('getDataIDs');
+  var found = false;
+  var prod_id;
+  var colors;
+  var designs;
+  var designs_back;
+  var front_designs_type;
+  var back_designs_type;
+  var front_designs_required;
+  var back_designs_required;
+  for (var i = 0; i < aRowId.length; i++) {
+    var idRow = $('#divGridProd').jqGrid('getCell',aRowId[i],"id");
+    if (idRow == id) {
+      found = true;
+      prod_id = $('#divGridProd').jqGrid('getCell',aRowId[i],"prod_id");
+      colors = $('#divGridProd').jqGrid('getCell',aRowId[i],"colors");
+      designs = $('#divGridProd').jqGrid('getCell',aRowId[i],"designs");
+      designs_back = $('#divGridProd').jqGrid('getCell',aRowId[i],"designs_back");
+      front_design_type = $('#divGridProd').jqGrid('getCell',aRowId[i],"front_design_type");
+      back_design_type = $('#divGridProd').jqGrid('getCell',aRowId[i],"back_design_type");
+      front_design_required = $('#divGridProd').jqGrid('getCell',aRowId[i],"front_design_required");
+      back_design_required = $('#divGridProd').jqGrid('getCell',aRowId[i],"back_design_required");
+      break;
+    }
+  }
+  if (found) {
+    tuWinOpen("/SwStoreProdEdit.jsp?team=" + g_teamDir + "&id=" + id + "&prod_id=" + prod_id + "&colors=" + colors + 
+        "&designs=" + designs + "&designs_back=" + designs_back + 
+        "&front_design_type=" + front_design_type + "&back_design_type=" + back_design_type +
+        "&front_design_required=" + front_design_required + "&back_design_required=" + back_design_required
+        , 760, 1120);
+  }
+}
+
+function gridId2RowId(id) {
+  var aRowId = $('#divGridProd').jqGrid('getDataIDs');
+  for (var i = 0; i < aRowId.length; i++) {
+    var idRow = $('#divGridProd').jqGrid('getCell',aRowId[i],"id");
+    if (idRow == id) {
+      return aRowId[i];
+    }
+  }
+  return -1;
+}
+
+function gridProdId2RowId(prod_id) {
+  var aRowId = $('#divGridProd').jqGrid('getDataIDs');
+  for (var i = 0; i < aRowId.length; i++) {
+    var idRow = $('#divGridProd').jqGrid('getCell',aRowId[i],"prod_id");
+    if (idRow == prod_id) {
+      return aRowId[i];
+    }
+  }
+  return -1;
+}
+
+function gridProdIdsAdded() {
+  var aRowId = $('#divGridProd').jqGrid('getDataIDs');
+  var added = "";
+  for (var i = 0; i < aRowId.length; i++) {
+    var prodId = $('#divGridProd').jqGrid('getCell',aRowId[i],"prod_id");
+    if (added)
+      added += ",";
+    added += prodId;
+  }
+  return added;
+}
+
+function updateStoreProd(id, prod_id, colors, designs, designs_back, prod_name, prod_cat, price, deco, custom, brand, 
+    front_design_type, back_design_type,
+    front_design_required, back_design_required) {
+  front_design_required = front_design_required ? "1" : "0";
+  back_design_required = back_design_required ? "1" : "0";
+  var rowId = -1;
+  var edit = true;
+  if (id == 0) {
+    rowId = gridProdId2RowId(prod_id); // prod must be unique
+    if (rowId == -1) {
+      g_ProdRowId++;
+      id = 0 - g_ProdRowId; // use unique negative value
+      rowId = g_ProdRowId;
+      edit = false;
+    } else {
+      id = $('#divGridProd').jqGrid('getCell', rowId,"id");
+    }
+  }
+  else {
+    rowId = gridId2RowId(id);
+  }
+  var cmd = (edit ? "setRowData" : "addRowData");
+  var name = "<a href=# onclick=onEditProd(" + id + ")>" + prod_name + "</a>";
+  $("#divGridProd").jqGrid(cmd, rowId, {id:id, colors:colors, designs:designs, designs_back:designs_back, name:name, cat:prod_cat, 
+    price:price, deco:deco, custom:custom, brand:brand, prod_id:prod_id, 
+    front_design_type:front_design_type, back_design_type:back_design_type,
+    front_design_required:front_design_required, back_design_required:back_design_required
+    });
+}
+
+function collectGridData(divId, aCol) {
+  // collect grid data
+  var data = '';
+  var aRowId = $('#' + divId).jqGrid('getDataIDs');
+  for (var i = 0; i < aRowId.length; i++) {
+    if (data)
+      data += '||||';
+    for (var j = 0; j < aCol.length; j++) {
+      if (j != 0)
+        data += '~~~~';
+      var dataTmp = $('#' + divId).jqGrid('getCell',aRowId[i],aCol[j]);
+      if (dataTmp.indexOf('<input ') == 0)
+        dataTmp = $('#' + (aRowId[i]-1) + "_" + aCol[j]).val();
+      if (!dataTmp)
+        dataTmp = '<<NuLl>>';
+      data += dataTmp;
+      
+    }
+  }
+  return data;
+}
+
+

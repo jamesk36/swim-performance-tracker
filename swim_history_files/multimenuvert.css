@@ -1,0 +1,86 @@
+#divVertNav
+{
+	position:absolute;
+	visibility: hidden;
+	font:normal 10px Verdana;
+	line-height: 18px;
+	z-index: 100;
+}
+
+#vertnav{
+  list-style: none; border:0;
+}
+
+#vertnav ul {
+  padding: 0;
+  margin: 0;
+	list-style: none;
+  width:12em;
+  z-index:99;
+  overflow:visible;
+  position:absolute;
+}
+
+#vertnav li {
+	position: relative;
+	width: 12em;
+  color: white;
+  background-color:#868D97;
+	border:solid 1px black;
+  display:block;
+  padding: 0px;
+  margin: 0px;
+}
+#vertnav li:last-child
+{
+}
+#vertnav ul li
+{
+  color: white;
+  background-color:#868D97;
+}
+
+#vertnav a {
+  color: white;
+	font:normal 10px Verdana;
+	font-weight: bold;
+	text-indent: 5px;
+    text-decoration:none;
+    display:block;
+    padding: 0.1em;
+    margin:0.2em 0 0.2em 0.1em;  /*helps Opera with hover */
+    width:11.5em; /*helps IE with hover */
+/*    height:1.2em; */
+	line-height: 18px;
+}
+#vertnav li:hover, #vertnav a:hover
+{
+    background-color:#cccccc;
+    COLOR: #333333;
+}
+
+#vertnav ul, #vertnav ul ul, #vertnav ul ul ul{
+    display:none;
+    position:absolute;
+    top:0;
+    left:12em;
+}
+
+#vertnav li:hover ul ul, #vertnav li:hover ul ul ul{
+    display:none;
+}
+
+#vertnav li:hover ul, #vertnav ul li:hover ul, #vertnav ul ul li:hover ul{
+    display:block;
+}
+
+li>ul {
+	top: auto;
+	left: auto;
+}
+
+/* Win IE only \*/
+* html #vertnav li{float:left;}
+/* end holly hack */
+
+

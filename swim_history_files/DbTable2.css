@@ -1,0 +1,61 @@
+.dbtable2 {
+  background-color: #cccccc;
+}
+.dbtable2 th {
+  color:black;
+  background-color: white;
+  font-weight:bold;
+  font-size: 7.5pt;
+}
+.dbtable2 .off
+{
+  color:black;
+	background-color: white;
+  font-weight:normal;
+ text-decoration: none;
+}
+
+.dbtable2 .off A
+{
+  color:black;
+	background-color: white;
+  font-weight:normal;
+ text-decoration: underline;
+}
+
+.dbtable2 .on
+{
+  color:black;
+	background-color: #effafd;
+  font-weight:normal;
+ text-decoration: none;
+}
+.dbtable2 .on A
+{
+  color:black;
+	background-color: #effafd;
+  font-weight:normal;
+ text-decoration: underline;
+}
+.dbtable2 .hover
+ {
+	background-color: black;
+  color: white;
+  font-weight:normal;
+}
+.dbtable2 .hover A
+ {
+	background-color: black;
+  color:yellow;
+  font-weight:normal;
+}
+
+.dbtable2_command
+{
+}
+
+.dbtable_colheader 
+{
+  color:black;
+	background-color: white;
+}

@@ -1,0 +1,35 @@
+ var g_team;
+
+ function initSubProgClass(iSubProgId, iClassId, team) {
+   g_team = team;
+   onProg(iSubProgId);
+   onSubProg(iSubProgId, iClassId);
+  }
+
+  function onProg(subProgId2Select) {
+    if (!subProgId2Select || subProgId2Select == -1)
+      subProgId2Select = $('#subprog').val();
+
+    $('#subprog').load("/Bind/LSubProgSelections.jsp?team=" + g_team +
+      "&progId=" + $('#prog').val() + "&subProgId=" + subProgId2Select);
+
+    $('#class').removeOption(/.*/);
+    $('#class').addOption(-1, '--ALL--');
+  }
+  function onSubProg(subProgId2Select, classId2Select) {
+    if (!subProgId2Select || subProgId2Select == -1)
+      subProgId2Select = $('#subprog').val();
+    if (!classId2Select || classId2Select == -1)
+      classId2Select = $('#class').val();
+
+    $('#class').load("/Bind/LClassSelections.jsp?" + g_team,
+      "&subProgId=" + subProgId2Select + "&classId=" + classId2Select);
+  }
+
+  function onClass(){
+       var selCl = $('#class');
+       var classId = selCl.val();
+
+       $('#slot').load("/Bind/LSlotSelections.jsp?" + g_team,
+              "&classId=" + classId);
+   }

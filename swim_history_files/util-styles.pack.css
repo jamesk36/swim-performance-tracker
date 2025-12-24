@@ -1,0 +1,15 @@
+/* LESS: /v2/util/stylesheet/util.less */
+body .ComboManager_LimitGenderPopup .Item:not(.Valid) {
+  border-color: #FF0000;
+  background-color: rgba(255, 0, 0, 0.05);
+  color: #FF0000;
+}
+body .ComboManager_LimitGenderPopup .Item:not(.Valid) icon.alert::before {
+  color: #FF0000;
+}
+body .ComboManager_LimitGenderPopup .Item icon {
+  margin-left: 0.5em;
+}
+/*# sourceMappingURL=util.css.map */
+
+

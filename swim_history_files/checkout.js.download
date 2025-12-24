@@ -1,0 +1,693 @@
+var taxPercent = 0.0;
+var shippingCost = 0.0;
+var volumeDiscount = 0.0;
+
+var curCartPage       = 0;
+var estimatePostal      = null;
+var checkoutSubtotal    = null;
+var checkoutTax       = null;
+var checkoutShipping    = null
+var checkoutTotal     = null;
+
+var taxPercent = 0.0;
+var shippingCost = 0.0;
+var g_tax_rate = new Array();
+var g_ups_wt = 0;
+var g_ups_zip = '';
+var g_ups_state = '';
+var g_subtot = 0;
+var g_savings = 0;
+var g_tax = 0;
+var g_num_orders = 0;
+var g_currency='$';
+var g_bBulkShip = false;
+var g_bBulkRelease = false;
+
+
+
+function swCheckoutPageInit(taxPercent2Set, shippingCost2Set, volumeDiscount2Set) {
+  taxPercent = taxPercent2Set;
+  shippingCost = shippingCost2Set;
+  volumeDiscount = volumeDiscount2Set;
+}
+
+function log(string){
+  try{console.log(string);}catch(err){}
+}
+
+// function attachFieldHelper(fields, padLeft) {
+//   if(padLeft == undefined){ var padLeft = 24; }
+//   $(fields).each(function(i, element){
+//     var amtLeft = $(element).outerWidth() + padLeft;
+//     $(this).after('<div style="display: none; opacity: 0; margin-left: 10; left: '+ amtLeft +'px" class="field-helper"><span></span><p>'+ $(this).parent().find('.initial-value').attr('value') +'</p></div>');
+//   });
+//
+//   $(fields).focus(function(event){
+//     var target = $(event.currentTarget);
+//     var helper = target.parent().find('.field-helper');
+//
+//     $(helper).show().animate({
+//       'margin-left':  0,
+//       'opacity':    1
+//     }, 200);
+//   });
+//
+//   $(fields).blur(function(event){
+//     var target = $(event.currentTarget);
+//     var helper = target.parent().find('.field-helper');
+//
+//     $(helper).animate({
+//       'margin-left':  10,
+//       'opacity':    0
+//     }, 200, function(){
+//       $(helper).hide();
+//     });
+//   });
+// }
+
+function addCartItemRollovers() {
+  $('#cart-dropdown .cart-dropdown-item').mouseenter(function(event){
+    $(event.currentTarget).stop().animate({
+      'background-color':   '#f3f3f3'
+    }, 300);
+  });
+
+  $('#cart-dropdown .cart-dropdown-item').mouseleave(function(event){
+    $(event.currentTarget).stop().animate({
+      'background-color':   '#ffffff'
+    }, 400);
+  });
+}
+  
+function showCartDropdown(event) {
+  hideDropdown();
+  addCartItemRollovers();
+
+  $('#cart-dropdown-items').hide();
+
+  cartDropdown.css('opacity', 0).show().stop().animate({
+    opacity:    1
+  }, 200, 'easeOutQuint', function(){
+    $('#cart-dropdown-items').slideDown(300);
+  });
+}
+
+function hideCartDropdown(event) {
+  $('#cart-dropdown-items').slideUp(200, function(){
+    cartDropdown.stop().animate({
+      opacity:    0
+    }, 300, 'easeOutQuint', function(){
+      cartDropdown.hide();
+    });
+  });
+}
+
+function showDropdown() {
+  if(dropdownHidden == true) 
+  {
+    dropdownHidden = false;
+    dropdown.stop().animate({
+      top:        70
+    }, 400, 'easeOutQuint');
+  }
+}
+
+function hideDropdown() {
+  if(dropdownHidden == false) 
+  {
+    dropdownHidden = true;
+    dropdown.stop().animate({
+      top:        -300
+    }, 250, 'easeInQuint');
+  }
+}
+
+//function initHoverStates() {
+//
+//  var whiteFlushButtons = $('.btn');
+//  whiteFlushButtons.css({
+//    'box-shadow': '0px 1px 0px #ffffff'
+//  });
+//
+//  whiteFlushButtons.mouseenter(function(event){
+//    var target = $(event.currentTarget);
+//    target.stop().animate({
+//      'box-shadow': '0px 4px 8px #ccc'
+//    }, 200);
+//  });
+//
+//  whiteFlushButtons.mouseleave(function(event){
+//    var target = $(event.currentTarget);
+//    target.stop().animate({
+//      'box-shadow': '0px 1px 0px #ffffff'
+//    }, 200);
+//  });
+//}
+  
+function updateCartPage(event) {
+  var target = $(event.currentTarget);
+  var newPage = 0;
+  var cartItems = $('#checkout-summary .cart-dropdown-item');
+  var numPages = Math.ceil($('#checkout-summary .cart-dropdown-item').length / 3);
+
+  if(target.attr('id') == 'summary-prev-button')
+  {
+    newPage = curCartPage - 1;
+  }
+  else if(target.attr('id') == 'summary-next-button')
+  {
+    newPage = curCartPage + 1;
+  }
+
+  if(newPage >= 0 && newPage < numPages && newPage != curCartPage)
+  {
+    cartItems.hide();
+
+    $(cartItems.slice(newPage * 3, (newPage * 3) + 3)).show();
+
+    curCartPage = newPage;
+  }
+
+  updateCartNav();
+}
+
+function updateCartNav() {
+  var cartItems = $('#checkout-summary .cart-dropdown-item');
+  var numPages = Math.ceil($('#checkout-summary .cart-dropdown-item').length / 3);
+
+  //$('#cart-pages-text').html('Viewing Page <b>'+ (curCartPage + 1) +'</b> of <b>'+ Math.ceil(cartItems.length / 3) +'</b>');
+
+  if(curCartPage > 0)
+  {
+    $('#summary-prev-button').removeClass('disabled');
+  }
+  else
+  {
+    $('#summary-prev-button').addClass('disabled');
+  }
+
+  if(curCartPage >= numPages - 1)
+  {
+    $('#summary-next-button').addClass('disabled');
+  }
+  else
+  {
+    $('#summary-next-button').removeClass('disabled');
+  }
+}
+
+function showHideShippingForm(event)
+{
+  var checkedOption = $('#ship-to-option input[type="radio"]:checked').attr('id');
+
+  if(checkedOption == 'shipping-different')
+  {
+    $('#shipping-address-form').slideDown(300);
+  }
+  else if(checkedOption == 'shipping-same')
+  {
+    $('#shipping-address-form').slideUp(300);
+  }
+}
+
+
+function submitPaypalForm()
+{
+  var rows = $('.form-row');
+
+  for(var i=0; i < rows.length; i++)
+  {
+    var row   = $(rows[i]);
+    var initial = row.find('input.initial-value');
+    if(initial.length > 0)
+    {
+      var initialValue = initial.attr('value');
+      var input = row.find('input:first');
+
+      if(input.attr('value') == initialValue)
+      {
+        input.attr('value', '');
+      }
+    }
+  }
+
+  
+  $('#id_payment_card_type').val('paypal')
+  $('#id_payment_card_number').val('4111111111111111')
+  $('#id_payment_card_name').val('Paypal User')
+  $('#id_payment_expire_month').val('12')
+  $('#id_payment_expire_year').val('2099')
+  $('#id_payment_card_code').val('9999')
+
+  
+  var paymentMethod = $('#payment-method');
+  paymentMethod.val('paypal');
+
+  document.forms["checkout-form"].submit();
+  //document.forms["paypal-form"].submit();
+}
+function initFields()
+{
+  var formInputs = $('form input[type="text"], form textarea');
+
+  formInputs.bind('focus', function(event){
+    var target          = $(event.currentTarget);
+    var origValue         = target.attr('value');
+
+    if(target.attr('value') == target.parent().find('.initial-value').attr('value') )
+    {
+      target.attr('value', '');
+    }
+  });
+
+  formInputs.bind('blur', function(event){
+    var target          = $(event.currentTarget);
+    var origValue         = target.parent().find('.initial-value').attr('value');
+    
+    if(target.attr('value') == '')
+    {
+      target.attr('value', origValue);
+    }
+  });
+  
+  var rows = $('.form-row');
+
+  for(var i=0; i < rows.length; i++)
+  {
+    var row   = $(rows[i]);
+    var initial = row.find('input.initial-value');
+    var input = row.find('input:first');
+    if(initial.length > 0)
+    {
+      var initialValue = initial.attr('value');
+
+      if(input.attr('value') == '')
+      {
+        input.attr('value', initialValue);
+      }
+    }
+
+    // Set initial values for select elements
+    var select = row.find('select');
+    if(select.length > 0)
+    {
+      var country = select.parent().find('input[type="hidden"]').attr('value');
+      select.find('option').each(function(i, element){
+        if( $(element).attr('value') == country )
+        {
+          $(element).attr('selected', 'selected');
+        }
+      });
+    }
+  }
+}
+
+function parseShippingData(shippingData) {
+  var optionsDiv        = $('#shipping-options');
+  var optionsHTML       = '';
+
+  log(shippingData);
+
+  if(shippingData['success'] == true)
+  {
+    for( shippingOption in shippingData )
+    {
+      if(shippingData[shippingOption]['serviceName'])
+      {
+        optionsHTML += '<div class="form-row shipping-option">' +
+                  '<input type="radio" name="shipping_method" value="'+ shippingData[shippingOption]['serviceCode'] +' - '+ shippingData[shippingOption]['serviceName'] +'"> <label>'+ shippingData[shippingOption]['serviceName'] +'</label> <h5> <sup>$</sup>'+ shippingData[shippingOption]['monetaryValue'] +'</h5>' +
+                  '<input type="hidden" class="shipping-price" value="'+ shippingData[shippingOption]['monetaryValue'] +'">' +
+                '</div>';
+      }
+    }
+
+    log(shippingData['state']);
+
+    // Update tax amount
+    if(shippingData['state'] == 'UT')
+    { 
+      // Add 6.85% tax for customers in utah.
+      checkoutTax.html( Number(checkoutSubtotal.html() * 0.0685).toFixed(2) );
+      $('#tax-percent').attr('value', 0.0685);
+    }
+    else
+    {
+      $('#tax-percent').attr('value', 0.0000);
+      checkoutTax.html( 0 ); 
+    }
+
+    optionsDiv.find('.shipping-option').remove();
+    optionsDiv.prepend(optionsHTML);
+
+    optionsDiv.find('input[type="radio"]').click(function(event){
+      var selectedPrice = $(event.currentTarget).parent().find('input[type="hidden"]').attr('value');
+      $('#shipping-price-selected').attr('value', selectedPrice);
+
+      checkoutShipping.html( selectedPrice );
+
+      // Add shipping, tax and subtotal to get total
+      var grandTotal = Number(checkoutShipping.html()) + Number(checkoutTax.html()) + Number(checkoutSubtotal.html());
+      checkoutTotal.html( grandTotal.toFixed(2) );
+    });
+
+    optionsDiv.find('input[type="radio"]:first').click();
+    optionsDiv.show();
+
+    $('#enter-postal-text').hide();
+  }
+  else
+  {
+    $('#enter-postal-text').show();
+    optionsDiv.hide();
+  }
+}
+
+function updateShippingEstimates() {
+  var billingPostal = $('#id_postal_code').attr('value');
+  var billingInitial = $('#id_postal_code').parent().find('input[type="hidden"]').attr('value');
+  var shippingPostal = $('#id_shipping_postal_code').attr('value');
+  var shippingInitial = $('#id_shipping_postal_code').parent().find('input[type="hidden"]').attr('value');
+  var useAddress = $('#ship-to-option input[type="hidden"]').attr('value');
+
+  estimatePostal = null;
+
+  if(useAddress == 'different') {
+    if(shippingPostal != shippingInitial) 
+      estimatePostal = shippingPostal;
+  } else {
+    if(billingPostal != billingInitial) 
+      estimatePostal = billingPostal;
+  }
+
+  if(estimatePostal) {
+/*
+    var params = {
+      'from_address_1':     '4884 Commerce Drive',
+      'from_address_2':     '',
+      'from_address_3':     '',
+      'from_city':      'Murray',
+      'from_state':       'UT',
+      'from_zip':       84107,
+      'from_country':     'US',
+      'to_address_1':     '',
+      'to_address_2':     '',
+      'to_address_3':     '',
+      'to_city':        '',
+      'to_state':       '',
+      'to_zip':         estimatePostal,
+      'to_country':       '',
+      'box_length':       5,
+      'box_width':      5,
+      'box_height':       5,
+      'box_weight':       5,
+      'box_code':       '02',
+      'callback':       'parseShippingData',
+      'quantity':       1
+    }
+
+    $.ajax({
+      url:          "https://www.kuhl.com/shipping/ups/json_api.php",
+      data:         params,
+      dataType:       'jsonp'
+    });
+*/
+    $('#enter-postal-text').hide();
+   
+    $('#shipping-options').show();
+  }
+/*
+  else
+  {
+    $('#enter-postal-text').show();
+  }
+*/
+}
+
+function onShipTo() {
+  var bDiff = $('#rb_ship_to:checked').val() == 1;
+  var divDiff = $('#shipping-address-form');
+  if (bDiff)
+    divDiff.show();
+  else
+    divDiff.hide();
+  updateShippingEstimates();
+}
+
+function swCopyBilling2Shipping() {
+  $('#sfirst_name').val($('#bfirst_name').val());
+  $('#slast_name').val($('#blast_name').val());
+  $('#sphone').val($('#bphone').val());
+  $('#saddress').val($('#baddress').val());
+  $('#saddress2').val($('#baddress2').val());
+  $('#scity').val($('#bcity').val());
+  
+  var state = $('#bstate_sel').val();
+//  $('#sstate_sel option').eq(state).attr('selected', 'selected');
+  $('#sstate_sel').val(state);
+  
+  $('#sstate').val($('#bstate').val());
+  
+  $('#szip').val($('#bzip').val());
+  $('#scountry').val($('#bcountry').val());
+}
+
+function swCheckoutPageOnStart() {
+  $('input[name="cc_num"]').attr('autocomplete', 'off');
+  $('input[name="cvs"]').attr('autocomplete', 'off');
+  
+  $('#reg-content h1').css({'border':'0'});
+  $('select.custom').customSelect();
+  
+  $('.actions btn').click(function() {
+    showItemAddedPopup(1);
+  });
+  
+  checkoutSubtotal    = $('#checkout-subtotal');
+  checkoutTax       = $('#checkout-tax');
+  checkoutShipping    = $('#checkout-shipping');
+  checkoutTotal       = $('#checkout-total');
+  
+  $('#cancel-login, #login-overlay .close-button').click(function(){
+    $('#login-overlay').hide();
+  });
+
+  $('#summary-prev-button, #summary-next-button').click(updateCartPage);
+
+  var cartItems = $('#checkout-summary .cart-dropdown-item');
+  //$('#cart-pages-text').html('Viewing Page <b>'+ (curCartPage + 1) +'</b> of <b>'+ Math.ceil(cartItems.length / 3) +'</b>');
+
+  initFields();
+
+  // var helperFields = $('#checkout-form input[type="text"]');
+  // attachFieldHelper(helperFields);
+
+  $('#ship-to-option input[type="radio"]').change(showHideShippingForm);
+
+
+  $('#id_postal_code, #id_shipping_postal_code').change(updateShippingEstimates);
+
+  updateShippingEstimates();
+  updateCartNav();
+
+  $cc = $('input[value="cc"]')
+
+  $cc.click(function(event){
+          $('#fieldpaypal').hide();
+          $('.submit-order-button').show();
+          $('#fieldcc').show();
+          $('input[value="cc"]').prop('checked', true);
+          $('input[value="paypal"]').prop('checked', false);
+  });
+  
+  $cc.click();
+
+
+  $('.form-row input').css({'font-size':'10pt'});
+  $('.form-row label').css({'font-size':'10pt'});
+  $('.section-title').css({'font-size':'14pt'});
+  $('#enter-postal-text').css({'font-size':'10pt'});
+  $('.field-helper p').css({'font-size':'10pt'});
+  
+  $('#bzip, #szip').blur(function() {
+    loadUps();
+  });
+  $('.customSel2').css({
+    'font-size': '10pt',
+    'padding': '5px 0'
+  });
+  
+  $('#cart_subtotal').val(g_subtot);
+  $('#cart_subtotal_text').html("<sup>" + g_currency + "</sup>" + g_subtot.toFixed(2));
+
+  $('#cart_tax').val(g_tax);
+  $('#cart_tax_text').html("<sup>" + g_currency + "</sup>" + g_tax.toFixed(2));
+  
+  $('#num_orders').val(g_num_orders);
+  $('#num_orders_text').html(g_num_orders);
+  
+  updateTotalBar();
+  
+  $('#cart_savings_text').css({
+    'color': 'red'
+  });
+}
+
+function swCheckoutCheck() {
+  var bSameShip = $('#rb_ship_to:checked').val() == 0;
+  if (bSameShip)
+    swCopyBilling2Shipping();
+
+  var bErr = false;
+  var rows = $('.form-row');
+  for(var i=0; i < rows.length; i++) {
+    var row   = $(rows[i]);
+    if (!row.hasClass("required"))
+      continue;
+    
+    var initial = row.find('input.initial-value');
+    if(initial.length > 0) {
+      var initialValue = initial.attr('value');
+      var input = row.find('input:first');
+      if (!input.attr('name'))
+        continue;
+      input.removeClass('error');
+      if(input.attr('value') == initialValue) {
+        if (!bErr) {
+          bErr = true;
+          input.focus();
+        }
+        //input.attr('value', 'This field is required');
+        input.addClass('error');
+      }
+    }
+  }
+//  var bstateSel = frm.bstate_sel.selectedIndex;
+//  var sstateSel = frm.sstate_sel.selectedIndex;
+  return !bErr;
+}
+
+function getShipPrice() {
+  if (true)
+    return shippingCost;
+  
+  var ship = $('#shipping option:selected').text();
+  var idx  = ship.lastIndexOf('(');
+  var idx2 = ship.lastIndexOf(')');
+  if (idx == -1 || idx2 == -1)
+    return 0;
+  ship = ship.substring(idx + 2, idx2);
+  return ship - 0;
+}
+function updateTax() {
+  
+  if (ship2SameAddr()) {
+    swCopyBilling2Shipping()
+  }
+  var state  = $('#sstate').val();
+  var dTaxRate = 0;
+  if (g_tax_rate[state])
+    dTaxRate = g_tax_rate[state]/100.0;
+  var dTax = Math.round((g_subtot - g_savings - volumeDiscount).toFixed(2)  * dTaxRate * 100 + 0.0001)/100;
+  $('#cart_tax').val(dTax.toFixed(2));
+  $('#cart_tax_text').html("<sup>" + g_currency + "</sup>" + dTax.toFixed(2));
+  updateTotalBar(); 
+}  
+
+
+function onBState()
+{
+  $('#bstate').val($("#bstate_sel option:selected").text());
+  updateTax();
+  loadUps();
+}
+
+function onSState()
+{
+  $('#sstate').val($("#sstate_sel option:selected").text());
+  updateTax();
+  loadUps();
+}
+
+function ship2SameAddr() {
+  return $('#rb_ship_to:checked').val() == 0;
+}
+
+function loadUps() {
+  if (true)
+    return;
+  
+  var m = $('#shipping').val();
+  var q = $('#qty').val();
+  if (ship2SameAddr()) {
+    swCopyBilling2Shipping()
+  }
+  if (g_bBulkShip)
+    return;
+    
+  var orderType = $('#order_type').val();
+  var z = $('#szip').val();
+  var s = $('#sstate').val();
+  // only update if zip is changed
+  if (z == g_ups_zip && s == g_ups_state)
+    return;
+  g_ups_zip = z;
+  g_ups_state = s;
+  var myUrl = '/Bind/SwUpsValidRateOptions.jsp?team=' + sw_team_dir + 
+            '&m=' + m +  
+            '&q=' + q +  
+            '&order_type=' + orderType +  
+            '&zip=' + z +  
+            '&state=' + s +  
+            '&w=' + g_ups_wt + 
+            '&c=US';
+  $.prompt('<div class=tuprompt_text>Updating Shipping Rates...</div>',{ buttons: {}, timeout: 20000, top: '30%'});
+  $.ajax({
+    url: myUrl,
+    success: function(data) {
+      $('#shipping').html(data);
+      setTimeout(function() {
+        if (m && m != -1)
+          $('#shipping').val(m); 
+        updateTotalBar(); 
+        $.prompt.close(); 
+      }, 100);
+    }
+  });
+}  
+
+function updateTotalBar() {
+  $('#cart_weight').val(g_ups_wt);
+
+  var ship = getShipPrice();
+  $('#cart_shipping').val(ship.toFixed(2));
+  $('#cart_shipping_text').html("<sup>" + g_currency + "</sup>" + ship.toFixed(2));
+  
+  $('#cart_volume_disc').val(volumeDiscount.toFixed(2));
+  $('#cart_volume_disc_text').html("<sup>" + g_currency + "</sup>" + (0-volumeDiscount).toFixed(2));
+  
+  if (g_bBulkRelease) {
+    $('#cart_total').val(ship.toFixed(2));
+    var zeroTot = (ship == 0);
+    if (zeroTot) {
+      $('#divCC').hide();
+      $('#form-row-cc_num').removeClass('required');
+      $('#form-row-cvs').removeClass('required');
+    } else {
+      $('#divCC').show();
+      $('#form-row-cc_num').addClass('required');
+      $('#form-row-cvs').addClass('required');
+    }
+    
+    return;
+  }
+
+  var subtot = $('#cart_subtotal').val() - 0;
+  var tax = $('#cart_tax').val() - 0;
+  
+  var tot = (subtot + ship + tax - volumeDiscount).toFixed(2);
+
+  $('#cart_total').val(tot + "aaa");
+  $('#sw_grand_tot').val(tot);
+  $('#cart_total_text').html("<sup>" + g_currency + "</sup>" + tot);
+  $('#popSwAmt').html(g_currency + tot);
+}

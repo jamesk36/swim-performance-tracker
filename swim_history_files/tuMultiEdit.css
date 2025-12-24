@@ -1,0 +1,24 @@
+.titleBar {
+  background-color: #cccccc;
+  color: black;
+  font-weight: bold;
+  margin: 10px 0 5px 10px
+}
+
+.valueField {
+  margin: 0 0 10px 30px;
+  display: none;
+}
+#divSel_admin_type {
+  margin: 0 0 10px 30px;
+  display: none;
+}
+
+#divSel_member_search {
+  margin: 0 0 10px 30px;
+  display: none;
+}
+#divSel_account_status {
+  margin: 0 0 10px 30px;
+  display: none;
+}

@@ -1,0 +1,1041 @@
+var g_submit_sp = null;
+
+function divShowBySel(divId, fldSel)
+{
+var sel = fldSel.selectedIndex;
+var bEnable = sel != -1 && fldSel.options[sel].value == 1;
+divShow(divId, bEnable);
+}
+function divShowBySelMem(divId, fldSel)
+{
+var sel = fldSel.selectedIndex;
+var bEnable = sel != -1;
+	if(bEnable && fldSel.options[sel].value == 1){
+		divShow("divMultiDisc", bEnable);
+		divShow("divMultiDisc1", false);
+	}else if (bEnable && fldSel.options[sel].value == "2"){
+	    divShow("divMultiDisc", false);
+		divShow("divMultiDisc1", bEnable);
+	}else{
+		divShow("divMultiDisc", false);
+		divShow("divMultiDisc1", false);
+	}
+}
+function divShowByCheck(divId, fldCheck)
+{
+  divShow(divId, fldCheck.checked);
+}
+
+function format2Cents(dollar)
+{
+	dollar = Math.round((dollar - 0) * 100) / 100.0;
+  dollar = "" + dollar;
+  var idxDot = dollar.indexOf(".");
+  if (idxDot == -1)
+    dollar += ".00";
+  else
+  {
+    if (idxDot == dollar.length - 1)
+      dollar += "00";
+    else if (idxDot == dollar.length - 2)
+      dollar += "0";
+    else if (idxDot < dollar.length - 2)
+      dollar = dollar.substring(0, idxDot + 3);
+  }
+  return "" + dollar;
+}
+
+
+function tuWriteSwf(divId, swf, w, h, bgColor, ver)
+{
+  if (!ver)
+    ver = "7";
+  if (!bgColor)
+    bgColor ="white";
+  var so = new SWFObject(swf, "_swf_" + divId, w, h, ver, bgColor);
+  so.addParam("quality", "high");
+  so.addParam("wmode", "transparent");
+  so.write(divId);
+}
+
+function tuFldById(fId)
+{
+  return document.getElementById(fId);
+}
+function tuSubmitClick(sp)
+{
+  g_submit_sp = sp;
+}
+function tuHideSubmit()
+{
+ try { g_submit_sp.style.display="none"; }
+ catch (err) {}
+}
+function tuShowSubmit()
+{
+  try { g_submit_sp.style.display="inline"; }
+  catch (err) {}
+}
+function tuProgressBar(title)
+{
+  tuWinOpen("ProgressBarPop.jsp?t=" + escape(title), 400, 200);
+}
+function tuInitForm(frm)
+{
+  frm.action="javascript:void(0)";
+}
+
+function tuCheckEntryTime(ed, label)
+{
+  var v = ed.value;
+  if (!v)
+  {
+    alert('[' + label + '] is required');
+    ed.focus();
+    return false;
+  }
+  else if (v != 'NT')
+  {
+    var icols = 0;
+    var ccLast = v.substr(v.length-1, 1);
+    if (ccLast == 'Y' || ccLast == "L" || ccLast == "S")
+      v = v.substr(0, v.length-1);
+    if(ccLast == "'")
+		v = v.substr(0, v.length-2);
+    for (var j = 0; j < v.length; j++)
+    {
+      var cc = v.substr(j, 1);
+      if (cc == ':')
+      {
+        icols++;
+      }
+      else if (isNaN(cc) && cc != '.')
+      {
+        alert("Invalid character entered for [" + label + "]. Please retry.");
+        ed.focus();
+        return false;
+     }
+    }
+    if (icols >= 2)
+    {
+      alert("Invalid time (more than an hour), " + v + ", entered for [" + label + "]. Please retry.");
+      ed.focus();
+      return false;
+    }
+    else if (icols == 0)
+    {
+      if ((v-0.0) < 3.0)
+      {
+        alert("Invalid time (less than 3 seconds), " + v + ", entered for [" + label + "]. Please retry.");
+        ed.focus();
+        return false;
+      }
+    }
+  }
+  return true;
+
+}
+
+function tuMoveup(box)
+{
+  var iSelected = box.selectedIndex;
+  if (iSelected <= 0)
+    return;
+  for(var i = 0; i < box.options.length; i++)
+  {
+    if (box.options[i].selected && box.options[i] != "" && box.options[i] != box.options[0])
+    {
+      var tmpval = box.options[i].value;
+      var tmpval2 = box.options[i].text;
+      box.options[i].value = box.options[i - 1].value;
+      box.options[i].text = box.options[i - 1].text
+      box.options[i-1].value = tmpval;
+      box.options[i-1].text = tmpval2;
+    }
+  }
+  box.selectedIndex = iSelected - 1;
+}
+
+function tuMovedown(box)
+{
+  var iSelected = box.selectedIndex;
+  if (iSelected >= (box.options.length - 1))
+    return;
+  for(var i = 0; i < box.options.length; i++)
+  {
+    if (box.options[i].selected && box.options[i] != "" && box.options[i+1] != box.options[box.options.length])
+    {
+      var tmpval = box.options[i].value;
+      var tmpval2 = box.options[i].text;
+      box.options[i].value = box.options[i+1].value;
+      box.options[i].text = box.options[i+1].text
+      box.options[i+1].value = tmpval;
+      box.options[i+1].text = tmpval2;
+    }
+  }
+  box.selectedIndex = iSelected + 1;
+}
+
+
+function OrgReg(organ_id, region_id, region)
+{
+  this.organ_id = organ_id;
+  this.region_id = region_id;
+  this.region = region;
+}
+function doOrganChange(frm, iCurrentRegion, strNoSel)
+{
+  if (!strNoSel)
+    strNoSel = '--Select--';
+  var organCtl = frm.sel_organ;
+  var regionCtl = frm.sel_region;
+  var iSel = organCtl.options.selectedIndex;
+  var iOrganId = organCtl.options[iSel].value;
+
+  regionCtl.options[0] = new Option(strNoSel, "-1");
+  var j = 1;
+  iSel = 0;
+  for (var i = 0; i < OrgRegArray.length; i++)
+  {
+    var or = OrgRegArray[i];
+    if (or.organ_id == iOrganId)
+    {
+      var bSel = or.region_id==iCurrentRegion;
+      if (bSel)
+        iSel = j;
+      regionCtl.options[j++] = new Option(or.region, "" + or.region_id, false, bSel);
+    }
+  }
+  regionCtl.length = j;
+  for (var i = j; i < regionCtl.length; i++)
+  {
+    regionCtl.options[i] = new Option('', '', false, 0);
+  }
+  regionCtl.selectedIndex = iSel;
+}
+
+function tuEncodeHtml(v)
+{
+  v = escape(v);
+  v = v.replace(/\//g,"%2F");
+  v = v.replace(/\?/g,"%3F");
+  v = v.replace(/=/g,"%3D");
+  v = v.replace(/&/g,"%26");
+  v = v.replace(/@/g,"%40");
+  return v;
+}
+
+function tuWordConvert(strOrg)
+{
+  strOrg = strOrg.replace(/\u2013/g, "-");
+  strOrg = strOrg.replace(/\u2019/g, "'");
+  strOrg = strOrg.replace(/\u201C/g, '"');
+  strOrg = strOrg.replace(/\u201D/g, '"');
+  strOrg = strOrg.replace(/\u2026/g, "...");
+  return strOrg;
+}
+
+function tuWinOpen(url, w, h, target)
+{
+  if (!target)
+    target = "_blank";
+  window.open(url, target,'width=' + w + ',height=' + h + ',locationbar=no,menubar=yes,menu=yes,resizable=yes,scrollbars=yes,toolbar=no');
+}
+
+function tuSpcAdvHere(team)
+{
+    (window.wrappedWindowLocation || window.location).href = "/SpcAdvHere.jsp?team=" + team;
+}
+
+function tuMapIt(addr)
+{
+  url = "http://maps.google.com/maps?q=" + addr;
+  tuWinOpen(url, 700, 640);
+}
+
+// also ok for check box
+function tuRequiredText(fld, fldName)
+{
+  if (!fld.value || fld.value.trim().length == 0)
+  {
+    if (fldName)
+      alert("[" + fldName + "] is required.  Please enter.");
+    fld.focus();
+    return false;
+  }
+  return true;
+}
+
+function tuRequiredDate(fld, fldName)
+{
+  if(isUKTeam || isAUTeam || isIETeam){
+    console.log('Date regex UK AU IE');
+    var regx = /^(0?[1-9]|1\d|2\d|3[01])\/(0?[1-9]|1[0-2])\/(19|20)\d{2}$/;
+  } else {
+    console.log('Date regex US');
+    var regx = /^(0?[1-9]|1[0-2])\/(0?[1-9]|1\d|2\d|3[01])\/(19|20)\d{2}$/;
+  }
+  var fieldValue = fld.value;
+  if(!fieldValue && typeof(fld.val) == "function")
+     fieldValue = fld.val();
+
+    console.log('test regex on field value: ' + fieldValue);
+  if (!fieldValue || !regx.test(fieldValue))
+  {
+    if (fldName) {
+        console.log('validating field: ' + fldName);
+        console.log('validating team UK: ' + isUKTeam);
+        console.log('validating team AU: ' + isAUTeam);
+        console.log('validating team IE: ' + isIETeam);
+      (isUKTeam || isAUTeam || isIETeam) ? alert("Valid [" + fldName + "] is required in dd/MM/yyyy format.  Please enter.") : alert("Valid [" + fldName + "] is required in MM/dd/yyyy format.  Please enter.");
+    }
+    fld.focus();
+    return false;
+  }
+  return true;
+}
+
+function tuCheckDateRange(from, to)
+{
+  var strFrom = from.value;
+  if(!strFrom)
+     strFrom = from.val();
+
+  var strTo = to.value;
+  if(!strTo)
+     strTo = to.val();
+
+  var fromDate = new Date(strFrom);
+  var toDate = new Date(strTo);
+  if (fromDate.getTime() > toDate.getTime())
+  {
+    alert("From Date "+ strFrom + " is later than the To Date "+ strTo);
+    from.focus();
+    return false;
+  }
+  return true;
+}
+
+function tuValidNumber(fld)
+{
+  var regx = /^\d+$/;
+  var fieldValue = fld.trim();
+  if (!fieldValue || !regx.test(fieldValue))
+  {
+    alert("[" + fieldValue + "] is not a valid number.");
+    return false;
+  }
+  return true;
+}
+
+function tuRequiredSelect(fld, fldName)
+{
+  if (fld.options.selectedIndex == 0)
+  {
+    if (fldName)
+      alert("[" + fldName + "] is required.  Please enter.");
+    fld.focus();
+    return false;
+  }
+  return true;
+}
+
+function tuRequiredRadio(f, label)
+{
+  for (var i = 0; i < f.length; i++)
+  {
+    if (f[i].checked)
+      return true;
+  }
+  alert("Please select [" + label + "].");
+  return false;
+}
+
+function tuRadioSelected(f)
+{
+  if (f.checked == undefined)
+  {
+    for (var i = 0; i < f.length; i++)
+    {
+      if (f[i].checked)
+        return i;
+    }
+    return -1;
+  }
+  else
+    return (f.checked ? 0 : -1);
+}
+
+function tuRadioValue(f)
+{
+  if (f.checked == undefined)
+  {
+    var iSel = tuRadioSelected(f);
+    if (iSel == -1)
+      return null;
+    else
+      return f[iSel].value;
+  }
+  else
+    return (f.checked ? f.value : null);
+}
+
+function tuSetRadioByValue(f, v)
+{
+  for (var i = 0; i < f.length; i++)
+  {
+    if (f[i].value == v)
+    {
+      f[i].checked = true;
+      return true;
+    }
+  }
+  return false;
+}
+
+function tuGetWinParam(queryString, parameterName)
+{
+  var parameterName = parameterName + "=";
+  if (queryString.length > 0) {
+    begin = queryString.indexOf (parameterName);
+    if ( begin != -1 ) {
+      begin += parameterName.length;
+      end = queryString.indexOf ( "&" , begin );
+      if ( end == -1 ) {
+        end = queryString.length
+      }
+      return unescape ( queryString.substring ( begin, end ) );
+    }
+  }
+  return null;
+}
+
+
+var g_iBlinkCount = 5;
+function blinkIt()
+{
+  if (g_iBlinkCount-- <=0)
+    return;
+  if (!document.all)
+    return;
+   else
+   {
+    for(i=0;i<document.all.tags('blink').length;i++)
+    {
+      s=document.all.tags('blink')[i];
+      s.style.visibility=(s.style.visibility=='visible')?'hidden':'visible';
+     }
+    setTimeout("blinkIt()", 1000);
+   }
+}
+
+function tuValidZip(fld)
+{
+  zip = fld.value;
+  len=fld.value.length
+  digits="0123456789"
+  if(len != 5 && len != 10)
+  {
+    fld.focus()
+    return "Zip is not the correct length";
+  }
+
+  for(i=0; i<5; i++)
+  {
+    if (digits.indexOf(zip.charAt(i))<0)
+    {
+      fld.focus()
+      return "First five digits must be numeric";
+    }
+  }
+  return null;
+}
+
+// ========== BEGIN Phone Format =========================
+var zChar = new Array(' ', '(', ')', '-', '.');
+var maxphonelength = 13;
+var phonevalue1;
+var phonevalue2;
+var cursorposition;
+
+function ParseForNumber1(object)
+{
+  phonevalue1 = ParseChar(object.value, zChar);
+}
+function ParseForNumber2(object)
+{
+  phonevalue2 = ParseChar(object.value, zChar);
+}
+
+function backspacerUP(object,e)
+{
+  if(e){
+    e = e
+  } else {
+    e = window.event
+  }
+  if(e.which){
+    var keycode = e.which
+  } else {
+    var keycode = e.keyCode
+  }
+
+  ParseForNumber1(object)
+
+  if(keycode > 48){
+    ValidatePhone(object)
+  }
+}
+
+function backspacerDOWN(object,e) {
+  if(e){
+    e = e
+  } else {
+    e = window.event
+  }
+  if(e.which){
+    var keycode = e.which
+  } else {
+    var keycode = e.keyCode
+  }
+  ParseForNumber2(object)
+}
+
+function GetCursorPosition(){
+
+  var t1 = phonevalue1;
+  var t2 = phonevalue2;
+  var bool = false
+    for (i=0; i<t1.length; i++)
+    {
+      if (t1.substring(i,1) != t2.substring(i,1)) {
+        if(!bool) {
+          cursorposition=i
+          bool=true
+        }
+      }
+    }
+}
+
+function ValidatePhone(object){
+
+  var p = phonevalue1
+
+  p = p.replace(/[^\d]*/gi,"")
+
+  if (p.length < 3) {
+    object.value=p
+  } else if(p.length==3){
+    pp=p;
+    d4=p.indexOf('(')
+    d5=p.indexOf(')')
+    if(d4==-1){
+      pp="("+pp;
+    }
+    if(d5==-1){
+      pp=pp+")";
+    }
+    object.value = pp;
+  } else if(p.length>3 && p.length < 7){
+    p ="(" + p;
+    l30=p.length;
+    p30=p.substring(0,4);
+    p30=p30+")"
+
+    p31=p.substring(4,l30);
+    pp=p30+p31;
+
+    object.value = pp;
+
+  } else if(p.length >= 7){
+    p ="(" + p;
+    l30=p.length;
+    p30=p.substring(0,4);
+    p30=p30+")"
+
+    p31=p.substring(4,l30);
+    pp=p30+p31;
+
+    l40 = pp.length;
+    p40 = pp.substring(0,8);
+    p40 = p40 + "-"
+
+    p41 = pp.substring(8,l40);
+    ppp = p40 + p41;
+
+    object.value = ppp.substring(0, maxphonelength);
+  }
+
+  GetCursorPosition()
+
+  if(cursorposition >= 0){
+    if (cursorposition == 0) {
+      cursorposition = 2
+    } else if (cursorposition <= 2) {
+      cursorposition = cursorposition + 1
+    } else if (cursorposition <= 5) {
+      cursorposition = cursorposition + 2
+    } else if (cursorposition == 6) {
+      cursorposition = cursorposition + 2
+    } else if (cursorposition == 7) {
+      cursorposition = cursorposition + 4
+      e1=object.value.indexOf(')')
+      e2=object.value.indexOf('-')
+      if (e1>-1 && e2>-1){
+        if (e2-e1 == 4) {
+          cursorposition = cursorposition - 1
+        }
+      }
+    } else if (cursorposition < 11) {
+      cursorposition = cursorposition + 3
+    } else if (cursorposition == 11) {
+      cursorposition = cursorposition + 1
+    } else if (cursorposition >= 12) {
+      cursorposition = cursorposition
+    }
+
+        var txtRange = object.createTextRange();
+        txtRange.moveStart( "character", cursorposition);
+    txtRange.moveEnd( "character", cursorposition - object.value.length);
+        txtRange.select();
+    }
+
+}
+
+function ParseChar(sStr, sChar)
+{
+    if (sChar.length == null)
+    {
+        zChar = new Array(sChar);
+    }
+    else zChar = sChar;
+
+    for (i=0; i<zChar.length; i++)
+    {
+        sNewStr = "";
+
+        var iStart = 0;
+        var iEnd = sStr.indexOf(sChar[i]);
+
+        while (iEnd != -1)
+        {
+            sNewStr += sStr.substring(iStart, iEnd);
+            iStart = iEnd + 1;
+            iEnd = sStr.indexOf(sChar[i], iStart);
+        }
+        sNewStr += sStr.substring(sStr.lastIndexOf(sChar[i]) + 1, sStr.length);
+
+        sStr = sNewStr;
+    }
+
+    return sNewStr;
+}
+// ========== END Phone Format =========================
+
+//var g_DbTableHover = true;
+var g_DbTableHover = false;
+
+function onDbtableFormat()
+{
+  var elem = "TR";
+  if(document.getElementsByTagName)
+  {
+    var el = document.getElementsByTagName(elem);
+    if (el == null)
+      return;
+    var iRow = 0;
+    for(var i=0; i<el.length; i++)
+    {
+      if (!el[i] || !el[i].childNodes[0])
+        continue;
+      if(el[i].childNodes[0].tagName != "TH"
+        && el[i].parentNode.parentNode.className.indexOf("dbtable") != -1)
+      {
+        if(iRow%2 == 1)
+        {
+          el[i].className = "on";
+          el[i].onmouseout = function(){ this.className = "on"; }
+        }
+        else
+        {
+          el[i].className = "off";
+          el[i].onmouseout = function(){ this.className = "off";}
+        }
+      if (g_DbTableHover)
+        el[i].onmouseover = function(){this.className = "hover";}
+        iRow++;
+      }
+    }
+  }
+}
+
+
+// Public Domain code by Christopher Diggins
+// http://www.cdiggins.com
+// Last Modified 2005-10-28
+function js_tokenizer(input) {
+  var re_line_comment = /\/\/.*\r/
+  var re_full_comment = /\/\*(?:.|[\n\r])*?\*\//
+  var re_ident = /[a-zA-Z_][a-zA-Z0-9_]*\b/
+  var re_integer = /[+-]?\d+/
+  var re_float = /[+-]?\d+(([.]\d+)*([eE][+-]?\d+))?/
+  var re_doublequote = /["][^"]*["]/
+  var re_singlequote = /['][^']*[']/
+  var re_tab = /\t/
+  var re_nl = /\r/
+  var re_space = /\s/
+  var re_symbol = /\S/
+  var re_token = /\/\/.*\r|\/\*(?:.|\n|\r)*?\*\/|\w+\b|[+-]?\d+(([.]\d+)*([eE][+-]?\d+))?|["][^"]*["]|['][^']*[']|./g
+  var a = input.match(re_token);
+  var s = "<tokens lang='javascript' version='1.0'>\n"
+  for (i = 0; i < a.length; i++) {
+    var token = a[i];
+    if (token.match(re_line_comment)) {
+      s = s + "<linecomment>" + token + "</linecomment>\n";
+    }
+    else if (token.match(re_full_comment)) {
+      s = s + "<fullcomment>" + token + "</fullcomment>\n";
+    }
+    else if (token.match(re_singlequote)) {
+      s = s + "<qstr>" + token + "</qstr>\n";
+    }
+    else if (token.match(re_doublequote)) {
+      s = s + "<qqstr>" + token + "</qqstr>\n";
+    }
+    else if (token.match(re_ident)) {
+      s = s + "<ident>" + token + "</ident>\n";
+    }
+    else if (token.match(re_float)) {
+      s = s + "<real>" + token + "</real>\n";
+    }
+    else if (token.match(re_integer)) {
+      s = s + "<int>" + token + "</int>\n";
+    }
+    else if (token.match(re_space)) {
+      s = s + "<ws/>\n";
+    }
+    else if (token.match(re_nl)) {
+      s = s + "<nl/>\n";
+    }
+    else if (token.match(re_tab)) {
+      s = s + "<tab/>\n";
+    }
+    else if (token == ">") {
+      s = s + "<sym>&gt;</sym>\n"
+    }
+    else if (token == "<") {
+      s = s + "<sym>&lt;</sym>\n"
+    }
+    else  if (token == "&") {
+      s = s + "<sym>&amp;</sym>\n"
+    }
+    else {
+      s = s + "<sym>" + token + "</sym>\n"
+    }
+  }
+  s = s + "</tokens>";
+  return s;
+}
+
+/*
+function divShow(divId, bShow)
+{
+  var strVis = bShow ? 'visible' : 'hidden';
+  if (document.getElementById) { // DOM3 = IE5, NS6
+    document.getElementById(divId).style.visibility = strVis;
+  }
+  else {
+    if (document.layers) { // Netscape 4
+      document.hideshow.visibility = strVis;
+    }
+    else { // IE 4
+      document.all.hideshow.style.visibility = strVis;
+    }
+  }
+}
+*/
+
+function divShow(id, bShow)
+{
+  if (document.getElementById)
+  {
+    obj = document.getElementById(id);
+    if (obj)
+      obj.style.display = bShow ? 'block' : "none";
+  }
+}
+
+function upperCaseField(fld)
+{
+  fld.value = fld.value.toUpperCase();
+}
+
+
+function confirmSubmit()
+{
+  return confirm("Do you want to save the changes?");
+}
+
+function tuSubmitForm(frm)
+{
+  if (!confirmSubmit())
+    return;
+  frm.submit();
+}
+
+function onSurfBend()
+{
+  tuWinOpen("https://www.teamunify.com/SurfAtBend.jsp?team=tubill", 500, 400, "SurfAtBend");
+}
+
+function getSortValue()
+{
+  if (document.searchForm && document.searchForm.sortCol)
+    return document.searchForm.sortCol.value;
+  else
+    return "";
+}
+
+function doSort(dbCol, ud)
+{
+  document.searchForm.sortCol.value = dbCol + (ud==2 ? ' desc':'');
+  var displayAll = tuGetWinParam(window.location.search.replace('?', ''), 'displayAll');
+  if (displayAll)
+    document.searchForm.action += '&displayAll=' + displayAll;
+  document.searchForm.submit();
+}
+
+
+function writeSortCol(label, dbColumn)
+{
+  var fsv = getSortValue();
+  if (!fsv)
+  {
+    document.write('<span class=dbtable_colheader>' + label + '</span>');
+    return;
+  }
+  var host = window.origin || window.location.origin || window.location.protocol + "//" + window.location.hostname;
+  var sImgU = host + "/img/arrow_up_off.gif";
+  var sImgD = host + "/img/arrow_down_off.gif";
+  var fsv = getSortValue();
+  if (fsv.indexOf(dbColumn) != -1)
+  {
+    var bDesc = fsv.indexOf(" desc") !=-1;
+    if (bDesc)
+      sImgD = host + "/img/arrow_down_on.gif";
+    else
+      sImgU = host + "/img/arrow_up_on.gif";
+  }
+  document.writeln(
+      '<table border=0 cellpadding=0 cellspacing=0>' +
+      '<tr valign=middle>' +
+        '<td class=dbtable_colheader>' + label + '</td>' +
+        '<td class=dbtable_colheader>&nbsp;</td>' +
+        '<td width=11><table border=0 cellpadding=0 cellspacing=0>' +
+          ' <tr><td width=11><a href="javascript:doSort(\'' + dbColumn + '\', 1)"><img alt="Ascending" src=' + sImgU + ' border=0></a></td></tr>' +
+          ' <tr><td width=11><a href="javascript:doSort(\'' + dbColumn + '\', 2)"><img alt="Descending" src=' + sImgD + ' border=0></a></td></tr>' +
+        '</table></td>' +
+      '</tr>' +
+      '</table>'
+      );
+}
+
+function onTipStandard(strTitle, strBody)
+{
+  return Tip(strBody, CLOSEBTN, true, STICKY, 1, CLICKCLOSE, true,
+             TITLE, strTitle + '&nbsp;', WIDTH,300,
+             SHADOW, true, OFFSETX, -100,
+             ABOVE, true, LEFT, true, FADEIN, 200, FADEOUT, 200);
+
+}
+function onTipExt(strTitle, strBody, bSticky)
+{
+  return Tip(strBody, CLOSEBTN, bSticky, STICKY, bSticky ? 1 : 0, CLICKCLOSE, true,
+             TITLE, strTitle + '&nbsp;', WIDTH,300,
+             SHADOW, true, OFFSETX, -100,
+             ABOVE, true, LEFT, true, FADEIN, 200, FADEOUT, 200);
+
+}
+
+function tuRemoveGridSelected(divId)
+{
+  if (!confirm('Do you want to remove the selected item(s)?'))
+    return;
+  var aSel = $("#" + divId).jqGrid('getGridParam','selarrrow');
+  for (var i = aSel.length-1; i >= 0; i--)
+    $("#" + divId).jqGrid('delRowData',aSel[i]);
+}
+
+function tuInitDlg(divId, w, h, bClear)
+{
+  return $('#' + divId).dialog(
+    {
+      closeOnEscape:false, modal:true, autoOpen:false, width:w, height:h,
+//      buttons: {"Ok": function(){eval(onFun)}},
+      open: function(event, ui) {
+        if (!bClear)
+          return;
+        $('#' + divId + ' table').find(':input').each(function() {
+          switch(this.type) {
+            case 'password':
+            case 'select-multiple':
+            case 'select-one':
+            case 'text':
+            case 'textarea':
+            $(this).val('');
+            break;
+            case 'checkbox':
+            case 'radio':
+            this.checked = false;
+          }
+        }); // clear
+      } //open
+    });
+}
+function collectGridData(divId, aCol)
+{
+  // collect grid data
+  var data = '';
+  var aRowId = $('#' + divId).jqGrid('getDataIDs');
+  for (var i = 0; i < aRowId.length; i++)
+  {
+    if (data)
+      data += '||||';
+    for (var j = 0; j < aCol.length; j++)
+    {
+      if (j != 0)
+        data += '~~~~';
+      var dataTmp = $('#' + divId).jqGrid('getCell',aRowId[i],aCol[j]);
+      if (dataTmp.indexOf('<input ') == 0)
+      	dataTmp = $('#' + (aRowId[i]-1) + "_" + aCol[j]).val();
+      if (!dataTmp)
+      	dataTmp = '<<NuLl>>';
+      data += dataTmp;
+
+    }
+  }
+  return data;
+}
+
+function addGridRowSorted(divId, rowData, rowId, colSort1, colSort2, bNumSort)
+{
+  var vColNew1 = rowData[colSort1];
+  var vColNew2 = 0;
+  if (colSort2)
+    vColNew2 = rowData[colSort2];
+
+  var aRowId = $('#' + divId).jqGrid('getDataIDs');
+  var rowIdBefore = null;
+  for (var i = 0; i < aRowId.length; i++)
+  {
+    var vColOld1 = $('#' + divId).jqGrid('getCell',aRowId[i],colSort1);
+    var vColOld2 = 0;
+    if (colSort2)
+      vColOld2 = $('#' + divId).jqGrid('getCell',aRowId[i],colSort2);
+    if (bNumSort)
+    {
+      vColNew1 -= 0;
+      vColNew2 -= 0;
+      vColOld1 -= 0;
+      vColOld2 -= 0;
+    }
+    if (vColNew1 < vColOld1)
+      rowIdBefore = aRowId[i];
+    else if (vColNew1 == vColOld1)
+    {
+      if (vColNew2 < vColOld2)
+        rowIdBefore = aRowId[i];
+    }
+    if (rowIdBefore != null)
+      break;
+  }
+  if (rowIdBefore == null)
+    $('#' + divId).jqGrid('addRowData',rowId,rowData);
+  else
+    $('#' + divId).jqGrid('addRowData',rowId,rowData, 'before', rowIdBefore);
+}
+
+
+function onProTabs(iTab, strTabsDivId, strContentDivId)
+{
+	$("." + strTabsDivId + "_left").each(function(idx) {
+		if (idx == iTab)
+		{
+			$(this).removeClass("tab_lg_left_off");
+			$(this).addClass("tab_lg_left_on");
+		}
+		else
+		{
+			$(this).removeClass("tab_lg_left_on");
+			$(this).addClass("tab_lg_left_off");
+		}
+	});
+
+	$("." + strTabsDivId + "_center").each(function(idx) {
+		if (idx == iTab)
+		{
+			$(this).removeClass("tab_lg_center_off");
+			$(this).addClass("tab_lg_center_on");
+		}
+		else
+		{
+			$(this).removeClass("tab_lg_center_on");
+			$(this).addClass("tab_lg_center_off");
+		}
+	});
+
+	$("." + strTabsDivId + "_right").each(function(idx) {
+		if (idx == iTab)
+		{
+			$(this).removeClass("tab_lg_right_off");
+			$(this).addClass("tab_lg_right_on");
+		}
+		else
+		{
+			$(this).removeClass("tab_lg_right_on");
+			$(this).addClass("tab_lg_right_off");
+		}
+	});
+
+	$("#" + strContentDivId + ".tab").hide();
+	$("#" + strContentDivId + ".tab ~ div").hide();
+	var sel = "#" + strContentDivId + ".tab";
+	iTabSel = iTab;
+	if (iTab != 0)
+	{
+		iTabSel--;
+		sel = "#" + strContentDivId + ".tab ~ div";
+	}
+	$(sel).each(function(idx) {
+		if (idx ==iTabSel){
+			$(this).show();
+		}
+	});
+	$.post("/Bind/ProTabSelectSet.jsp?tabname=" + strTabsDivId + "&idx=" + iTab);
+}
+
+function checkAllSetup(subIndex) {
+  var allSelector = "#cbAll_" + subIndex;
+  var oneSelector = ".cbOne_" + subIndex;
+
+  $(allSelector).on("click", function() {
+    var isChecked = $(this).is(":checked");
+    $(oneSelector).prop("checked", isChecked);
+  });
+
+  $(oneSelector).on("click", function() {
+    var allChecked = $(oneSelector).length === $(oneSelector + ":checked").length;
+    $(allSelector).prop("checked", allChecked);
+  });
+}
+
+function getItemCheckedValueCSV(checkboxClass) {
+  var checked = '';
+  $('.' + checkboxClass + ':checked').each(function() {
+    if (checked)
+      checked += ',';
+    checked += $(this).val();
+  });
+
+  return checked;
+}

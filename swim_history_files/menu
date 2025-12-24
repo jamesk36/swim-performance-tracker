@@ -1,0 +1,2046 @@
+function BaseAdminSectionManager() {
+    this.features = [];
+}
+BaseAdminSectionManager.LEGACY_BASE = "/team/" + ADMIN_CONTEXT.teamAlias + "/controller/cms/admin/legacy/";
+BaseAdminSectionManager.ADMIN_LEGACY_PARAMS = "use-empty-layout=true&team=" + ADMIN_CONTEXT.teamAlias;
+
+BaseAdminSectionManager.getContactToTeamUnifyMenu = function() {
+    var query = "https://teamunify.uservoice.com/clients/widgets/classic_widget?mode=support"
+    + "&link_color=007dbf"
+    + "&primary_color=0069cc"
+    + "&embed_type=lightbox"
+    + "&trigger_method=custom_trigger"
+    + "&contact_enabled=true"
+    + "&feedback_enabled=false"
+    + "&custom_fields=" + btoa(JSON.stringify(UserVoice.globalOptions.ticket_custom_fields))
+    + "&strings=e30="
+    + "&smartvote=true"
+    + "&referrer="+ location.origin +"/team/" + ADMIN_CONTEXT.teamAlias + "/page/legacy?url=" + encodeURIComponent("/HelpAndTrainingTools.do?act=edit")
+    + "&team=" + ADMIN_CONTEXT.teamAlias;
+    return query;
+}
+
+BaseAdminSectionManager.prototype.clone = function(obj) {
+    if (obj === null || typeof(obj) !== 'object' || 'isActiveClone' in obj) return obj;
+
+    var temp;
+    if (obj instanceof Date) {
+        temp = new obj.constructor();
+    } else {
+        temp = obj.constructor();
+    }
+
+    for (var key in obj) {
+        if (Object.prototype.hasOwnProperty.call(obj, key)) {
+            obj['isActiveClone'] = null;
+            temp[key] = this.clone(obj[key]);
+            delete obj['isActiveClone'];
+        }
+    }
+    return temp;
+}
+BaseAdminSectionManager._compareFeature = function(a, b) {
+    var v1 = typeof(a.priority) == "number" ? a.priority : 0;
+    var v2 = typeof(b.priority) == "number" ? b.priority : 0;
+    var t = v1 - v2;
+    return t;
+}
+BaseAdminSectionManager.prototype.cloneList = function(src, dest) {
+    for (var i = 0; i < src.length; i++) {
+        var sItem = src[i];
+        var dItem = {};
+        for (var k in sItem) {
+            if (!sItem.hasOwnProperty(k)) continue;
+            if (k == "features" && Array.isArray(sItem.features)) {
+                dItem.features = [];
+                this.cloneList(sItem.features, dItem.features);
+            }
+            dItem[k] = this.clone(sItem[k]);
+        }
+        dest.push(dItem);
+    }
+};
+BaseAdminSectionManager.prototype.setPriority = function(features) {
+    for (var i = 0; i < features.length; i++) {
+        var dItem = features[i];
+        if (typeof(dItem.priority) != "number") {
+            dItem.priority = i+1;
+        }
+    }
+}
+BaseAdminSectionManager.prototype.cloneFeatures = function() {
+    var destination = [];
+    this.cloneList(this.features, destination);
+    return destination;
+};
+BaseAdminSectionManager.prototype.registerFeature = function (feature, container, overrideIfExist, debug) {
+    var registeredFeature = null;
+    var priority = undefined;
+    for (var i = 0; i < container.length; i ++) {
+        if (container[i].id == feature.id) {
+            registeredFeature = container[i];
+            priority = i;
+            break;
+        }
+    }
+    if (!priority) {
+        priority = container.length;
+    }
+    if (typeof(feature.priority) == "undefined") {
+        feature.priority = priority;
+    }
+    if (debug) console.log("Looking up '" + feature.id + "', found: " , registeredFeature);
+
+    if (!registeredFeature) {
+        if (debug) console.log("  > push whole feature");
+        container.push(this.clone(feature));
+    } else {
+        if (feature.features) {
+            if (debug) console.log("  > register sub features into existing one");
+            if (!registeredFeature.features) registeredFeature.features = [];
+            var thiz = this;
+            feature.features.forEach(function (childFeature) {
+                thiz.registerFeature(childFeature, registeredFeature.features, overrideIfExist, debug);
+            });
+        } else {
+            if (overrideIfExist) {
+                if (debug) console.log("  > replace:", registeredFeature ," with: " , feature);
+                container.splice(container.indexOf(registeredFeature), 1, this.clone(feature));
+            }
+        }
+    }
+};
+
+BaseAdminSectionManager.prototype.register = function (feature, overrideIfExist, debug) {
+    this.registerFeature(feature, this.features, overrideIfExist, debug);
+};
+
+BaseAdminSectionManager.prototype.updateFeature = function (id, feature) {
+    var doUpdate = function(treeNode, id, feature) {
+        if (treeNode.id == id) {
+            Object.keys(feature).map(function(k) { treeNode[k] = feature[k]; });
+            return true;
+        }
+        if (treeNode.features) {
+            for (var i = 0; i < treeNode.features.length; i++) {
+                if (doUpdate(treeNode.features[i], id, feature)) return true;
+            }
+        }
+        
+        return false;
+    };
+    
+    for (var i = 0; i < this.features.length; i++) {
+        if (doUpdate(this.features[i], id, feature)) return true;
+    }
+};
+
+BaseAdminSectionManager.prototype.performRegistrationPostProcessing = function () {
+    BaseAdminSectionManager._sortFeatures(this.features);
+};
+
+BaseAdminSectionManager._sortFeatures = function (features) {
+    if (!features) return;
+    features.sort(BaseAdminSectionManager._compareFeature);
+    features.forEach(function (f) {
+        BaseAdminSectionManager._sortFeatures(f.features);
+    });
+};
+
+var AdminSectionManager = (function () {
+    var thiz = new BaseAdminSectionManager();
+    function register(feature) {
+        thiz.register(feature);
+    }
+    this.CURRENCY_ICON = (window.LOCALE && window.LOCALE.currencyCode) || "USD";
+    this.CURRENCY_ICON = "currency-" + (this.CURRENCY_ICON == "GBP" || this.CURRENCY_ICON == "EUR" ? this.CURRENCY_ICON.toLowerCase() : "usd");
+    this.ADMIN_LEGACY_PARAMS = BaseAdminSectionManager.ADMIN_LEGACY_PARAMS;
+    if(TEAM_INFO.isInAffiliation && TEAM_INFO.isCurriculumEnable && TEAM_INFO.isCurriculumHasSeason) {
+        register({
+            id: "se-updates", name: "Updates" , icon: "fire",
+            notificationProvider: TUUpdateNotificationMenuProvider,
+            implementation: ADMIN_CONTEXT.newTuUpdates ? TuUpdateAdminPane : {src: "/TuUpdates.jsp?" + ADMIN_LEGACY_PARAMS},
+            visible: function() {
+                return ADMIN_CONTEXT.accountStatusId == AccountStatus.Active.code;
+            }
+        });
+    }
+
+    register({
+        id: "social-feed", name: "Social Feed", icon: "flash",
+        featureKey: "social-feed",
+        visible: function() {
+            return ADMIN_CONTEXT.accountStatusId == AccountStatus.Active.code && ADMIN_CONTEXT.teamFeedEnabled && AdminConsole.instance.isAccountLoggedIn();
+        },
+        implementation: {src: "/v2/teamfeed/teamfeed.jsp?" + ADMIN_LEGACY_PARAMS}
+    });
+
+    register({
+        id: "account", name: "My Account", icon: "account-circle",
+        implementation: null,
+        notificationProvider: MemberUnsignedAgreementNotificationMenuProvider,
+        features: [
+            {
+                id: "my-account-header", name: "My Account",
+                implementation: null,
+                features:
+                    [{
+                        id: "college-recruiting", name: "College Recruiting",
+                        visible: function () {
+                            return ADMIN_CONTEXT.ncsaEnabled;
+                        },
+                        implementation: {src: "/Ncsa.jsp?" + ADMIN_LEGACY_PARAMS}
+                    },
+                    {
+                        id: "my-account", name: "Account Info",
+                        implementation: {src: "/AccountMemberEditor.jsp?popup=1&returnPageId=&frmMyAccount=1&" + ADMIN_LEGACY_PARAMS}
+                    }, {
+                        id: "my-notification", name: "Notifications",
+                        data: {ids: [ADMIN_CONTEXT.accountId || 0], targetTab: "regnotif"},
+                        visible: ADMIN_CONTEXT.showNotification && ADMIN_CONTEXT.lessonEnabled && ADMIN_CONTEXT.accountStatusId == AccountStatus.Active.code,
+                        implementation: ADMIN_CONTEXT.AMA2_BETA_TEST_ENABLED ?
+                        "ama:AccountsDetailDialog" :
+                        {src: "/AccountMemberEditor.jsp?popup=1&tab=regNotifTab&" + ADMIN_LEGACY_PARAMS}
+                    }]
+            },
+            {
+                id: "my-billing-header", name: "Billing",
+                implementation: null,
+                visible: function() {
+                    return ADMIN_CONTEXT.accountStatusId == AccountStatus.Active.code;
+                },
+                features:
+                    [{
+                        id: "my-invoice-payment", name: "Invoices & Payments",
+                        implementation: {src: "/MyRecurrInvs.jsp?" + ADMIN_LEGACY_PARAMS}
+                    },
+//                    {
+//                        id: "payment-verification", name: "Payment Verification",
+//                        visible: ADMIN_CONTEXT.myInvoiceEnbled && ADMIN_CONTEXT.isUsingSCA,
+//                        implementation: "stripe:PaymentVerificationWidget"
+//                    },
+                    {
+                        id: "my-event-fundraising", name: "Event Fundraising",
+                        visible: ADMIN_CONTEXT.tumoneyEnabled,
+                        implementation: {src: "/TUMoney.jsp?" + ADMIN_LEGACY_PARAMS}
+                    },
+                    {
+                        id: "setup-auto-pay", name: "Set Up Autopay",
+                        visible: function(callback) {
+                            $cmsService.autoPaySetupRequired(function (visible) {
+                               callback(visible);
+                           }, function(error) {
+                               console.log("Setup Autopay", error);
+                               callback(false);
+                           });
+                        },
+                        implementation: {src: "/AccountMemberEditor.jsp?tab=paymentEdit&" + ADMIN_LEGACY_PARAMS}
+                    },
+                    {
+                        id: "my-sponsor-center", name: "Sponsor Center",
+                        visible: false && ADMIN_CONTEXT.sponsorCenterEnabled,
+                        implementation: {src: "/MySponsorCenter.jsp?" + ADMIN_LEGACY_PARAMS}
+                    }]
+            },
+            {
+                id: "registration-header", name: "Registration",
+                implementation: null,
+                features:
+                    [{
+                        id: "team-registration", name: FormatUtil.term("Competitive Registration"),
+                        visible: ADMIN_CONTEXT.memberRegistrationEnabled,
+                        featureKey: "team-reg",
+                        implementation: {src: "/MemRegStart.jsp?" + ADMIN_LEGACY_PARAMS},
+                        getSubPageUrl: function (name) {
+                            if (name.match(/^reg:([0-9]+)$/)) {
+                                var regId = RegExp.$1;
+                                return "/MemRegStart.jsp?" + ADMIN_LEGACY_PARAMS + "&reg_id=" + regId;
+                            }
+                            if (name.match(/^ev:([0-9]+)$/)) {
+                                var eventId = RegExp.$1;
+                                return "/MemRegStart.jsp?" + ADMIN_LEGACY_PARAMS + "&event_id=" + eventId;
+                            }
+
+                            return null;
+                        }
+                    },
+                    {
+                        id: "my-class-registration", name: "Class Registration",
+                        visible: ADMIN_CONTEXT.lessonEnabled,
+                        implementation: {src: "/SwimLessons.jsp?" + ADMIN_LEGACY_PARAMS}
+                    }]
+            }]
+    });
+
+    register({
+        id: "backoffice-calendar", name: "Calendar", icon: "calendar-range",
+        featureKey: "backoffice-calendar",
+        visible: function() {
+            return AdminConsole.instance.isAccountLoggedIn();
+        },
+        implementation: "newcalendar:NewCalendarWidget",
+        notificationProvider: CalendarNotificationMenuProvider
+    });
+
+    register({
+        id: "team-tool", name: "Org Tools", icon: "account-multiple",
+        implementation: null,
+        notificationProvider: TeamToolsMenuProvider,
+        visible: function() {
+            return ADMIN_CONTEXT.accountStatusId == AccountStatus.Active.code;
+        },
+        features: [
+            {
+                id: "team-tool-membership-header", name: "Membership",
+                terminologyRequired: function(){ return false;},
+                implementation: null,
+                features:[{
+                            id: "account-admin", name: "Accounts",
+                            implementation: {src: "/Ama2.jsp?" + ADMIN_LEGACY_PARAMS + "#/accounts"},
+                            visible: function() {
+                                return !ADMIN_CONTEXT.AMA2_BETA_TEST_ENABLED
+                                    && AdminConsole.instance.isAdminTypeAtLeast(Role.EmailPrint);
+                            }
+                        },
+                        {
+                            id: "member-admin", name: "Members",
+                            terminologyRequired: function(){ return false;},
+                            implementation: {src: "/Ama2.jsp?" + ADMIN_LEGACY_PARAMS + "#/members"},
+                            visible: function() {
+                                return !ADMIN_CONTEXT.AMA2_BETA_TEST_ENABLED
+                                    && AdminConsole.instance.isAdminTypeAtLeast(Role.EmailPrint);
+                            }
+                        },
+                        {
+                            id: "privacy-settings", name: "Privacy Settings", icon: "",
+                            visible: function() {
+                                return PermissionUtils.hasAnyPermission(
+                                    PERMISSION_KEY.OrgTool_PrivacySetting_ManageRosterAssignment,
+                                    PERMISSION_KEY.OrgTool_PrivacySetting_ManageDataVisibility)
+                                && AdminConsole.instance.isSwimTeam();
+                            },
+                            priority: 5,
+                            implementation: {src: "/SwimmerDataVisibility.jsp?" + ADMIN_LEGACY_PARAMS + "#/rosterassign"}
+                        }
+                    ]
+            },
+            {
+                id: "contact-admin", name: "Contact Admin ",
+                implementation: null,
+                features: [
+                    {
+                        id: "contact-us-recipients", name: "Contact Us Recipients",
+                        visible: function () {
+                            return PermissionUtils.hasAllPermissions(PERMISSION_KEY.OrgProfile_Settings_ManageAll)
+                        },
+                        implementation: {src: "/TeamProfilePortal.jsp?hide-header&act=edit&id=" + ADMIN_CONTEXT.teamId + "&" + ADMIN_LEGACY_PARAMS +"#/feedback"}
+                    },
+                    {
+                        id: "coaches-contact", name: "Coaches List",
+                        visible: PermissionUtils.hasAllPermissions(PERMISSION_KEY.OrgTool_ContactsAdmin_ManageAll),
+                        implementation: {src: "/ContactsAdmin.jsp?section=1&" + ADMIN_LEGACY_PARAMS}
+                    },
+                    {
+                        id: "directors-contact", name: function() {
+                            return TeamLocalizer.getString("Board of Directors List");
+                        },
+                        visible: PermissionUtils.hasAllPermissions(PERMISSION_KEY.OrgTool_ContactsAdmin_ManageAll),
+                        implementation: {src: "/ContactsAdmin.jsp?section=2&" + ADMIN_LEGACY_PARAMS}
+                    }
+                ]
+            },
+            {
+                id: "communication-header", name: "Communication",
+                implementation: null,
+                features: [
+                    {
+                        id: "communication-social-feed", name: "Social Feed",
+                        featureKey: "social-feed",
+                        visible: function() {
+                            return ADMIN_CONTEXT.teamFeedEnabled && PermissionUtils.hasAllPermissions(PERMISSION_KEY.SocialFeed_Feed_Post);
+                        },
+                        implementation: {src: "/v2/teamfeed/teamfeed.jsp?" + ADMIN_LEGACY_PARAMS}
+                    },
+                    {
+                        id: "news-admin", name: "News", featureKey: "news",
+                        implementation: NewsAdminPane
+                    },
+                    {
+                        id: "email-center", name: window.top.TeamLocalizer.getString("Email Center"),
+                        visible: function () {
+                            return PermissionUtils.hasAllPermissions(PERMISSION_KEY.OrgTool_EmailCenter_ManageAll);
+                        },
+                        implementation: "emailcenter:EmailCenterManagementWidget"
+                    },
+                    {
+                        id: "member-search", name: "Members Search",
+                        visible: function() {
+                            return ADMIN_CONTEXT.memberSearchEnabled;
+                        },
+                        implementation: {src: "/SearchMember.jsp?" + ADMIN_LEGACY_PARAMS}
+                    },
+                    {
+                        id: "coaches-board", name: "Coaches & Board Page",
+                        data: "coaches",
+                        implementation: SystemPageWidget
+                    },
+                ]
+            }]
+        });
+    register({
+        id: "classes-lessons", name: "Classes", icon: "calendar",
+        implementation: null,
+        visible: function() {
+            return ADMIN_CONTEXT.accountStatusId == AccountStatus.Active.code;
+        },
+        features: [{
+                id: "classes-lessons-header", name: "Classes",
+                implementation: null,
+                features:[{
+                    id: "class-admin", name: "Class Admin",
+                    featureKey: "class",
+                    visible: function () {
+                        return PermissionSetUtils.isSatisfied(PERMISSION_SET_KEY.Class_Admin_Access);
+                    },
+                    //implementation: {src: "/LSysAdmin.jsp?" + ADMIN_LEGACY_PARAMS}
+                    implementation: ClassAdminWidget
+                },
+                {
+                    id: "class-registration", name: "Class Registration",
+                    visible: ADMIN_CONTEXT.lessonEnabled,
+                    implementation: {src: "/SwimLessons.jsp?" + ADMIN_LEGACY_PARAMS}
+                }]
+        }]
+    });
+
+    register({
+        id: "practice-management",
+        name: "Practice Management",
+        icon: "timer",
+        implementation: null,
+        visible: function(){
+            return ADMIN_CONTEXT.accountStatusId == AccountStatus.Active.code;
+        },
+        features: [
+            {
+                id: "practice-management-header",
+                name: "Practice Management",
+                implementation: null,
+                features:[
+                    {
+                        id: "practices", name: "Practices",
+                        featureKey: "practices",
+                        visible: function() {
+                            return PermissionUtils.hasAnyPermission(PERMISSION_KEY.Practice_Practice_ViewAdminList, PERMISSION_KEY.SysMainset_MainSetSystem_Access);
+                        },
+                        implementation: {src: "/v2/mainset/index.jsp?hide-header&show-settings#practice"}
+                    },
+                    {
+                        id: "workouts", name: "Workouts",
+                        featureKey: "practices-pro",
+                        implementation: {src: "/v2/mainset/?hide-header&show-settings#workout"}
+                    },
+                    {
+                        id: "practice-reports", name: "Practice Reports",
+                        featureKey: "practices-pro",
+                        implementation: {src: "/v2/mainset/?hide-header#reports/intensity"}
+                    },
+                    {
+                        id: "coaching-manage-coaches", name: "Coach List",
+                        featureKey: "coach-list",
+                        visible: function() {
+                            return PermissionUtils.hasAllPermissions(PERMISSION_KEY.CoachList_Coach_ManageAll);
+                        },
+                        implementation: "practice:CoachList"
+                    }
+                ]
+            }
+        ]
+    });
+    
+    register({
+        id: "videos", name: "Videos", icon: "video",
+        featureKey: "videos",
+        implementation: {src: "/v2/mainset/index.jsp?hide-header#video/general"},
+        visible: function() {
+            return ADMIN_CONTEXT.accountStatusId == AccountStatus.Active.code;
+        }
+    });
+    register({
+        id: "events-competition", name: "Events & Competition", icon: "flag",
+        implementation: null,
+        visible: function() {
+            return ADMIN_CONTEXT.accountStatusId == AccountStatus.Active.code;
+        },
+        features: [
+            {
+                id: "events-competition-header", name: "Calendar",
+                implementation: null,
+                provider: CalendarMenuItemProvider
+            },
+            {
+                id: "results-reports-header", name: "Results & Reports",
+                implementation: null,
+                features:[
+                    {
+                        id: "meet-results", name:"Meet Results",
+                        featureKey: 'swim-meet',
+                        visible: function() {
+                            return !ADMIN_CONTEXT.lscEnabled && AdminConsole.instance.isAccountLoggedIn();
+                        },
+                        implementation: {src: "/MyRecords.jsp?" + ADMIN_LEGACY_PARAMS}
+                    },
+                    {
+                        id: "meet-results-lsc", name:"Meet Results",
+                        featureKey: 'swim-meet',
+                        visible: function() {
+                            return ADMIN_CONTEXT.lscEnabled && PermissionUtils.hasAllPermissions(PERMISSION_KEY.SwimMeet_MeetResult_ViewManage);
+                        },
+                        implementation: {src: "/RecordsAdmin.jsp?" + ADMIN_LEGACY_PARAMS}
+                    },
+                    {
+                        id: "events-time-reports", name:"Time Reports",
+                        featureKey: "time-reports",
+                        visible: function() {
+                            return !ADMIN_CONTEXT.lscEnabled
+                             && PermissionUtils.hasAllPermissions(PERMISSION_KEY.TimeStandard_TimeReport_ViewAll);
+                        },
+                        implementation: {src: "/TimeReports.jsp?" + ADMIN_LEGACY_PARAMS}
+                    },
+                    {
+                        id: "events-reports", name:"Event & Job Reports",
+//                        featureKey: 'swim-meet',
+                        implementation: {src: "/EventsReports.jsp?" + ADMIN_LEGACY_PARAMS}
+                    },
+                    {
+                        id: "time-standard", name:"Time Standard",
+                        visible: function() {
+                            return ADMIN_CONTEXT.lscEnabled
+                             && PermissionUtils.hasAllPermissions(PERMISSION_KEY.TimeStandard_TimeStandardSetup_View);
+                        },
+                        implementation: {src: "/TimeStandardLsc.jsp?" + ADMIN_LEGACY_PARAMS}
+                    },
+                    {
+                        id: "time-standards-setup", name:"Time Standards Setup",
+                        visible: function() {
+                            return !ADMIN_CONTEXT.lscEnabled
+                             && PermissionUtils.hasAllPermissions(PERMISSION_KEY.TimeStandard_TimeStandardSetup_View);
+                        },
+                        implementation: {src: "/TimeStandardTeam.jsp?" + ADMIN_LEGACY_PARAMS}
+                    }]
+            }
+        ]
+    });
+
+    register({
+        id: "team-electronic-setup", name: "SE Payments Setup", icon: "credit-card",
+        visible: function() {
+            return PermissionUtils.hasAllPermissions(PERMISSION_KEY.SEPayment_PaymentSetup_Setup) && ADMIN_CONTEXT.isAccessibleOnboardSetup;
+        },
+        implementation: "stripe:StripeSetupWidget"
+    });
+
+    register({
+        id: "business-tools", name: "Business Tools", icon: this.CURRENCY_ICON,
+        implementation: null,
+        visible: function() {
+            return ADMIN_CONTEXT.accountStatusId == AccountStatus.Active.code;
+        },
+        notificationProvider: SEPaymentSettingNotificationMenuProvider,
+        features: [
+            {
+              id: "team-profile-header", name: "Org Settings",
+                implementation: null,
+                provider: OrgProfileProvider,
+            },
+            {
+                id: "team-billing-header", name: "Org Billing",
+                implementation: null,
+                features:
+                    [{
+                        id: "team-billing-setup", name: "Billing Setup",
+                        visible: function() {
+                            return AdminConsole.instance.isFinancialAdmin();
+                        },
+                        implementation: {src: "/TeamRateGeneral.do?act=edit&" + ADMIN_LEGACY_PARAMS}
+                    },
+                    {
+                        id: "se-payments", name: "SE Payments",
+                        notificationProvider: SEPaymentSettingNotificationMenuProvider,
+                        visible: function() {
+                            return PermissionUtils.hasAllPermissions(PERMISSION_KEY.SEPayment_SEPayment_Access) && ADMIN_CONTEXT.isSEPayments;
+                        },
+                        implementation: "stripe:SEPaymentsWidget",
+                        module: TEAM_INFO.sepaymentDisplayNotificationJewel ? "settings" : TEAM_INFO.sepaymentNavigateToDisputeTab ? "disputes" : ""
+                    },
+                    {
+                        id: "meet-fee-billing", name: "Meet Fee Billing",
+                        featureKey: 'swim-meet',
+                        visible: function() {
+                            return PermissionUtils.hasAllPermissions(PERMISSION_KEY.SwimMeet_MeetFeeBilling_View);
+                        },
+                        implementation: {src: "/MeetEntryFeesBatch.jsp?" + ADMIN_LEGACY_PARAMS + "#/meetEntryFeeBatches"}
+                    },
+                    {
+                        id: "team-billing-invoices-payment", name: "Invoices & Payments",
+                        visible: function() {
+                            return PermissionUtils.hasAllPermissions(PERMISSION_KEY.Finance_BillingOtherReports_Access);
+                        },
+                        implementation: "ibis:BillingSummaryWidget",
+                        module: "billingOverview"
+                    },
+                    {
+                        id: "team-billing-financial-report", name: "Financial Reports",
+                        visible: function() {
+                            return AdminConsole.instance.isFinancialAdmin();
+                        },
+                        implementation: "ibis:BillingSummaryWidget",
+                        module: "recurrSumReport"
+                    },
+                    {
+                        id: "asa-fee-setup", name: "Swim England Fee Setup",
+                        visible: function() {
+                            return ADMIN_CONTEXT.isUKSwimming && AdminConsole.instance.isSwimTeam() && PermissionUtils.hasAllPermissions(PERMISSION_KEY.SwimUKFee_SwimUKFee_Setup);
+                        },
+                        implementation: {src: "/ASAFeeSetup.jsp?" + ADMIN_LEGACY_PARAMS}
+                    },
+                    {
+                        id: "team-billing-quickbooks-import", name: "Export for QuickBooks",
+                        visible: function() {
+                            return ADMIN_CONTEXT.isExportQuickBookEnabled && PermissionUtils.hasAllPermissions(PERMISSION_KEY.Finance_QuickBook_Export);
+                        },
+                        implementation: {src: "/QBImport.jsp?" + ADMIN_LEGACY_PARAMS}
+                    }
+                ]
+            },
+            {
+                id: "fundraising-admin-header", name: "Fundraising",
+                provider: FundraisingAdminProvider,
+                implementation: null
+            },
+            {
+                id: "sportsengine-invoices-header", name: "Invoices",
+                terminologyRequired: function() { return true; },
+                implementation: null,
+                features:
+                    [{
+                        id: "my-sportsengine-invoices", name: "Invoices",
+                        terminologyRequired: function() {
+                            return true;
+                        },
+                        visible: function() {
+                            return PermissionUtils.hasAllPermissions(PERMISSION_KEY.SEInvoice_Invoice_ManageAll) && !ADMIN_CONTEXT.isZuoraIntegrationEnabled;
+                        },
+                        implementation: {src: "/MyTuRecurrInvs.jsp?" + ADMIN_LEGACY_PARAMS}
+                    }, {
+                        id: "beta-my-sportsengine-invoices", name: "Invoices",
+                        visible: function() {
+                            return PermissionUtils.hasAllPermissions(PERMISSION_KEY.SEInvoice_Invoice_ManageAll) && ADMIN_CONTEXT.isZuoraIntegrationEnabled;
+                        },
+                        implementation: "mytuinvoice:MyTuInvoicesWidget"
+                    }/*,
+                    {
+                        id: "sportsengine-contact-teamunify", name: "Contact GoMotion",
+                        role: Role.SuperUser,
+                        implementation: function() {
+                            var elvio = document.querySelector("#_elev_io._elevio_launcher div div button");
+                            if (elvio) Dom.emitEvent("click", elvio);
+                        }
+                    }*/]
+            }]
+    });
+
+    register({
+        id: "team-resources", name: "Org Resources", icon: "file-document",
+        implementation: null,
+        visible: function() {
+            return ADMIN_CONTEXT.accountStatusId == AccountStatus.Active.code;
+        },
+        features: [ {
+            id: "manage-team-resources-header", name: "Manage",
+            implementation: null,
+            features:[{
+                id: "manage-team-resouces", name: "Manage Org Resources",
+                visible: function() {
+                    return PermissionUtils.hasAnyPermission(PERMISSION_KEY.OrgResource_Resource_View);
+                },
+                implementation: ContentPageDialog
+            }]
+        }, {
+            id: "team-resources-header", name: "Resources",
+            implementation: null,
+            provider: TeamResourcesProvider
+        }]
+    });
+    /*register({
+        id: "tubill-admin", name: "TeamUnify Admin", icon: "fire",
+        implementation: null,
+        visible: function(callback) {
+            var ok = ADMIN_CONTEXT.teamAlias == "tubill" && AdminConsole.instance.isAdminTypeAtLeast(Role.SuperUser);
+            callback(ok);
+        },
+        features: [
+            {
+                id: "tubill-admin-header", name: "TeamUnify Admin",
+                implementation: null,
+                features:
+                    [{
+                        id: "tubill-team-admin", name: "Team Admin",
+                        implementation: {src: "/TeamAdmin.jsp?" + ADMIN_LEGACY_PARAMS}
+                    },
+                    {
+                        id: "tubill-tumoney-setup", name: "TUMoney Setup",
+                        implementation: {src: "/TumSetup.jsp?" + ADMIN_LEGACY_PARAMS}
+                    },
+                    {
+                        id: "tubill-mainset-payment-setup", name: "Mainset Payment Setup",
+                        implementation: {src: "/v2/mainset/?hide-header#plan-cms"}
+                    },
+                    {
+                        id: "tubill-mainset-contract", name: "Mainset Contract",
+                        implementation: {src: "/v2/mainset/?hide-header#contract-cms"}
+                    },
+                    {
+                        id: "tubill-gearbucks", name: "GearBucks Setup",
+                        implementation: {src: "/GbSetup.jsp?" + ADMIN_LEGACY_PARAMS}
+                    },
+                    {
+                        id: "tubill-spiritwear-admin", name: "SpiritWear Admin",
+                        implementation: {src: "/SwAdmin.jsp?" + ADMIN_LEGACY_PARAMS}
+                    },
+                    {
+                        id: "tubill-usaswimming-survey", name: "USA Swimming Survey",
+                        implementation: {src: "/StorePromoAdmin.jsp?storeType=400&" + ADMIN_LEGACY_PARAMS}
+                    },
+                    {
+                        id: "tubill-club-contact-admin", name: "Club Contact Admin",
+                        implementation: {src: "/TuTeamAdmin.jsp?" + ADMIN_LEGACY_PARAMS}
+                    },
+                    {
+                        id: "tubill-tu-gear-admin", name: "TU Gears Admin - TYR",
+                        implementation: {src: "/StoreSetup2.jsp?" + ADMIN_LEGACY_PARAMS}
+                    },
+                    {
+                        id: "tubill-tu-gear-coupon-promo", name: "TU Gears Coupon/Promo",
+                        implementation: {src: "/StoreCouponAdmin.jsp?" + ADMIN_LEGACY_PARAMS}
+                    },
+                    {
+                        id: "tubill-swim-today-admin", name: "Swim Today Admin",
+                        implementation: {src: "/SwimtodayAdmin.jsp?" + ADMIN_LEGACY_PARAMS}
+                    },
+                    {
+                        id: "tubill-advertising", name: "Advertising",
+                        implementation: {src: "/ListAdvertisements.jsp?" + ADMIN_LEGACY_PARAMS}
+                    },
+                    {
+                        id: "tubill-system-track", name: "System Track",
+                        implementation: {src: "/SystemTrack.jsp?" + ADMIN_LEGACY_PARAMS}
+                    },
+                    {
+                        id: "tubill-alert-demo-setup", name: "Alert Demo Setup",
+                        implementation: {src: "/HomeAlertDemoSetup.do?act=new&" + ADMIN_LEGACY_PARAMS}
+                    },
+                    {
+                        id: "tubill-cc-ach-promo-stats", name: "CC/ACH Promo/Stats",
+                        implementation: {src: "/StorePromoAdmin.jsp?storeType=300&" + ADMIN_LEGACY_PARAMS}
+                    },
+                ]
+            }]
+    });*/
+    register({
+        id: "website-design", name: "Website Design", icon: "format-paint",
+        visible:  function() {
+            var ok = "Live" == ADMIN_CONTEXT.cmsMigrationStatus
+                || "Allowed" == ADMIN_CONTEXT.cmsMigrationStatus
+                || "Sandboxed" == ADMIN_CONTEXT.cmsMigrationStatus;
+            return ADMIN_CONTEXT.accountStatusId == AccountStatus.Active.code && ok && PermissionUtils.hasAllPermissions(PERMISSION_KEY.CMS_Website_Design);
+        },
+        implementation: AdminWebsiteDesign
+    });
+    register({
+        id: "website-templates-admin", name: "Website Templates", icon: "library-books",
+        visible: function() {
+            return ADMIN_CONTEXT.teamAlias == "teamunify" && PermissionUtils.hasAllPermissions(PERMISSION_KEY.SysCMSTemplate_Template_ManageAll);
+        },
+        implementation: AdminWebsiteTemplateManagement
+    });
+    register({
+        id: "system-admin", name: "System Administration", icon: "settings",
+        visible: function() {
+            return ADMIN_CONTEXT.teamAlias == "teamunify";
+        },
+        implementation: null,
+        features: [{
+            id: "system-admin-header", name: "System Administration", icon: "settings",
+            implementation: null,
+            visible: function() {
+                return ADMIN_CONTEXT.teamAlias == "teamunify";
+            },
+            features: [{
+                id: "system-configurations", name: "Configurations & Parameters", icon: "settings",
+                visible: function() {
+                    return ADMIN_CONTEXT.teamAlias == "teamunify" && PermissionUtils.hasAllPermissions(PERMISSION_KEY.SysAdmin_ConfigParam_ManageAll);
+                },
+                implementation: ConfigurationItemsView
+            }, {
+                id: "cron-management", name: "CRON Monitoring", icon: "run",
+                visible: function() {
+                    return ADMIN_CONTEXT.teamAlias == "teamunify" && PermissionUtils.hasAllPermissions(PERMISSION_KEY.SysAdmin_CRONMonitoring_ManageAll);
+                },
+                implementation: CronMonitoringListView
+            }, {
+                id: "beta-controls", name: "BETA Feature Management", icon: "settings",
+                visible: function() {
+                    return ADMIN_CONTEXT.teamAlias == "teamunify" && PermissionUtils.hasAllPermissions(PERMISSION_KEY.SysAdmin_BETAFeature_ManageAll);
+                },
+                implementation: TeamFeatureModuleListView
+            },
+            {
+                id: "team-unify-time-standards", name: "TeamUnify Time Standards",
+                visible: function() {
+                    if ("demo-c" == ADMIN_CONTEXT.teamAlias || "teamunify" == ADMIN_CONTEXT.teamAlias) {
+                        return PermissionUtils.hasAllPermissions(PERMISSION_KEY.SysAdmin_TUTimeStandard_ManageAll);
+                    } else {
+                        return PermissionUtils.hasAllPermissions(PERMISSION_KEY.SysAdmin_TUTimeStandard_ManageAll) && ADMIN_CONTEXT.teamId == 1 && ADMIN_CONTEXT.accountEmail.indexOf("teamunify@") == 0;
+                    }
+                },
+                implementation: {src: "/TimeStandard.jsp?" + ADMIN_LEGACY_PARAMS}
+            },
+            {
+                id: "import-location", name: "Import Location",
+                visible: function() {
+                    return ADMIN_CONTEXT.teamAlias == "teamunify" && PermissionUtils.hasAllPermissions(PERMISSION_KEY.SysAdmin_ImportLessonLocation_ManageAll);
+                },
+                implementation: LocationImportView
+            }]
+        }]
+    });
+
+    register({
+        id: "se-payments-reports", name: "SEPayments Reports", icon: "file-chart",
+        visible: function() {
+            return ADMIN_CONTEXT.teamAlias == "teamunify";
+        },
+        implementation: null,
+        features: [{
+            id: "se-payments-reports", name: "SEPayments Reports", icon: "file-chart",
+            implementation: null,
+            visible: function() {
+                return ADMIN_CONTEXT.teamAlias == "teamunify";
+            },
+            features: [{
+                id: "sep-fee-tracking", name: "SEP Fee Tracking", icon: "library-books",
+                visible: function() {
+                    return ADMIN_CONTEXT.teamAlias == "teamunify" && PermissionUtils.hasAllPermissions(PERMISSION_KEY.SysSEPaymentReport_FeeTracking_ManageAll);
+                },
+                implementation: "stripe:SEPTeamFeeReportWidget"
+            }, {
+                id: "sep-charged-fee", name: "SEP Charged Fee Results", icon: "library-books",
+                visible: function() {
+                    return ADMIN_CONTEXT.teamAlias == "teamunify" && PermissionUtils.hasAllPermissions(PERMISSION_KEY.SysSEPaymentReport_ChargedFeeResults_ManageAll);
+                },
+                implementation: "stripe:SEPChargedFeeResultWidget"
+            }, {
+                id: "sep-report", name: "SEP Report", icon: "library-books",
+                visible: function() {
+                    return ADMIN_CONTEXT.teamAlias == "teamunify" && PermissionUtils.hasAllPermissions(PERMISSION_KEY.SysSEPaymentReport_Report_ManageAll);
+                },
+                implementation: "stripe:SEPReportWidget"
+            }]
+        }]
+    });
+
+    register({
+        id: "yusa-admin", name: "YMCA Admin", icon: "/v2/images/ymca-small-white.png",
+        implementation: null,
+        visible: function() {
+            return ADMIN_CONTEXT.accountStatusId == AccountStatus.Active.code && TEAM_INFO && TEAM_INFO.sportType == "swimming";
+        },
+        features: [
+            {
+                id: "yusa-admin-header", name: "YMCA Admin",
+                provider: YMCAMenuProvider
+            }]
+    });
+    register({
+        id: "help-training", name: "Help & Training", icon: "help-circle-outline",
+        implementation: null,
+        visible: function() {
+            return ADMIN_CONTEXT.accountStatusId == AccountStatus.Active.code;
+        },
+        features: [{
+                id: "help-training-header", name: "Help & Training",
+                implementation: null,
+                features: [
+                    {
+                        id: "onboarding-dashboard", name: "Onboarding Dashboard",
+                        visible: function() {
+                            return (PermissionUtils.hasAllPermissions(PERMISSION_KEY.HelpTraining_Dashboard_ManageAll) && ADMIN_CONTEXT.deploymentDashboardEnabled);
+                        },
+
+                        implementation: "onboarddash:DashboardHome"
+                    },
+                    {
+                        id: "welcome-onboarding-dashboard", name: "Onboarding Dashboard",
+                        visible: function() {
+                            return (PermissionUtils.hasAllPermissions(PERMISSION_KEY.HelpTraining_Dashboard_ManageAll) && ADMIN_CONTEXT.deploymentDashboardEnabled);
+                        },
+                        hidden: true,
+                        implementation: {src: "/DeploymentDashboardLogin.jsp?" + ADMIN_LEGACY_PARAMS}
+                    },
+                    {
+                        id: "alert-center", name: "Alert Center",
+                        visible: function() {
+                            return !ADMIN_CONTEXT.newTuUpdates;
+                        },
+                        implementation: {src: "/AlertCenter.jsp?" + ADMIN_LEGACY_PARAMS}
+                    },
+                    {
+                        id: "se-help-training", name: "Help Center / Contact Support",
+                        visible: function () {
+                            return PermissionUtils.hasAllPermissions(PERMISSION_KEY.HelpTraining_HelpCenter_Access);
+                        },
+                        implementation: function () {
+                            if (typeof(WalkMePlayerAPI) != "undefined" && !WalkMePlayerAPI.isMenuOpen()) {
+                                WalkMePlayerAPI.toggleMenu();
+                                return;
+                            }
+                            //var elvio = document.querySelector("#_elev_io._elevio_launcher div div button");
+                            //if (elvio) Dom.emitEvent("click", elvio);
+                        }
+                    },
+                    {
+                        id: "system-overview", name: "System Overview",
+                        visible: function() {
+                            return (window["ACCOUNT_INFO"] !== undefined && window["ACCOUNT_INFO"].hasNoValidRoles) ||
+                                ADMIN_CONTEXT.hasNoValidRoles;
+                        },
+                        // implementation: {src: "https://support.gomotionapp.com/en/articles/130-new-cms-what-each-side-menu-item-does"}
+                        implementation: {src: "/SystemOverview.jsp?" + ADMIN_LEGACY_PARAMS}
+                    },
+                    /*{
+                        id: "my-tutorials", name: "System Overview",
+                        visible: function() {
+                            return AdminConsole.instance.isLoggedWithRole(Role.NotAnAdmin);
+                        },
+                        implementation: {src: "https://support.gomotionapp.com/en/articles/130-new-cms-what-each-side-menu-item-does"}
+                    },
+                    {
+                        id: "help-training-contact", name: "Contact GoMotion",
+                        role: Role.EmailPrint,
+                        implementation: function(){
+                            var elvio = document.querySelector("#_elev_io._elevio_launcher div div button");
+                            if(elvio) Dom.emitEvent("click", elvio);
+                        }
+                    },*/
+                    {
+                        id: "contact-my-team", name: TeamLocalizer.getString("Contact My Organization"),
+                        implementation: {src: "/ContactMe.do?act=new&" + ADMIN_LEGACY_PARAMS}
+                    },
+                    {
+                        id: "unpublish-site", name: "Unpublish Site",
+                        visible: function() {
+                            return ADMIN_CONTEXT.cmsMigrationStatus == "Live" && PermissionUtils.hasAllPermissions(PERMISSION_KEY.CMS_Website_PublishUnpublish);
+                        },
+                        implementation: CMSUnpublishDialog
+                    }]
+        }]
+    });
+    return thiz;
+})();
+
+if (TEAM_INFO && TEAM_INFO.isOwnershipTeam) {
+    //----- Update 'My Account' group -----//
+    AdminSectionManager.register({
+        id: "team-tool", name: "Org Tools", icon: "account-multiple",
+        implementation: null,
+        features: [{
+            id: "aff-mgmt", name: "Affiliation",
+            implementation: null,
+            features:
+                [{
+                    id: "aff-feature-mgmt", name: "Feature Management",
+                    visible: function() {
+                        return PermissionUtils.hasAllPermissions(PERMISSION_KEY.Affiliation_FeatureManagement_View);
+                    },
+                    implementation: "affiliation:FeatureManagementView"
+                }]
+            }]
+    });
+}
+
+AdminSectionManager.register({
+                id: "team-tool", name: "Team Tools", icon: "account-multiple",
+                implementation: null,
+                features: [{
+                        id: "team-tool-membership-header", name: "Membership",
+                        implementation: null,
+                        features:[{
+                                    id: "ama2-accounts", name: "Accounts",
+                                    navId: "ama2",
+                                    implementation: "ama:AMAHomeView",
+                                    module: "accounts",
+                                    visible: function() {
+                                        return PermissionUtils.hasAllPermissions(PERMISSION_KEY.AMA_AccountMember_ViewAdminList) && ADMIN_CONTEXT.AMA2_BETA_TEST_ENABLED;
+                                    },
+                                    priority: -2
+                                },
+                                {
+                                    id: "ama2-members", name: "Members",
+                                    terminologyRequired: function(){ return false;},
+                                    navId: "ama2",
+                                    implementation: "ama:AMAHomeView",
+                                    module: "members",
+                                    visible: function() {
+                                        return PermissionUtils.hasAllPermissions(PERMISSION_KEY.AMA_AccountMember_ViewAdminList) && ADMIN_CONTEXT.AMA2_BETA_TEST_ENABLED;
+                                    },
+                                    priority: -1
+                                },
+                                {
+                                    id: "ama2-usa-swimming-registration", name: "USA Swimming Registration", icon: "",
+                                    notificationProvider: USASOMRMenuProvider,
+                                    visible: function() {
+                                        return ADMIN_CONTEXT.registrationEnabled && PermissionUtils.hasAllPermissions(PERMISSION_KEY.USAS_Registration_ManageAll)
+                                        && (ADMIN_CONTEXT.isUSASwimming || ADMIN_CONTEXT.isRECSwimming) && ADMIN_CONTEXT.AMA2_BETA_TEST_ENABLED
+                                        && AdminConsole.instance.isSwimTeam()
+                                        && !TEAM_INFO.isNonTUTeam;
+                                    },
+                                    implementation: "ama:AMAHomeView",
+                                    module: "usas",
+                                    priority: -1
+                                },
+                                {
+                                    id: "ama2-swim-england-registration", name: "Swim England Registration", icon: "",
+                                    visible: function() {
+                                        return ADMIN_CONTEXT.registrationEnabled && PermissionUtils.hasAllPermissions(PERMISSION_KEY.SEM_Registration_ManageAll)
+                                        && ADMIN_CONTEXT.isUKSwimming && ADMIN_CONTEXT.AMA2_BETA_TEST_ENABLED
+                                        && AdminConsole.instance.isSwimTeam()
+                                        && !TEAM_INFO.isNonTUTeam;
+                                    },
+                                    implementation: "ama:AMAHomeView",
+                                    module: "sem",
+                                    priority: -1
+                                }]
+                    }]
+             }, true);
+
+AdminSectionManager.register({
+            id: "account", name: "My Account", icon: "account-circle",
+            implementation: null,
+            features: [{
+                    id: "my-account-header", name: "My Account",
+                    implementation: null,
+                    features:[
+                        {
+                            id: "my-account", name: "Account Info",
+                            data: ADMIN_CONTEXT.accountId || 0,
+                            priority: SERVER_FLAVOR == "SO" ? 0 : -1,
+                            implementation: ADMIN_CONTEXT.AMA2_BETA_TEST_ENABLED ?
+                            "ama:AccountsDetailDialog" :
+                            {src: "/AccountMemberEditor.jsp?popup=1&returnPageId=&frmMyAccount=1&" + BaseAdminSectionManager.ADMIN_LEGACY_PARAMS},
+                        }
+                    ]
+                },
+                {
+                    id: "my-billing-header", name: "Billing",
+                    implementation: null,
+                    features:[
+                        {
+                            id: "setup-auto-pay", name: "Set Up Autopay",
+                            visible: function(callback) {
+                                $cmsService.autoPaySetupRequired(function (visible) {
+                                   callback(visible);
+                               }, function(error) {
+                                   callback(false);
+                               });
+                            },
+                            data: {ids: [ADMIN_CONTEXT.accountId || 0], targetTab: "payment-setup"},
+                            implementation:
+                            ADMIN_CONTEXT.AMA2_BETA_TEST_ENABLED ? "ama:AccountsDetailDialog" : {src: "/AccountMemberEditor.jsp?tab=paymentEdit&" + ADMIN_LEGACY_PARAMS}
+                        }
+                    ]
+                }
+            ]
+        }, true);
+
+AdminSectionManager.register({id: "system-admin", name: "System Administration", icon: "settings",
+            implementation: null,
+            features: [{
+                id: "system-admin-team-log-header", name: "Log Management", icon: "settings",
+                implementation: null,
+                features: [{
+                    id: "sysadmin-auditlog", name: "Audit Log", icon: "clipboard-text",
+                    visible: function() {
+                        return AdminConsole.instance.isTeamFeatureModuleEnable("auditlog") && ADMIN_CONTEXT.teamAlias == "teamunify" && PermissionUtils.hasAllPermissions(PERMISSION_KEY.SysAdmin_AuditLog_ManageAll);
+                    },
+                    implementation: "auditlog:AuditLogHomeView"
+                }],
+                priority: 100
+            }]
+        });
+
+AdminSectionManager.register({id: "team-tool", name: "Org Tools", icon: "account-multiple",
+            implementation: null,
+            features: [{
+                id: "team-tool-log-header", name: "Log Management", icon: "settings",
+                implementation: null,
+                features: [{
+                    id: "teamtool-auditlog", name: "Audit Log", icon: "clipboard-text",
+                    visible: function(callback) {
+                        var visible = AdminConsole.instance.isTeamFeatureModuleEnable("auditlog") && ADMIN_CONTEXT.teamAlias != "teamunify" && AdminConsole.instance.isAdminTypeAtLeast(Role.SuperUser)
+                        if (!visible) callback(false);
+                        $auditLogService.isTeamLogLevelAvailable(function (available) {
+                            callback(available);
+                        });
+                    },
+                    implementation: "auditlog:AuditLogTeamOverviewView"
+                }],
+                priority: 100
+            }]
+        });
+
+AdminSectionManager.register({
+    id: "bookings-tool", name: "Bookings", icon: "calendar-clock",
+    implementation: null,
+    priority: 4,
+    visible: function() {
+        return AdminConsole.instance.isFeatureEnable("bookings")
+            && ADMIN_CONTEXT.accountStatusId == AccountStatus.Active.code;
+    },
+    features: [{
+            id: "bookings-tool-home-header", name: "Bookings",
+            implementation: null,
+            features:[{
+                        id: "bookings-admin", name: "Bookings Admin",
+                        implementation: "bookings:BookingsAdminHomeView",
+                        visible: function() {
+                            return PermissionUtils.hasAnyPermission(
+                                PERMISSION_KEY.Bookings_Booking_ViewAdminList,
+                                PERMISSION_KEY.Bookings_MyBooking_ViewAdminList,
+                                PERMISSION_KEY.Bookings_BookingReport_ViewAll,
+                                PERMISSION_KEY.Bookings_BookingReport_MyBookingInstructorReport,
+                                PERMISSION_KEY.Bookings_BookingSetting_ManageAll
+                            );
+                        },
+                        priority: -2
+                    },
+                    {
+                        id: "bookings-registration", name: "Bookings Registration",
+                        implementation: "bookings:BookingRegistrationWidget",
+                        visible: function() {
+                            return AdminConsole.instance.isFeatureEnable("bookings");
+                        },
+                        priority: -1
+                    }]
+        }]
+}, true);
+
+AdminSectionManager.register({
+    id: "account",
+    features: [
+        {
+            id: "registration-header",
+            features:
+                [{
+                    id: "my-bookings-registration", name: "Bookings Registration",
+                    visible: function () {
+                        return AdminConsole.instance.isFeatureEnable("bookings");
+                    },
+                    implementation: "bookings:BookingRegistrationWidget"
+                }]
+        }]
+});
+
+
+AdminSectionManager.register({
+                id: "business-publisher", name: "Business Publisher", icon: "bullhorn",
+                implementation: "bpi:BusinessPublisherContactHomeView",
+                notificationProvider: BusinessPublisherNotificationProvider,
+                visible: function(callback) {
+                    var visible = AdminConsole.instance.isFeatureEnable("bpi") && PermissionUtils.hasAnyPermission(PERMISSION_KEY.BPI_SocialTargetInfo_ManageAll, PERMISSION_KEY.BPI_AccountReview_ManageAll);
+                    if (!visible) return callback(false);
+                    $businessPublisherService.isBPITeamActive(function (active) {
+                        callback(active);
+                    }, function (error) {
+                        callback(false);
+                    });
+                },
+                priority: -1
+            });
+AdminSectionManager.register({
+                id: "business-publisher-setup", name: "Business Publisher", icon: "bullhorn",
+                implementation: "bpi:BusinessPublisherSetupView",
+                notificationProvider: BusinessPublisherNotificationProvider,
+                visible: function(callback) {
+                    var visible =  AdminConsole.instance.isFeatureEnable("bpi") && PermissionUtils.hasAnyPermission(PERMISSION_KEY.BPI_OrgSetup_Configure, PERMISSION_KEY.BPI_OrgSetup_Complete);
+                    if (!visible) return callback(false);
+                    $businessPublisherService.isBPITeamActive(function (active) {
+                        callback(!active);
+                    }, function (error) {
+                        callback(false);
+                    });
+                },
+                priority: -1
+            });
+
+AdminSectionManager.register({
+                id: "business-publisher-management", name: "Business Publisher", icon: "bullhorn",
+                implementation: "bpi:ContactServiceManagementView",
+                visible: function(callback) {
+                    var visible =  AdminConsole.instance.isFeatureEnable("bpi") && PermissionUtils.hasAllPermissions(PERMISSION_KEY.BPI_SocialAcctLocation_ManageAll);
+                    if (!visible) return callback(false);
+                    $businessPublisherService.isBPITeamActive(function (active) {
+                        callback(active);
+                    }, function (error) {
+                        callback(false);
+                    });
+                },
+                hidden: true
+            });
+AdminSectionManager.register({
+                id: "business-publisher-settings", name: "Business Publisher", icon: "bullhorn",
+                implementation: "bpi:BusinessPublisherSettingView",
+                visible: function(callback) {
+                    var visible =  AdminConsole.instance.isFeatureEnable("bpi") && PermissionUtils.hasAllPermissions(PERMISSION_KEY.BPI_Settings_ManageAll);
+                    if (!visible) return callback(false);
+                    $businessPublisherService.isBPITeamActive(function (active) {
+                        callback(active);
+                    }, function (error) {
+                        callback(false);
+                    });
+                },
+                hidden: true
+            });
+
+AdminSectionManager.register({
+                id: "business-publisher-review", name: "Provide Feedback", icon: "comment",
+                implementation: "bpi:ContactReviewProviderView",
+                notificationProvider: ProvideFeedbackNotificationProvider,
+                visible: function(callback) {
+                    var visible =  AdminConsole.instance.isFeatureEnable("bpi") && AdminConsole.instance.isAccountLoggedIn();
+                    if (!visible) return callback(false);
+                    $businessReviewService.isBusinessReviewEnabled(function (isEnabled) {
+                        callback(isEnabled);
+                    }, function (error) {
+                        callback(false);
+                    });
+                }
+            });
+
+
+
+function BusinessPublisherNotificationProvider(ref) {
+    this.ref = ref;
+}
+BusinessPublisherNotificationProvider.prototype.getNotificationInfo = function (callback) {
+    var thiz = this;
+    $businessPublisherService.isNotificationShown(function (shown) {
+        callback(thiz.ref, {count: shown ? "!" : 0});
+    }, function (err) {
+        callback(thiz.ref, {count: "!"});
+    });
+
+}
+
+function ProvideFeedbackNotificationProvider(ref) {
+    this.ref = ref;
+}
+ProvideFeedbackNotificationProvider.prototype.getNotificationInfo = function (callback) {
+    var thiz = this;
+    $businessReviewService.isPromptingForFeedback(function (data) {
+        callback(thiz.ref, {count: data ? "!" : 0});
+    }, function (err) {
+        callback(thiz.ref, {count: "!"});
+    });
+
+}
+
+AdminSectionManager.register({
+    id: "system-admin", name: "System Administration", icon: "settings",
+    visible: function() {
+        return ADMIN_CONTEXT.teamAlias == "teamunify" && PermissionUtils.hasAllPermissions(PERMISSION_KEY.SysAdmin_CCPASearch_ManageAll);
+    },
+    implementation: null,
+    features: [{
+      id: "ccpa-search", name: "CCPA Search", icon: "settings",
+      visible: function() {
+          return ADMIN_CONTEXT.teamAlias == "teamunify" && PermissionUtils.hasAllPermissions(PERMISSION_KEY.SysAdmin_CCPASearch_ManageAll);
+      },
+      implementation: "adminutil:CCPASearchView"
+    }]
+});
+AdminSectionManager.register({
+    id: "system-admin", name: "System Administration", icon: "settings",
+    visible: function() {
+        return ADMIN_CONTEXT.teamAlias == "teamunify" && PermissionUtils.hasAllPermissions(PERMISSION_KEY.SysAdmin_CostumeVendor_ManageAll);
+    },
+    implementation: null,
+    features: [{
+      id: "costume-management", name: "Costume Vendors", icon: "settings",
+      visible: function() {
+          return ADMIN_CONTEXT.teamAlias == "teamunify" && PermissionUtils.hasAllPermissions(PERMISSION_KEY.SysAdmin_CostumeVendor_ManageAll);
+      },
+      implementation: "adminutil:CostumeVendorsWidget"
+    }]
+});
+
+if (ADMIN_CONTEXT.moduleSettings && ADMIN_CONTEXT.moduleSettings.finance && ADMIN_CONTEXT.moduleSettings.finance.active && ADMIN_CONTEXT.accountStatusId == AccountStatus.Active.code) {
+    //----- Update 'My Account' group -----//
+    AdminSectionManager.register({
+        id: "account", name: "My Account", icon: "account-circle",
+        implementation: null,
+        features: [{
+            id: "my-billing-header", name: "Billing",
+            implementation: null,
+            features:
+                [{
+                    id: "my-billing-summary", name: "Billing Summary",
+                    data: {ids: [ADMIN_CONTEXT.accountId || -1], targetTab: "finance-billing-summary"},
+                    implementation: "ama:AccountsDetailDialog",
+                    priority: -3
+                }]
+            }]
+    });
+
+    AdminSectionManager.updateFeature("my-invoice-payment", {priority: -2});
+    AdminSectionManager.updateFeature("setup-auto-pay", {priority: -1});
+
+    AdminSectionManager.register({
+        id: "business-tools", name: "Business Tools", icon: "currency-usd",
+        implementation: null,
+        features: [{
+            id: "team-billing-header", name: "Team Billing",
+            implementation: null,
+            features: [
+                {
+                    id: "group-billing-admin", name: "Group Billing Admin",
+                    visible: function() {
+                        return PermissionUtils.hasAnyPermission(
+                            PERMISSION_KEY.GroupBilling_FeeSchedule_View,
+                            PERMISSION_KEY.GroupBilling_GroupSubBillingGroup_View,
+                            PERMISSION_KEY.GroupBilling_SettingsAndReports_View
+                        );
+                    },
+                    implementation: "finance:BillingGroupAdminView"
+                }
+            ]
+        }]
+    });
+
+    //----- Update 'Team Billing' group -----//
+    // Remove items
+    AdminSectionManager.updateFeature("team-billing-financial-report", {id: "team-billing-financial-report_deleted2019Dec_FE_P1", hidden: true, features: null});
+    AdminSectionManager.updateFeature("team-unify-time-standards", {id: "team-unify-time-standards_deleted2019Dec_FE_P1", hidden: true, features: null});
+    AdminSectionManager.updateFeature("team-billing-invoices-payment", {id: "team-billing-invoices-payment_deleted2021Apr_SM_1", hidden: true, features: null});
+    AdminSectionManager.updateFeature("my-invoice-payment", {id: "my-invoice-payment_deleted2021May_SM_1", hidden: true, features: null});
+
+    // Update existing items
+    AdminSectionManager.updateFeature("team-billing-invoices-payment", {priority: 0});
+    AdminSectionManager.updateFeature("team-billing-setup", {priority: 1});
+    AdminSectionManager.updateFeature("electronic-transaction", {priority: 2});
+    AdminSectionManager.updateFeature("electronic-payout", {priority: 3});
+    AdminSectionManager.updateFeature("electronic-settings", {priority: 4});
+
+    // Add new ones
+    AdminSectionManager.register({
+        id: "business-tools", name: "Business Tools", icon: "currency-usd",
+        implementation: null,
+        features: [
+            {
+                id: "team-billing-header", name: "Team Billing",
+                implementation: null,
+                features:
+                    [{
+                        id: "finance-management", name: "Billing Manager",
+                        visible: function() {
+                            return PermissionUtils.hasAnyPermission(PERMISSION_KEY.Finance_BillingOverview_View, PERMISSION_KEY.Finance_ChargeCategoryReport_Access, 
+                                PERMISSION_KEY.Finance_PaymentSummaryReport_Access, PERMISSION_KEY.Finance_AccountChargeSummaryReport_Access,
+                                PERMISSION_KEY.Finance_BillingOtherReports_Access);
+                        },
+                        implementation: "finance:BillingManagementHomeView",
+                        priority: -5
+                    },
+                    {
+                        id: "finance-setup", name: "Billing Manager",
+                        visible: function() {
+                            return PermissionUtils.hasAnyPermission(PERMISSION_KEY.Finance_BillingSetting_ManageAll);
+                        },
+                        implementation: "finance:BillingSetupHomeView",
+                        hidden: true
+                    }
+                ]
+            }
+        ]
+    });
+    //--X-- Update 'Team Billing' group --X--//
+    
+    //----- Update 'Fundraising & Voluteering' group -----//
+    // Update existing items
+    AdminSectionManager.updateFeature("fundraising-admin-header", {name: "Fundraising & Volunteering"});
+    AdminSectionManager.updateFeature("fundraising-obligations-admin", {name: "Fundraising Obligations"});
+    
+    //--X-- Update 'Fundraising & Voluteering' group --X--//
+    
+    //----- Update 'TeamUnify' group -----//
+    
+    // Add new ones
+    AdminSectionManager.register({
+        id: "business-tools",
+        features: [
+            {
+                id: "tu-invoices-header",
+                features: [
+                    {
+                        id: "team-unify-time-standards", name: "TeamUnify Time Standards",
+                        visible: function() {
+                            if ("demo-c" == ADMIN_CONTEXT.teamAlias) {
+                                return AdminConsole.instance.isAdminTypeAtLeast(Role.Webmaster);
+                            } else {
+                                return AdminConsole.instance.isAdminTypeAtLeast(Role.SuperUser) && ADMIN_CONTEXT.teamId == 1 && ADMIN_CONTEXT.accountEmail.indexOf("teamunify@") == 0;
+                            }
+                        },
+                        implementation: {src: "/TimeStandard.jsp?" + ADMIN_LEGACY_PARAMS}
+                    }
+                ]
+            }
+        ]
+    });
+    //--X-- Update 'Fundraising & Voluteering' group --X--//
+    
+    // Request for validating menu items
+    // if (AdminConsole && AdminConsole.instance) AdminConsole.instance.invalidateMenuItems(true);
+}
+
+AdminSectionManager.register({
+    id: "team-tool", name: "Team Tools", icon: "account-multiple",
+    implementation: null,
+    features: [{
+            id: "permission-management-header", name: "Permission Management",
+            priority: 7,
+            implementation: null,
+            features:[{
+                id: "permission-management", name: "Permission Management", icon: "",
+                visible: function() {
+                    return PermissionUtils.hasAllPermissions(PERMISSION_KEY.Permission_PermissionRole_View);
+                },
+                implementation: "adminpermission:PermissionManagementHomeView",
+            }]
+        }]
+ });
+
+
+AdminSectionManager.register({
+                id: "pos-tool", name: "Point Of Sale", icon: "shopping",
+                implementation: null,
+                visible: function() {
+                    return AdminConsole.instance.isFeatureEnable("pos") && ADMIN_CONTEXT.accountStatusId == AccountStatus.Active.code 
+                    && PermissionUtils.hasAnyPermission(PERMISSION_KEY.POS_Dashboard_View, PERMISSION_KEY.POS_Sale_SaleProduct, 
+                                                                                    PERMISSION_KEY.POS_SaleOrder_ManageAll, PERMISSION_KEY.POS_Inventory_ManageAll, 
+                                                                                    PERMISSION_KEY.POS_Setup_Initialize, PERMISSION_KEY.POS_ProductItem_ManageAll);
+                },
+                features: [{
+                        id: "pos-tool-home-header", name: "Point Of Sale",
+                        implementation: null,
+                        features:[{
+                                    id: "pos-home", name: "Home",
+                                    implementation: "pos:POSHomeView",
+                                    visible: function() {
+                                        return AdminConsole.instance.isFeatureEnable("pos") && PermissionUtils.hasAnyPermission(PERMISSION_KEY.POS_Dashboard_View);
+                                    },
+                                    priority: -2
+                                },
+                                {
+                                    id: "pos-sales", name: "Sales",
+                                    implementation: "pos:POSSalesView",
+                                    visible: function() {
+                                        return AdminConsole.instance.isFeatureEnable("pos") && PermissionUtils.hasAnyPermission(PERMISSION_KEY.POS_Sale_SaleProduct);
+                                        // return (ADMIN_CONTEXT.posAdmin == __pkg.PosAdminType.FullAccess.code || ADMIN_CONTEXT.posAdmin == __pkg.PosAdminType.Sales.code) && AdminConsole.instance.isFeatureEnable("pos");
+                                    },
+                                    priority: -1
+                                },
+                                {
+                                    id: "pos-orders", name: "Orders",
+                                    implementation: "pos:POSOrdersView",
+                                    visible: function() {
+                                        return AdminConsole.instance.isFeatureEnable("pos") && PermissionUtils.hasAnyPermission(PERMISSION_KEY.POS_SaleOrder_ManageAll);
+                                        // return (ADMIN_CONTEXT.posAdmin == __pkg.PosAdminType.FullAccess.code || ADMIN_CONTEXT.posAdmin == __pkg.PosAdminType.Sales.code) && AdminConsole.instance.isFeatureEnable("pos");
+                                    },
+                                    priority: -1
+                                },
+                                {
+                                    id: "pos-items", name: "Items", icon: "",
+                                    visible: function() {
+                                        return AdminConsole.instance.isFeatureEnable("pos") && PermissionUtils.hasAnyPermission(PERMISSION_KEY.POS_ProductItem_ManageAll);
+                                        // return (ADMIN_CONTEXT.posAdmin == __pkg.PosAdminType.FullAccess.code ||  ADMIN_CONTEXT.posAdmin == __pkg.PosAdminType.ItemInventory.code) && AdminConsole.instance.isFeatureEnable("pos");
+                                    },
+                                    implementation: "pos:POSItemsView",
+                                    priority: -1
+                                },
+                                {
+                                    id: "pos-setup", name: "Setup", icon: "",
+                                    visible: function() {
+                                        return AdminConsole.instance.isFeatureEnable("pos") && PermissionUtils.hasAnyPermission(PERMISSION_KEY.POS_OrgSetup_Configure);
+                                        // return ADMIN_CONTEXT.posAdmin == __pkg.PosAdminType.FullAccess.code && AdminConsole.instance.isFeatureEnable("pos");
+                                    },
+                                    implementation: "pos:POSSetupView",
+                                    priority: -1
+                                },
+                                {
+                                    id: "pos-inventory", name: "Inventory", icon: "",
+                                    visible: function() {
+                                        return AdminConsole.instance.isFeatureEnable("pos") && PermissionUtils.hasAnyPermission(PERMISSION_KEY.POS_Inventory_ManageAll);
+                                        // return (ADMIN_CONTEXT.posAdmin == __pkg.PosAdminType.FullAccess.code ||  ADMIN_CONTEXT.posAdmin == __pkg.PosAdminType.ItemInventory.code) && AdminConsole.instance.isFeatureEnable("pos");
+                                    },
+                                    implementation: "pos:POSInventoryView",
+                                    priority: -1
+                                },
+                                {
+                                    id: "pos-annual-kits", name: "Annual Kits", icon: "",
+                                    visible: function() {
+                                        return AdminConsole.instance.isFeatureEnable("pos")
+                                            && TEAM_INFO
+                                            && TEAM_INFO.isOwnershipTeam
+                                            && PermissionUtils.hasAnyPermission(PERMISSION_KEY.Class_ClassReport_ViewAll);
+                                    },
+                                    implementation: "promokit:AnnualKitsReportWidget",
+                                    priority: -1
+                                },
+                                {
+                                    id: "pos-test", name: "Test", icon: "",
+                                    visible: function() {
+                                        return ADMIN_CONTEXT.isDev;
+                                    },
+                                    implementation: "pos:POSTestView",
+                                    priority: -1
+                                }]
+                    }]
+             }, true);
+
+AdminSectionManager.register({id: "system-admin", name: "System Administration", icon: "settings",
+implementation: null,
+features: [{
+    id: "system-admin-header", name: "System Administration", icon: "settings",
+    implementation: null,
+    features: [{
+        id: "sso-migration", name: "SSO Migration Management", icon: "settings",
+        visible: function() {
+            return ADMIN_CONTEXT.teamAlias == "teamunify" && PermissionUtils.hasAllPermissions(PERMISSION_KEY.SysAdmin_SSOMigration_ManageAll) && ADMIN_CONTEXT.accountStatusId == AccountStatus.Active.code;
+        },
+        implementation: SSOMigrationRegionsView
+    }]
+}]});
+/*
+AdminSectionManager.register({
+            id: "account", name: "My Account", icon: "account-circle",
+            implementation: null,
+            features: [{
+                    id: "my-account-header", name: "My Account",
+                    implementation: null,
+                    features:[{
+                        id: "new-account-landing-page", name: "New Account Landing Page", icon: "account-circle",
+                        visible: function() {
+                            return ADMIN_CONTEXT.accountStatusId != AccountStatus.Active.code;
+                        },
+                        implementation: {src: "/AccountInfo.jsp?" + BaseAdminSectionManager.ADMIN_LEGACY_PARAMS}
+                    }]
+                }]
+        }, true);
+*/
+// 
+// AdminSectionManager.register({
+//     id: "my-shopping-cart", name: "My Shopping Cart" ,
+//     icon: "cart",
+//     showIcon: true,
+//     visible: true,
+//     implementation: "shoppingcart:MyShoppingCartWidget",
+//     priority: 100
+// });
+
+AdminSectionManager.register({id: "system-admin", name: "System Administration", icon: "settings",
+implementation: null,
+features: [{
+    id: "system-admin-header", name: "System Administration", icon: "settings",
+    implementation: null,
+    priority: 9999,
+    features: [{
+        id: "feature-management", name: "Feature Management", icon: "settings",
+        visible: function() {
+            return ADMIN_CONTEXT.teamAlias == "teamunify" && PermissionUtils.hasAllPermissions(PERMISSION_KEY.SysAdmin_Feature_ManageAll) && ADMIN_CONTEXT.accountStatusId == AccountStatus.Active.code;
+        },
+        implementation: FeatureManagementView
+    }]
+}]});
+
+AdminSectionManager.register({
+                id: "team-tool", name: "Team Tools", icon: "account-multiple",
+                implementation: null,
+                features: [{
+                        id: "team-tool-membership-header", name: "Membership",
+                        implementation: null,
+                        features:[
+                                {
+                                    id: "ama2-usa-swimming-roster", name: "USA Swimming Roster", icon: "",
+                                    visible: function(callback) {
+                                        var ok = PermissionUtils.hasAllPermissions(PERMISSION_KEY.USAS_Roster_ManageAll)
+                                        && (ADMIN_CONTEXT.isUSASwimming || ADMIN_CONTEXT.isRECSwimming) && ADMIN_CONTEXT.AMA2_BETA_TEST_ENABLED;
+                                        var omrEnabled = ADMIN_CONTEXT.enabledBetaFeatures && ADMIN_CONTEXT.enabledBetaFeatures.indexOf("usas_omr_integration") >= 0;
+                                        var hasRosterFeature = ok && omrEnabled;
+                                        if (!hasRosterFeature) {
+                                            callback(false);
+                                        } else {
+                                            $usasOMRService.getOMROnboardingInfo(function(info) {
+                                                callback(info && info.status == "Done");
+                                            }, function(e) {
+                                                callback(false);
+                                            });
+                                        }
+                                    },
+                                    implementation: "ama:AMAHomeView",
+                                    module: "usas-roster",
+                                    priority: -1
+                                }
+                            ]
+                    }]
+             });
+AdminSectionManager.register({
+    id: "system-admin", name: "System Administration", icon: "settings",
+    implementation: null,
+    features: [{
+        id: "support-tools-header", name: "Support Tools",
+        implementation: null,
+        features: [{
+            id: "omr-resync-tool", name: "OMR Resync Tool", icon: "sync",
+            visible: function() {
+                return ADMIN_CONTEXT.teamAlias == "teamunify" && 
+                        AdminConsole.instance.isAdminTypeAtLeast(Role.SuperUser);
+            },
+            implementation: "usasomr:OMRResyncToolView",
+            module: "usas-roster"
+        }]
+    }]
+});
+            
+AdminSectionManager.register({
+    id: "team-tool", name: "Team Tools", icon: "account-multiple",
+    implementation: null,
+    features: [{
+            id: "team-tool-registration-header", name: "Registration",
+             priority: 1,
+            implementation: null,
+            features:[{
+                id: "agreements", name: "Agreements", icon: "",
+                visible: function() {
+                    return PermissionUtils.hasAnyPermission(PERMISSION_KEY.OrgTool_Agreement_ManageAgreementAdmin);
+                },
+                implementation: "waiver:AgreementHomeView",
+                priority: 2
+            }]
+        }]
+ });
+
+
+//AdminSectionManager.register({
+//                id: "clpayplan-main", name: "Class Payment Plan", icon: "shopping",
+//                implementation: null,
+//                features: [{
+//                        id: "clpayplan-header", name: "Class Payment Plan",
+//                        implementation: null,
+//                        features:[{
+//                                    id: "clpayplan-test", name: "Test",
+//                                    implementation: "clpayplan:TestView"
+//                                }]
+//                    }]
+//             }, true);
+
+AdminSectionManager.register({id: "system-admin", name: "System Administration", icon: "settings",
+implementation: null,
+features: [{
+    id: "system-admin-team-header", name: "Team Management", icon: "settings",
+    implementation: null,
+    features: [{
+        id: "sysadmin-customdomain", name: "Custom Domains", icon: "earth",
+        visible: function() {
+            return ADMIN_CONTEXT.teamAlias == "teamunify" && PermissionUtils.hasAllPermissions(PERMISSION_KEY.SysAdmin_CustomDomain_ManageAll);
+        },
+        implementation: "customdomain:CustomDomainTeamListView"
+    }]
+}]});
+
+AdminSectionManager.register({
+    id: "team-tool", name: "Team Tools", icon: "account-multiple",
+    implementation: null,
+    features: [{
+            id: "team-tool-registration-header", name: "Registration",
+            priority: 1,
+            implementation: null,
+            features:[{
+                id: "questions", name: "Questions", icon: "",
+                visible: function() {
+                    return PermissionUtils.hasAnyPermission(PERMISSION_KEY.CustomQuestion_Question_ViewAll);
+                },
+                implementation: "customquestion:QuestionManagementHomeView",
+                priority: 3
+            }]
+        }]
+});
+
+if (ADMIN_CONTEXT.moduleSettings && ADMIN_CONTEXT.moduleSettings.discountdance && ADMIN_CONTEXT.moduleSettings.discountdance.active) {
+    AdminSectionManager.register({id: "teacher-store-setup", name: "Teacher Store (BETA)", icon: "store",
+        visible: function() {
+            return AdminConsole.instance.isAdminTypeAtLeast(Role.SuperUser) && !ADMIN_CONTEXT.moduleSettings.discountdance.isOnboardingSetup;
+        },
+        priority: 9,
+        implementation: "discountdance:TeacherStoreOnboarding"
+    });
+
+    AdminSectionManager.register({id: "teacher-store-management", name: "Teacher Store (BETA)", icon: "store",
+        visible: function() {
+            return AdminConsole.instance.isAdminTypeAtLeast(Role.SuperUser) && ADMIN_CONTEXT.moduleSettings.discountdance.isOnboardingSetup;
+        },
+        priority: 9,
+        implementation: "discountdance:TeacherStoreHomeView",
+        module:"dashboard"
+    });
+
+    AdminSectionManager.register({id: "teacher-store", name: "Teacher Store (BETA)", icon: "store",
+        visible: function() {
+            return !AdminConsole.instance.isAdminTypeAtLeast(Role.SuperUser) && ADMIN_CONTEXT.moduleSettings.discountdance.isOnboardingSetup;
+        },
+        priority: 9,
+        implementation: "discountdance:TeacherStorePreviewWidget"
+    });
+}
+
+if (ADMIN_CONTEXT.moduleSettings && ADMIN_CONTEXT.moduleSettings.finance && ADMIN_CONTEXT.moduleSettings.finance.active && ADMIN_CONTEXT.accountStatusId == AccountStatus.Active.code) {
+
+    // AdminSectionManager.updateFeature("team-billing-quickbooks-import", {visible: false});
+    AdminSectionManager.updateFeature("team-billing-setup", {name: "Comp Billing Setup", visible: false});
+    AdminSectionManager.updateFeature("team-billing-invoices-payment", {name: "Comp Invoices & Payments"});
+    AdminSectionManager.updateFeature("my-invoice-payment", {name: "Comp Invoices & Payments"});
+
+    //----- Update 'TeamUnify' group -----//
+    // Remove items
+    AdminSectionManager.updateFeature("tu-invoices-header", {id: "tu-invoices-header_deleted2019Dec_FE_P1", hidden: true, features: null});
+    AdminSectionManager.updateFeature("team-unify-time-standards", {id: "team-unify-time-standards_deleted2019Dec_FE_P1", hidden: true, features: null});
+    // Add new ones
+    AdminSectionManager.register({
+        id: "business-tools",
+        features: [
+            {
+                id: "sportsengine-invoices-header",
+                features: [
+                    {
+                        id: "team-unify-time-standards", name: FormatUtil.term("GoMotion Time Standards"),
+                        featureKey: "time-reports",
+                        visible: function() {
+                            if ("demo-c" == ADMIN_CONTEXT.teamAlias) {
+                                return AdminConsole.instance.isAdminTypeAtLeast(Role.Webmaster);
+                            } else {
+                                return AdminConsole.instance.isAdminTypeAtLeast(Role.SuperUser) && ADMIN_CONTEXT.teamId == 1 && ADMIN_CONTEXT.accountEmail.indexOf("teamunify@") == 0;
+                            }
+                        },
+                        implementation: {src: "/TimeStandard.jsp?" + ADMIN_LEGACY_PARAMS}
+                    }
+                ]
+            }
+        ]
+    });
+
+    // Request for validating menu items
+    AdminSectionManager.performRegistrationPostProcessing();
+}
+
+AdminSectionManager.register({
+    id: "finance-upgrade", icon: "chevron-double-up",
+    name: function() {
+        var callerSource = this.name.caller ? this.name.caller.toString() : "";
+        return callerSource.indexOf("Dom.setInnerText(this.featureTitle") > 0 ? "Billing Upgrade" : "Upgrade Your Billing";
+    },
+    visible: function() {
+        var isReady = ADMIN_CONTEXT.moduleSettings && ADMIN_CONTEXT.moduleSettings.finance && ADMIN_CONTEXT.moduleSettings.finance.readyForMigration;
+        return isReady && AdminConsole.instance.isAdminTypeAtLeast(Role.SuperUser) && AdminConsole.instance.isFinancialAdminFullAccess() && ADMIN_CONTEXT.accountStatusId == AccountStatus.Active.code;
+    },
+    implementation: "finance:FinanceMigrationWizard",
+    notificationProvider: FEMigrationNotificationMenuProvider
+});
+
+function FEMigrationNotificationMenuProvider(ref) {
+    this.ref = ref;
+};
+FEMigrationNotificationMenuProvider.prototype.getNotificationInfo = function (callback) {
+    callback(this.ref, {count: "!"});
+}
+
+function FundraisingAdminProvider() {
+
+}
+
+FundraisingAdminProvider.prototype.getMenus = function (callback) {
+    callback(
+        [
+            {
+                id: "event-fundraising-admin", name: "Event Fundraising Admin",
+                featureKey: "tum",
+                visible: function () {
+                    return ADMIN_CONTEXT.tumoneyEnabled && PermissionUtils.hasAnyPermission(PERMISSION_KEY.TUM_EventFundraising_ViewSummary, PERMISSION_KEY.TUM_FundraisingResult_View);
+                },
+                implementation: { src: this.getTUMSource() }
+            },
+            {
+                id: "fundraising-obligations-admin", name: "Fundraising Obligations Admin",
+                featureKey: "fundraising-obligation",
+                visible: function() {
+                    return (AdminConsole.instance.userSession && AdminConsole.instance.userSession.accountID == ADMIN_CONTEXT.fundraisingAdminId)
+                    ||  PermissionUtils.hasAnyPermission(PERMISSION_KEY.FundraisingObligation_ObligationPayment_ManageAll, 
+                                                                PERMISSION_KEY.FundraisingObligation_SystemSetup_Update,
+                                                                PERMISSION_KEY.FundraisingObligation_Category_ManageAll);
+                },
+                implementation: {src: "/FrPayAdmin.jsp?" + ADMIN_LEGACY_PARAMS}
+            },
+            {
+                id: "team-billing-services-hours-admin", name: "Services Hours Admin",
+                featureKey: "service-hours",
+                visible: function() {
+                    return ((AdminConsole.instance.userSession && AdminConsole.instance.userSession.accountID == ADMIN_CONTEXT.serviceHoursAdminId) 
+                        || PermissionUtils.hasAnyPermission(PERMISSION_KEY.ServiceHour_ObligationHourWorked_ManageAll, PERMISSION_KEY.ServiceHour_SystemSetup_ManageAll) );
+                },
+                implementation: {src: this.getVhoursSource()}
+            }
+        ]
+    );
+}
+FundraisingAdminProvider.prototype.getVhoursSource = function() {
+    var menuItemSrc = "/VHoursPayAdmin.jsp?" + ADMIN_LEGACY_PARAMS
+    var vhoursAdmin = AdminConsole.instance.userSession && AdminConsole.instance.userSession.accountID == ADMIN_CONTEXT.serviceHoursAdminId;
+    if (!vhoursAdmin && !PermissionUtils.hasAllPermissions(PERMISSION_KEY.ServiceHour_ObligationHourWorked_ManageAll)) {
+        menuItemSrc = "/VHoursSetup.do?act=edit&" + ADMIN_LEGACY_PARAMS;
+    }
+
+    return menuItemSrc;
+}
+
+FundraisingAdminProvider.prototype.getTUMSource = function() {
+    if (PermissionUtils.hasAnyPermission(PERMISSION_KEY.TUM_EventFundraising_ViewSummary)) {
+        return "/TumEventFrAdmin.jsp?" + ADMIN_LEGACY_PARAMS;
+    } else {
+        return "/TumEventFrResults.jsp?" + ADMIN_LEGACY_PARAMS;
+    }
+}
+
+AdminSectionManager.register({id: "system-admin", name: "System Administration", icon: "settings",
+implementation: null,
+features: [{
+    id: "system-admin-header", name: "System Administration", icon: "settings",
+    implementation: null,
+    features: [{
+        id: "org-onboarding-monitor", name: "Org Onboarding Monitor", icon: "",
+        visible: function() {
+            return ADMIN_CONTEXT.teamAlias == "teamunify" && PermissionUtils.hasAllPermissions(PERMISSION_KEY.SysAdmin_OrgOnboardingMonitor_ManageAll);
+        },
+        implementation: "onboarddash:OrgDashboardView"
+    }]
+}]});
+
+
+AdminSectionManager.register({
+    id: "system-admin", name: "System Administration", icon: "settings",
+    implementation: null,
+    features: [{
+        id: "system-admin-header", name: "System Administration", icon: "settings",
+        implementation: null,
+        visible: function() {
+            return ADMIN_CONTEXT.teamAlias == "teamunify";
+        },
+        features: [{
+            id: "sysadmin-orgmgmt", name: "Organ/LSC Management", icon: "settings",
+            visible: function() {
+                return ADMIN_CONTEXT.teamAlias == "teamunify" && PermissionUtils.hasAllPermissions(PERMISSION_KEY.SysAdmin_OrganLSC_ManageAll);
+            },
+            implementation: "orgmgmt:OrganManagementWidget"
+        }]
+    }]
+});
+if (PermissionUtils.hasAnyPermission(PERMISSION_KEY.OrgTool_PrivacySetting_ManageRosterAssignment, PERMISSION_KEY.OrgTool_PrivacySetting_ManageDataVisibility)) {
+    var availableTab = "";
+    if (PermissionUtils.hasAllPermissions(PERMISSION_KEY.OrgTool_PrivacySetting_ManageRosterAssignment)) {
+        availableTab = "#/rosterassign";
+    } else if (PermissionUtils.hasAllPermissions(PERMISSION_KEY.OrgTool_PrivacySetting_ManageDataVisibility)) {
+        availableTab = "#/datavisibility";
+    }
+    AdminSectionManager.register({
+        id: "team-tool", name: "Team Tools", icon: "account-multiple",
+        implementation: null,
+        features: [{
+                id: "team-tool-membership-header", name: "Membership",
+                implementation: null,
+                features:[
+                    {
+                        id: "privacy-settings", name: "Privacy Settings", icon: "",
+                        visible: function() {
+                            return true;
+                        },
+                        priority: 5,
+                        implementation: {src: "/SwimmerDataVisibility.jsp?" + BaseAdminSectionManager.ADMIN_LEGACY_PARAMS + availableTab}
+                    }
+                ]
+            }]
+     }, true);
+
+}
+AdminSectionManager.register({
+    id: "smmigration-landing-page", name: "Finish TeamUnify Update" ,
+    icon: "settings",
+    showIcon: true,
+    visible: function() {
+        return ADMIN_CONTEXT.migrationSandboxed && AdminConsole.instance.isAdminTypeAtLeast(Role.EmailPrint);
+    },
+    implementation: "smmigration:AdminLandingPage",
+    notificationProvider: SMMigrationNotificationProvider,
+    priority: -1
+});
+
+function SMMigrationNotificationProvider(ref) {
+    this.ref = ref;
+}
+SMMigrationNotificationProvider.prototype.getNotificationInfo = function (callback) {
+    callback(this.ref, {count: "!"});
+}
+
+AdminSectionManager.register({
+    id: "classes-lessons",
+    features: [{
+            id: "classes-lessons-header",
+            features:[
+                {
+                    id: "classreg-shopping", name: "Class Registration" ,
+                    icon: "cart",
+                    featureKey: "class-reg",
+                    showIcon: true,
+                    implementation: "cmshopping:ClassRegistrationWidget",
+                    priority: 100
+                }
+            ]
+    }]
+});
+
+AdminSectionManager.register({
+    id: "classes-lessons",
+    features: [{
+            id: "classes-lessons-header",
+            features:[{
+                id: "class-registration", name: "Class Registration",
+                featureKey: "class",
+                visible: function (callback) {
+                    callback(ADMIN_CONTEXT.lessonEnabled && !(ADMIN_CONTEXT.enabledFeatures.indexOf("class-reg") >= 0));
+                },
+                implementation: {src: "/SwimLessons.jsp?" + ADMIN_LEGACY_PARAMS}
+            }]
+    }]
+}, true);
+
+if (ADMIN_CONTEXT.enabledFeatures.indexOf("class-reg") >= 0) {
+    AdminSectionManager.updateFeature("my-class-registration", {
+        name: "Class Registration",
+        implementation: "cmshopping:ClassRegistrationWidget"
+    });
+}
+if (ADMIN_CONTEXT.enabledFeatures.indexOf("sc-team-reg") >= 0) {
+    AdminSectionManager.updateFeature("team-registration", {
+        id: "team-registration", name: FormatUtil.term("Competitive Registration"),
+        implementation: "teamregshopping:TeamRegistrationWidget",
+        visible: function(callback) {callback(true);}
+    });
+}
+
+if (ADMIN_CONTEXT.memberRegistrationEnabled
+    && PermissionUtils.hasAnyPermission(PERMISSION_KEY.TeamReg_MemberReg_ViewAdmin, PERMISSION_KEY.TeamReg_EventReg_ViewAdmin)) {
+    
+    var implementationSrcPage = "";
+    if (PermissionUtils.hasAllPermissions(PERMISSION_KEY.TeamReg_MemberReg_ViewAdmin)) {
+        implementationSrcPage = "/MemRegAdmin.jsp";
+    } else if (PermissionUtils.hasAllPermissions(PERMISSION_KEY.TeamReg_EventReg_ViewAdmin)) {
+        implementationSrcPage = "/MemRegEventAdmin.jsp";
+    }
+    AdminSectionManager.register({
+                    id: "team-tool", name: "Team Tools", icon: "account-multiple",
+                    implementation: null,
+                    features: [{
+                            id: "team-tool-registration-header", name: "Registration",
+                            implementation: null,
+                            priority: 1,
+                            features:[{
+                                id: "registration-admin", name: "Registration Admin", icon: "",
+                                featureKey: "team-reg",
+                                visible: function() {
+                                    return true;
+                                },
+                                implementation: {src: implementationSrcPage + "?" + ADMIN_LEGACY_PARAMS},
+                                priority: 1
+                            }]
+                        }]
+                 });
+
+}
+
+AdminSectionManager.register({id: "system-admin", name: "System Administration", icon: "settings",
+implementation: null,
+features: [{
+    id: "system-dashboards-header", name: "Dashboards", icon: "view-dashboard",
+    implementation: null,
+    features: [{
+        id: "system-dashboards-kpi", name: "KPI Dashboards", icon: "chart-areaspline",
+        visible: function() {
+            return ADMIN_CONTEXT.teamAlias == "teamunify" && PermissionUtils.hasAllPermissions(PERMISSION_KEY.SysAdmin_KPIDashboard_ManageAll);
+        },
+        implementation: "sysdash:KPIDashboardHomeView"
+    }]
+}]});
+
+
+AdminSectionManager.register({
+    id: "usas-deck-pass", name: "USAS Deck Pass" ,
+    icon: "/usasdeckpass/images/usas_deckpass.png",
+    showIcon: true,
+    notificationProvider: USASDessPassNotification,
+    featureKey: "deckpass",
+    visible: function(callback) {
+        callback(ADMIN_CONTEXT.accountStatusId == AccountStatus.Active.code);
+    },
+    implementation: "usasdeckpass:DeckPassAdmin",
+    priority: -1
+});
+
+
+AdminSectionManager.register({
+    id: "usas-safe-sport", name: "USAS Safe Sport" ,
+    icon: "/usassafesport/images/safe_sport.png",
+    showIcon: true,
+    featureKey: "safesport",
+    visible: function(callback) {
+        callback(ADMIN_CONTEXT.accountStatusId == AccountStatus.Active.code);
+    },
+    implementation: "usassafesport:SafeSportHome",
+    priority: -1
+});
+
+AdminSectionManager.register({
+    id: "videos", name: "Videos", icon: "video",
+    featureKey: "videos",
+    implementation: {src: "/v2/mainset/index.jsp?hide-header#video/general"},
+    visible: function() {
+        return ADMIN_CONTEXT.accountStatusId == AccountStatus.Active.code;
+    },
+    getSubPageUrl: function (name) {
+        if (name && name.match(/theater:([a-z0-9]+)$/i)) {
+            var ids = atob(RegExp.$1).split(",");
+            widget.__ensureNamespaceLoaded("util", function (util) {
+                var dlg = new util.VideosDialog();
+                dlg.open(ids);
+            }, "Loading...");
+            return null;
+        }
+        return null;
+    }
+}, true);
+
+AdminSectionManager.performRegistrationPostProcessing();

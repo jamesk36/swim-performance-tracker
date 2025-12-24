@@ -1,0 +1,117 @@
+function to2Digits(v)
+{
+  if (("" + v).length == 1)
+    return "0" + v;
+  else
+    return "" + v;
+}
+function tuDate(yyyy, mm, dd)
+{
+  this.yyyy = yyyy;
+  this.mm = mm;
+  this.dd = dd;
+}
+
+// needs to be in this format mm/dd/yyyy
+function parseDate(strDate) 
+{
+  if (!strDate)
+    return null;
+  var aPart = strDate.split("/");
+  if (!aPart)
+    return null;
+  if (aPart.length != 3)
+    return null;
+  if (aPart[2].length < 4)
+    return null;
+  if (isUKTeam) {
+    var mm = aPart[1];
+    var dd = aPart[0];
+    var yyyy = aPart[2];
+  } else {
+    var mm = aPart[0];
+    var dd = aPart[1];
+    var yyyy = aPart[2];
+  }
+  return new tuDate(yyyy - 0, mm - 0, dd - 0);
+}
+
+function calAge(date1, date2, bMo) 
+{
+  if (!date1 || !date2)
+    return 0;
+    
+  var y1 = date1.yyyy, m1 = date1.mm, d1 = date1.dd;
+	var y2 = date2.yyyy, m2 = date2.mm, d2 = date2.dd;
+  
+  var strMD1 = to2Digits(m1) + to2Digits(d1);
+  var strMD2 = to2Digits(m2) + to2Digits(d2);
+
+  if (bMo)
+  {
+    var iRet = 0;
+    if (y2 >= y1)
+    {
+      iRet = (m2 + (12 - m1)) + (y2 - 1 - y1) * 12;
+      iRet -= (d2 < d1 ? 1 : 0);
+    }    
+    return iRet;
+  }
+  else
+  {
+    var iYOffset = y2 - y1;
+    if (strMD1 > strMD2)
+      iYOffset--;
+    return iYOffset >= 0 ? iYOffset : 0;
+  }
+}
+
+
+function showAge(id, bMo)
+{
+  var fldDob = eval("frm.dob_" + id);
+  var fldAge = eval("frm.age_" + id);
+  if(!fldDob) return;
+  var dob = parseDate(fldDob.value);
+  var strAge = "----";
+  var age = calAge(dob, dtAgeup, bMo);
+  if (age != 0)
+    strAge = "" + age;
+  fldAge.value = strAge;
+  
+  validateDate(id, strAge);
+}
+
+function ShowAgeWithZero(id, bMo) {
+  var fldDob = eval("frm.dob_" + id);
+  var fldAge = eval("frm.age_" + id);
+  if(!fldDob) return;
+  var dob = parseDate(fldDob.value);
+  var strAge = "----";
+  var age = calAge(dob, dtAgeup, bMo);
+  strAge = "" + age;
+  fldAge.value = strAge;
+  validateDateWithZero(id, strAge);
+}
+
+function validateDate(id, strAge) {
+  var input = document.querySelector("#dob_" + id);
+  var dateFormat = input.getAttribute("placeholder");
+  if (!dateFormat) return; 
+  
+  var mm = moment(input.value, dateFormat);
+  if (!mm.isValid() || !parseInt(strAge)) {
+    input.value = "";
+  }
+}
+
+function validateDateWithZero(id, strAge) {
+  var input = document.querySelector("#dob_" + id);
+  var dateFormat = input.getAttribute("placeholder");
+  if (!dateFormat) return; 
+  
+  var mm = moment(input.value, dateFormat);
+  if (!mm.isValid()) {
+    input.value = "";
+  }
+}

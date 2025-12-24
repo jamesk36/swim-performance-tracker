@@ -1,0 +1,149 @@
+
+if (window && !window.__currentScriptPath) window.__currentScriptPath = null;
+
+
+if (window) window.__currentScriptPath = "/framework/webui/framework/js/common-xorigin.js";
+
+var CrossOriginUtil = (function () {
+    function registerCrossOriginPopup(ownerWindow, popupEntry) {
+        if (!ownerWindow._xorigin_initialized || !window._xorigin_this_initialized) {
+            ownerWindow._xorigin_initialized = true;
+            window._xorigin_this_initialized = true;
+            
+            ownerWindow._xorigin_popupEntries = [];
+            
+            ownerWindow.addEventListener("message", function (event) {
+                if (ownerWindow.TEAM_INFO && ownerWindow.TEAM_INFO.rootDomainPrefix) {
+                    if (event.origin != ownerWindow.TEAM_INFO.rootDomainPrefix) {
+                        console.error("Rejected message from bad origin", event);
+                    }
+                }
+                var entry = null;
+                ownerWindow._xorigin_popupEntries.forEach(function (e) {
+                    if (e.frameWindow == event.source) {
+                        entry = e;
+                    }
+                });
+                
+                if (!entry) {
+                    console.log("Entry not found");
+                    return;
+                }
+                
+                handleMessageEvent(entry, event, ownerWindow);
+            }, false);
+        }
+        
+        ownerWindow._xorigin_popupEntries.push(popupEntry);
+    }
+    
+    function handleMessageEvent(entry, event, ownerWindow) {
+        if (event.data._type == "sys:close") {
+            var closePopup = function() {
+                entry.nodes.forEach(function (n) {
+                    n.parentNode.removeChild(n);
+                });
+            };
+            
+            if (entry.handler && entry.handler.onClose) {
+                entry.handler.onClose(event.data, function (accepted) {
+                    if (accepted) closePopup();
+                });
+            } else {
+                closePopup();
+            }
+            
+            return;
+        }
+        
+        if (entry.handler && entry.handler.onMessage) {
+            entry.handler.onMessage(event.data);
+        }
+    }
+    
+    
+    return {
+        findParentWindow: function (uriPatternOrMatcher) {
+            var currentWindow = window;
+            var m = function (win) {
+                if (typeof(uriPatternOrMatcher) == "function") return uriPatternOrMatcher(win);
+                return win.location.href.match(uriPatternOrMatcher);
+            };
+            try {
+                while (true) {
+                    if (m(currentWindow)) return currentWindow;
+                    if (currentWindow == currentWindow.parent) return null;
+                    currentWindow = currentWindow.parent;
+                }
+            } catch (e) {}
+        },
+        openMessagingBasedPopup: function (url, params, handler, options) {
+            var ownerWindow = (options && options.findOwnerWindow && options.findOwnerWindow()) || window.top;
+            
+            var popupEntry = {
+                url: url,
+                params: params,
+                handler: handler,
+                options: options
+            };
+            registerCrossOriginPopup(ownerWindow, popupEntry);
+            
+            var overlay = ownerWindow.document.createElement("div");
+            overlay.style.cssText = "position: fixed; top: 0px; left: 0px; bottom: 0px; right: 0px; z-index: 1002; background: rgba(0, 0, 0, 0.2);";
+            ownerWindow.document.body.appendChild(overlay);
+            
+            var container = ownerWindow.document.createElement("div");
+            var width = Math.round((options && options.getWidth && options.getWidth(ownerWindow)) || (ownerWindow.innerWidth * 0.5));
+            var hMargin = Math.round((ownerWindow.innerWidth - width) / 2);
+            var height = Math.round((options && options.getHeight && options.getHeight(ownerWindow)) || (ownerWindow.innerHeight * 0.95));
+            var vMargin = Math.round((ownerWindow.innerHeight - height) / 2);
+            container.style.cssText = "display: flex; flex-direction: column; position: fixed; top: " + vMargin + "px; left: " + hMargin + "px; width: " + width + "px; height: " + height + "px; z-index: 1002; background: #FFF; box-shadow: 0px 0px 7px 3px #00000033;";
+            if (options && options.styles && options.styles.container) {
+                for (var styleName in options.styles.container) {
+                    container.style.setProperty(styleName, options.styles.container[styleName]);
+                }
+            }
+            ownerWindow.document.body.appendChild(container);
+            
+            var iframe = ownerWindow.document.createElement("iframe");
+            iframe.style.cssText = "flex: 1 1 auto; border: none;"
+            if (options && options.styles && options.styles.iframe) {
+                for (var styleName in options.styles.iframe) {
+                    iframe.style.setProperty(styleName, options.styles.iframe[styleName]);
+                }
+            }
+            container.appendChild(iframe);
+            iframe.setAttribute("src", url);
+            
+            popupEntry.nodes = [overlay, container];
+            popupEntry.frameWindow = iframe.contentWindow;
+            
+            if (!options || !options.implicitClose) {
+                var closeImage = ownerWindow.document.createElement("img");
+                closeImage.style.cssText = "position: absolute; z-index: 1; width: 2em; height: 2em; top: -0.75em; right: -0.75em; border-radius: 50%; background: #999;";
+                container.appendChild(closeImage);
+                closeImage.src = "data:image/png;base64,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";
+                closeImage.setAttribute("title", "Close");
+                closeImage.onmouseover = function () { closeImage.style.background = "#FF0000";};
+                closeImage.onmouseout = function () { closeImage.style.background = "#999";};
+                
+                closeImage.addEventListener("click", function () {
+                    var closePopup = function() {
+                        popupEntry.nodes.forEach(function (n) {
+                            n.parentNode.removeChild(n);
+                        });
+                    };
+                    
+                    if (popupEntry.handler && popupEntry.handler.onClose) {
+                        popupEntry.handler.onClose(null, function (accepted) {
+                            if (accepted) closePopup();
+                        });
+                    } else {
+                        closePopup();
+                    }
+                });
+            }
+        }
+    };
+})();
+if (window) window.__currentScriptPath = null;

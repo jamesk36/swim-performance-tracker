@@ -1,0 +1,92 @@
+  function IdName(key1, key2, id, name)
+  {
+    this.key1 = key1;
+    this.key2 = key2;
+    this.id = id;
+    this.name = name;
+  }
+  var aSubProgIdName = new Array();
+  var aClassIdName = new Array();
+
+  function initSubProgClass(iSubProgId, iClassId, aSubProgIdNameJs, aClassIdNameJs)
+  {
+    aSubProgIdName = aSubProgIdNameJs;
+    aClassIdName = aClassIdNameJs;
+
+    var selP = $('#prog');
+    var selSp = $('#subprog');
+    var selCl = $('#class');
+
+    var progId = selP.val();
+    var classId = iClassId;
+    if (progId != -1)
+    {
+      for (var i = 0; i < aSubProgIdName.length; i++)
+      {
+        var o = aSubProgIdName[i];
+        if (o.key1 == progId)
+          selSp.addOption(o.id, o.name);
+      }
+      selSp.selectOptions('-1');
+      selSp.selectOptions('' + iSubProgId);
+
+      if (iSubProgId > 0)
+      {
+        for (var i = 0; i < aClassIdName.length; i++)
+        {
+          var o = aClassIdName[i];
+          if (o.key2 == iSubProgId)
+            selCl.addOption(o.id, o.name);
+        }
+        selCl.selectOptions('-1');
+        selCl.selectOptions('' + iClassId);
+      }
+
+    }
+  }
+
+  function onProg()
+  {
+    var selP = $('#prog');
+    var selSp = $('#subprog');
+    var selCl = $('#class');
+
+    var progId = selP.val();
+    var subprogId = selSp.val();
+    var classId = selCl.val();
+
+    selSp.removeOption(/.*/);
+    selSp.addOption(-1, '--ALL--');
+    for (var i = 0; i < aSubProgIdName.length; i++)
+    {
+      var o = aSubProgIdName[i];
+      if (o.key1 == progId)
+        selSp.addOption(o.id, o.name);
+    }
+    selSp.selectOptions('-1');
+
+    selCl.removeOption(/.*/);
+    selCl.addOption(-1, '--ALL--');
+  }
+  function onSubProg()
+  {
+    var selSp = $('#subprog');
+    var selCl = $('#class');
+
+    var subprogId = selSp.val();
+    var classId = selCl.val();
+
+    selCl.removeOption(/.*/);
+    selCl.addOption(-1, '--ALL--');
+    for (var i = 0; i < aClassIdName.length; i++)
+    {
+      var o = aClassIdName[i];
+      if (o.key2 == subprogId)
+        selCl.addOption(o.id, o.name);
+    }
+    selCl.selectOptions('-1');
+  }
+
+  
+ 
+ 
