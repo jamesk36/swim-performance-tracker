@@ -28,6 +28,11 @@ st.markdown("""
         --gold: #FFD700;
         --silver: #C0C0C0;
         --bronze: #CD7F32;
+        --freestyle-blue: #0066CC;
+        --backstroke-green: #00A651;
+        --breaststroke-yellow: #FFA500;
+        --butterfly-orange: #FF6B35;
+        --im-purple: #7B2CBF;
     }
     
     /* Headers */
@@ -101,6 +106,37 @@ st.markdown("""
     .dataframe {
         font-size: 0.9rem;
     }
+    
+    /* Stroke cards */
+    .stroke-card {
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-bottom: 1rem;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    
+    .freestyle-card { border-left: 5px solid var(--freestyle-blue); }
+    .backstroke-card { border-left: 5px solid var(--backstroke-green); }
+    .breaststroke-card { border-left: 5px solid var(--breaststroke-yellow); }
+    .butterfly-card { border-left: 5px solid var(--butterfly-orange); }
+    .im-card { border-left: 5px solid var(--im-purple); }
+    
+    /* Standard badges */
+    .standard-badge {
+        display: inline-block;
+        padding: 0.25rem 0.75rem;
+        border-radius: 12px;
+        font-weight: 600;
+        font-size: 0.85rem;
+        margin: 0.2rem;
+    }
+    
+    .standard-AAAA { background-color: #FFD700; color: #000; }
+    .standard-AAA { background-color: #C0C0C0; color: #000; }
+    .standard-AA { background-color: #CD7F32; color: #FFF; }
+    .standard-A { background-color: #0066CC; color: #FFF; }
+    .standard-BB { background-color: #00A3E0; color: #FFF; }
+    .standard-B { background-color: #87CEEB; color: #000; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -151,6 +187,41 @@ def get_personal_bests(df):
     
     return pd.DataFrame(pb_list).sort_values(['Event', 'Course'])
 
+def get_stroke_bests(df, stroke, course):
+    """Get best times for specific stroke and course"""
+    if df is None or len(df) == 0:
+        return []
+    
+    # Define distance sets for each stroke type
+    if stroke == 'Free':
+        distances = [50, 100, 200, 500]
+    elif stroke in ['Back', 'Breast', 'Fly']:
+        distances = [50, 100, 200]
+    elif stroke == 'IM':
+        distances = [100, 200, 400]
+    else:
+        return []
+    
+    results = []
+    for distance in distances:
+        event_data = df[
+            (df['Distance'] == distance) & 
+            (df['Stroke'] == stroke) & 
+            (df['Course'] == course) &
+            (df['Standard'] != 'Unrated')
+        ]
+        
+        if len(event_data) > 0:
+            best = event_data.loc[event_data['Time_Seconds'].idxmin()]
+            results.append({
+                'Distance': distance,
+                'Time': best['Finals'],
+                'Standard': best['Standard'],
+                'Date': best['Date'].strftime('%m/%d/%Y')
+            })
+    
+    return results
+
 def create_progression_chart(df, event, course):
     """Create time progression chart for an event"""
     event_data = df[
@@ -187,6 +258,35 @@ def create_progression_chart(df, event, course):
     
     return fig
 
+def display_stroke_card(stroke, color, df, course):
+    """Display a stroke summary card"""
+    stroke_data = get_stroke_bests(df, stroke, course)
+    
+    if not stroke_data:
+        return  # Don't show card if no data
+    
+    st.markdown(f"### {stroke}")
+    
+    # Create DataFrame for display
+    display_df = pd.DataFrame(stroke_data)
+    
+    # Format the table with colored badges
+    for idx, row in display_df.iterrows():
+        col1, col2, col3, col4 = st.columns([1, 2, 2, 2])
+        
+        with col1:
+            st.markdown(f"**{row['Distance']}**")
+        with col2:
+            st.markdown(f"`{row['Time']}`")
+        with col3:
+            # Color-coded standard badge
+            st.markdown(
+                f"<span class='standard-badge standard-{row['Standard']}'>{row['Standard']}</span>",
+                unsafe_allow_html=True
+            )
+        with col4:
+            st.markdown(f"*{row['Date']}*")
+
 # Sidebar
 with st.sidebar:
     st.image("https://api.dicebear.com/7.x/shapes/svg?seed=swim&backgroundColor=0066CC", width=100)
@@ -196,7 +296,7 @@ with st.sidebar:
     
     page = st.radio(
         "Navigation",
-        ["📊 Dashboard", "📁 Upload Data", "🎯 Goals", "📈 Analytics", "⚙️ Settings"],
+        ["🏊 Stroke Overview", "🔍 Quick Lookup", "📊 Deep Analytics", "🎯 Goals", "📁 Upload Data", "⚙️ Settings"],
         label_visibility="collapsed"
     )
     
@@ -210,8 +310,64 @@ with st.sidebar:
         st.metric("AA Times", len(data['swims'][data['swims']['Standard'] == 'AA']))
 
 # Main content
-if page == "📊 Dashboard":
-    st.title("🏊‍♂️ Swim Performance Dashboard")
+if page == "🏊 Stroke Overview":
+    st.title("🏊‍♂️ Stroke Overview")
+    
+    data = load_data()
+    
+    if data['swims'] is None:
+        st.warning("⚠️ No swim data found. Please upload data in the 'Upload Data' section.")
+    else:
+        df = data['swims']
+        
+        # Course toggle at the top
+        st.markdown("### Select Course")
+        course_option = st.radio(
+            "Course Type",
+            ["Yards", "LCM"],
+            horizontal=True,
+            label_visibility="collapsed"
+        )
+        
+        st.markdown("---")
+        
+        # Create 5 stroke cards in a grid
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            # Freestyle
+            with st.container():
+                st.markdown("<div class='stroke-card freestyle-card'>", unsafe_allow_html=True)
+                display_stroke_card('Free', '#0066CC', df, course_option)
+                st.markdown("</div>", unsafe_allow_html=True)
+            
+            # Breaststroke
+            with st.container():
+                st.markdown("<div class='stroke-card breaststroke-card'>", unsafe_allow_html=True)
+                display_stroke_card('Breast', '#FFA500', df, course_option)
+                st.markdown("</div>", unsafe_allow_html=True)
+            
+            # IM
+            with st.container():
+                st.markdown("<div class='stroke-card im-card'>", unsafe_allow_html=True)
+                display_stroke_card('IM', '#7B2CBF', df, course_option)
+                st.markdown("</div>", unsafe_allow_html=True)
+        
+        with col2:
+            # Backstroke
+            with st.container():
+                st.markdown("<div class='stroke-card backstroke-card'>", unsafe_allow_html=True)
+                display_stroke_card('Back', '#00A651', df, course_option)
+                st.markdown("</div>", unsafe_allow_html=True)
+            
+            # Butterfly
+            with st.container():
+                st.markdown("<div class='stroke-card butterfly-card'>", unsafe_allow_html=True)
+                display_stroke_card('Fly', '#FF6B35', df, course_option)
+                st.markdown("</div>", unsafe_allow_html=True)
+
+elif page == "🔍 Quick Lookup":
+    st.title("🔍 Personal Best Quick Lookup")
     
     data = load_data()
     
@@ -238,7 +394,7 @@ if page == "📊 Dashboard":
         st.markdown("---")
         
         # Personal Best Lookup
-        st.header("🔍 Personal Best Lookup")
+        st.header("Personal Best Lookup")
         
         col1, col2, col3 = st.columns([2, 1, 2])
         
@@ -246,240 +402,272 @@ if page == "📊 Dashboard":
         events = sorted(pb_df['Event'].unique()) if len(pb_df) > 0 else []
         
         with col1:
-            selected_event = st.selectbox("Select Event", events, index=events.index('100 Free') if '100 Free' in events else 0)
+            if events:
+                selected_event = st.selectbox("Select Event", events)
+            else:
+                st.info("No events with times yet")
+                selected_event = None
         
         with col2:
-            selected_course = st.selectbox("Select Course", ['Yards', 'LCM'])
+            course = st.selectbox("Course", ['Yards', 'LCM'])
         
-        if len(pb_df) > 0:
-            pb_row = pb_df[(pb_df['Event'] == selected_event) & (pb_df['Course'] == selected_course)]
+        if selected_event:
+            pb_row = pb_df[(pb_df['Event'] == selected_event) & (pb_df['Course'] == course)]
             
             if len(pb_row) > 0:
                 pb = pb_row.iloc[0]
                 
-                col1, col2, col3 = st.columns(3)
+                st.markdown("---")
+                
+                # Display PB details
+                col1, col2, col3, col4 = st.columns(4)
+                
                 with col1:
                     st.metric("Best Time", pb['Time'])
                 with col2:
                     st.metric("Standard", pb['Standard'])
                 with col3:
                     st.metric("Date", pb['Date'].strftime('%m/%d/%Y'))
+                with col4:
+                    st.metric("Age", pb['Age'])
+                
+                # Show progression chart
+                st.markdown("---")
+                fig = create_progression_chart(df, selected_event, course)
+                if fig:
+                    st.plotly_chart(fig, use_container_width=True)
+                
+                # Show all times for this event
+                st.markdown("---")
+                st.subheader("All Times")
+                
+                all_times = df[
+                    (df['Distance'].astype(str) + ' ' + df['Stroke'] == selected_event) & 
+                    (df['Course'] == course)
+                ].sort_values('Date', ascending=False)[['Date', 'Finals', 'Standard', 'Meet', 'Age']]
+                
+                st.dataframe(all_times, use_container_width=True, hide_index=True)
             else:
-                st.info("No personal best for this event/course combination.")
+                st.info(f"No times recorded for {selected_event} ({course})")
+
+elif page == "📊 Deep Analytics":
+    st.title("📊 Deep Analytics")
+    
+    data = load_data()
+    
+    if data['swims'] is None:
+        st.warning("⚠️ No swim data found.")
+    else:
+        df = data['swims']
         
-        st.markdown("---")
+        # Standards distribution
+        st.header("Standards Distribution")
         
-        # Time Progression
-        st.header("📈 Time Progression")
-        
-        if selected_event and selected_course:
-            chart = create_progression_chart(df, selected_event, selected_course)
-            if chart:
-                st.plotly_chart(chart, use_container_width=True)
-            else:
-                st.info("No data available for this event/course combination.")
-        
-        st.markdown("---")
-        
-        # Standards Distribution
-        st.header("📊 Standards Distribution")
-        
-        standards_counts = df['Standard'].value_counts().reset_index()
-        standards_counts.columns = ['Standard', 'Count']
-        
-        # Order standards properly
-        standard_order = ['AAAA', 'AAA', 'AA', 'A', 'BB', 'B', '<B', 'Unrated']
-        standards_counts['Standard'] = pd.Categorical(
-            standards_counts['Standard'],
-            categories=standard_order,
-            ordered=True
-        )
-        standards_counts = standards_counts.sort_values('Standard')
+        standards_count = df[df['Standard'] != 'Unrated']['Standard'].value_counts()
         
         fig = px.bar(
-            standards_counts,
-            x='Standard',
-            y='Count',
-            color='Standard',
+            x=standards_count.index,
+            y=standards_count.values,
+            labels={'x': 'Standard', 'y': 'Count'},
+            title='Number of Swims by Standard',
+            color=standards_count.index,
             color_discrete_map={
                 'AAAA': '#FFD700',
                 'AAA': '#C0C0C0',
                 'AA': '#CD7F32',
-                'A': '#4472C4',
-                'BB': '#70AD47',
-                'B': '#FFC000',
-                '<B': '#E7E6E6',
-                'Unrated': '#D9D9D9'
+                'A': '#0066CC',
+                'BB': '#00A3E0',
+                'B': '#87CEEB'
             }
-        )
-        
-        fig.update_layout(
-            showlegend=False,
-            height=400,
-            xaxis_title="Standard",
-            yaxis_title="Number of Swims"
         )
         
         st.plotly_chart(fig, use_container_width=True)
         
         st.markdown("---")
         
-        # Recent Swims
-        st.header("🏊 Recent Swims")
+        # Event comparison
+        st.header("Stroke Strength Comparison")
         
-        recent = df.sort_values('Date', ascending=False).head(10)
-        st.dataframe(
-            recent[['Date', 'Distance', 'Stroke', 'Course', 'Finals', 'Standard', 'Meet']],
-            hide_index=True,
-            use_container_width=True
-        )
+        pb_df = get_personal_bests(df)
+        
+        # Create radar chart of standards by stroke
+        stroke_standards = []
+        for stroke in ['Free', 'Back', 'Breast', 'Fly', 'IM']:
+            stroke_data = pb_df[pb_df['Event'].str.contains(stroke)]
+            if len(stroke_data) > 0:
+                # Count AAA, AA, A times
+                aaa_count = len(stroke_data[stroke_data['Standard'] == 'AAA'])
+                aa_count = len(stroke_data[stroke_data['Standard'] == 'AA'])
+                a_count = len(stroke_data[stroke_data['Standard'] == 'A'])
+                total_events = len(stroke_data)
+                
+                # Calculate score
+                score = (aaa_count * 3 + aa_count * 2 + a_count * 1) / max(total_events, 1)
+                
+                stroke_standards.append({
+                    'Stroke': stroke,
+                    'Score': score
+                })
+        
+        if stroke_standards:
+            fig = go.Figure(data=go.Scatterpolar(
+                r=[s['Score'] for s in stroke_standards],
+                theta=[s['Stroke'] for s in stroke_standards],
+                fill='toself',
+                line_color='#0066CC'
+            ))
+            
+            fig.update_layout(
+                polar=dict(
+                    radialaxis=dict(
+                        visible=True,
+                        range=[0, 3]
+                    )
+                ),
+                showlegend=False,
+                title="Strength by Stroke (AAA=3, AA=2, A=1)"
+            )
+            
+            st.plotly_chart(fig, use_container_width=True)
+        
+        st.markdown("---")
+        
+        # Improvement over time
+        st.header("Event Progression Analysis")
+        
+        # Select event for timeline
+        events = sorted((df['Distance'].astype(str) + ' ' + df['Stroke']).unique())
+        selected = st.selectbox("Select Event for Analysis", events)
+        course_select = st.selectbox("Course", ['Yards', 'LCM'], key='analytics_course')
+        
+        if selected:
+            dist, stroke = selected.split(' ', 1)
+            event_data = df[
+                (df['Distance'] == int(dist)) & 
+                (df['Stroke'] == stroke) &
+                (df['Course'] == course_select)
+            ].sort_values('Date')
+            
+            if len(event_data) > 1:
+                # Time progression
+                fig = go.Figure()
+                
+                fig.add_trace(go.Scatter(
+                    x=event_data['Date'],
+                    y=event_data['Time_Seconds'],
+                    mode='lines+markers',
+                    name='Time',
+                    line=dict(color='#0066CC', width=3),
+                    marker=dict(size=10, color='#00A3E0'),
+                    hovertemplate='<b>%{y:.2f}s</b><br>%{x|%b %d, %Y}<extra></extra>'
+                ))
+                
+                fig.update_layout(
+                    title=f"{selected} ({course_select}) - Time Progression",
+                    xaxis_title="Date",
+                    yaxis_title="Time (seconds)",
+                    height=400,
+                    hovermode='closest',
+                    yaxis=dict(autorange='reversed')
+                )
+                
+                st.plotly_chart(fig, use_container_width=True)
+                
+                # Calculate improvement
+                event_data['Improvement'] = event_data['Time_Seconds'].diff() * -1  # Negative diff = faster
+                
+                fig2 = go.Figure()
+                
+                fig2.add_trace(go.Bar(
+                    x=event_data['Date'][1:],
+                    y=event_data['Improvement'][1:],
+                    marker_color=['green' if x > 0 else 'red' for x in event_data['Improvement'][1:]],
+                    name='Improvement'
+                ))
+                
+                fig2.update_layout(
+                    title=f"{selected} - Improvement Between Swims",
+                    xaxis_title="Date",
+                    yaxis_title="Improvement (seconds)",
+                    height=400,
+                    hovermode='closest'
+                )
+                
+                st.plotly_chart(fig2, use_container_width=True)
+            else:
+                st.info("Need at least 2 swims for this event to show progression")
 
 elif page == "📁 Upload Data":
     st.title("📁 Upload Swim Data")
     
     st.markdown("""
-    Upload your GoMotion results and add high school swims to process and analyze your data.
+    Upload your graded swim data Excel file to update the tracker.
+    
+    **Expected format:** `graded_swim_data.xlsx`
+    
+    The file should contain columns for:
+    - Date, Age, Distance, Stroke, Course, Finals, Time_Seconds, Standard, Meet
     """)
     
-    # GoMotion Upload
-    st.header("1️⃣ Upload GoMotion Results")
+    uploaded_file = st.file_uploader("Choose graded_swim_data.xlsx file", type=['xlsx'])
     
-    uploaded_file = st.file_uploader(
-        "Upload swim_history.html from GoMotion",
-        type=['html'],
-        help="Save the GoMotion results page as HTML and upload it here"
-    )
-    
-    if uploaded_file:
-        st.success(f"✅ Uploaded: {uploaded_file.name}")
-        
-        # Save the file
-        with open('swim_history.html', 'wb') as f:
-            f.write(uploaded_file.getbuffer())
-    
-    st.info("💡 Data processing temporarily disabled. Use local scripts to process data, then view results here!")
-    
-    if False:  # Temporarily disabled
-        with st.spinner("Processing data..."):
-            # Import and run scripts
-            import subprocess
+    if uploaded_file is not None:
+        try:
+            # Read the uploaded file
+            df = pd.read_excel(uploaded_file)
             
-            progress_bar = st.progress(0)
-            status = st.empty()
+            # Validate columns
+            required_cols = ['Date', 'Age', 'Distance', 'Stroke', 'Course', 'Finals', 'Time_Seconds', 'Standard', 'Meet']
+            missing_cols = [col for col in required_cols if col not in df.columns]
             
-            # Run scraper
-            status.text("⏳ Extracting data from HTML...")
-            result = subprocess.run(['python', 'scraper.py'], capture_output=True, text=True)  
-            
-            if result.returncode == 0:
-                st.success("✅ Data extracted successfully")
-                progress_bar.progress(33)
+            if missing_cols:
+                st.error(f"❌ Missing required columns: {', '.join(missing_cols)}")
             else:
-                st.error(f"❌ Scraper failed: {result.stderr}")
-                st.stop()
-            
-            # Run cleaner
-            status.text("⏳ Cleaning and formatting data...")
-            result = subprocess.run(['python', 'cleaner.py'], capture_output=True, text=True)
-            if result.returncode == 0:
-                st.success("✅ Data cleaned successfully")
-                progress_bar.progress(66)
-            else:
-                st.error(f"❌ Cleaner failed: {result.stderr}")
-                st.stop()
-            
-            # Run grader
-            status.text("⏳ Grading performances...")
-            result = subprocess.run(['python', 'grader.py'], capture_output=True, text=True)
-            if result.returncode == 0:
-                st.success("✅ Data graded successfully")
-                progress_bar.progress(100)
-                st.balloons()
-                status.text("✨ All done! Check the Dashboard to see your results.")
-            else:
-                st.error(f"❌ Grader failed: {result.stderr}")
+                # Save the file
+                df.to_excel('graded_swim_data.xlsx', index=False)
+                st.success("✅ Data uploaded successfully!")
+                
+                # Show preview
+                st.subheader("Data Preview")
+                st.dataframe(df.head(10), use_container_width=True)
+                
+                # Show summary stats
+                col1, col2, col3 = st.columns(3)
+                with col1:
+                    st.metric("Total Swims", len(df))
+                with col2:
+                    st.metric("Date Range", f"{df['Date'].min()} to {df['Date'].max()}")
+                with col3:
+                    st.metric("Unique Events", len(df.groupby(['Distance', 'Stroke'])))
+                
+        except Exception as e:
+            st.error(f"❌ Error reading file: {e}")
     
     st.markdown("---")
     
-    # High School Swims
-    st.header("2️⃣ Add High School Swims")
+    # High School swim merging section
+    st.header("🏫 Merge High School Data")
     
     st.markdown("""
-    Enter high school swims that aren't in GoMotion. These will be merged with your GoMotion data.
+    Upload high school swim data (CSV format) to merge with GoMotion data.
+    
+    **Expected format:**
+    - Date, Age, Distance, Stroke, Course, Time, Meet
     """)
     
-    # Load existing high school swims
-    if os.path.exists('high_school_swims.csv'):
-        hs_df = pd.read_csv('high_school_swims.csv')
-    else:
-        hs_df = pd.DataFrame(columns=['Date', 'Age', 'Distance', 'Stroke', 'Round', 'Course', 'Finals', 'Time_Seconds', 'Meet'])
+    hs_file = st.file_uploader("Choose high school CSV file", type=['csv'])
     
-    # Show existing swims
-    if len(hs_df) > 0:
-        st.subheader("Existing High School Swims")
-        st.dataframe(hs_df, use_container_width=True, hide_index=True)
-    
-    # Add new swim form
-    with st.expander("➕ Add New High School Swim"):
-        with st.form("add_hs_swim"):
-            col1, col2 = st.columns(2)
+    if hs_file is not None:
+        try:
+            hs_df = pd.read_csv(hs_file)
+            st.success("✅ High school data loaded!")
             
-            with col1:
-                swim_date = st.date_input("Date", datetime.now())
-                age = st.number_input("Age", min_value=8, max_value=18, value=14)
-                distance = st.selectbox("Distance", [25, 50, 100, 200, 400, 500, 800, 1000, 1500, 1650])
-                stroke = st.selectbox("Stroke", ['Free', 'Back', 'Breast', 'Fly', 'IM'])
-            
-            with col2:
-                round_type = st.selectbox("Round", ['Finals', 'Prelims'])
-                course = st.selectbox("Course", ['Yards', 'LCM'])
-                time_input = st.text_input("Time", placeholder="e.g., 52.45 or 1:02.34")
-                meet = st.text_input("Meet Name", placeholder="e.g., HS Dual Meet vs Rogers")
-            
-            submitted = st.form_submit_button("Add Swim", type="primary")
-            
-            if submitted:
-                # Parse time
-                try:
-                    if ':' in time_input:
-                        parts = time_input.split(':')
-                        time_seconds = float(parts[0]) * 60 + float(parts[1])
-                    else:
-                        time_seconds = float(time_input)
-                    
-                    finals_str = f"{time_input}{'Y' if course == 'Yards' else 'L'}"
-                    
-                    # Add to dataframe
-                    new_swim = pd.DataFrame([{
-                        'Date': swim_date.strftime('%Y-%m-%d'),
-                        'Age': age,
-                        'Distance': distance,
-                        'Stroke': stroke,
-                        'Round': round_type,
-                        'Course': course,
-                        'Finals': finals_str,
-                        'Time_Seconds': time_seconds,
-                        'Meet': meet
-                    }])
-                    
-                    hs_df = pd.concat([hs_df, new_swim], ignore_index=True)
-                    hs_df.to_csv('high_school_swims.csv', index=False)
-                    
-                    st.success("✅ Swim added! Run merge below to include it.")
-                    st.rerun()
-                    
-                except Exception as e:
-                    st.error(f"❌ Error adding swim: {e}")
-    
-    if len(hs_df) > 0:
-        if st.button("🔄 Merge High School Swims", type="primary"):
-            with st.spinner("Merging data..."):
-                result = subprocess.run(['python', 'merge_swims.py'], capture_output=True, text=True)
-                if result.returncode == 0:
-                    st.success("✅ High school swims merged!")
-                    st.info("💡 Now run 'python grader.py' and 'python create_dashboard.py' from terminal to update.")
-                else:
-                    st.error(f"❌ Merge failed: {result.stderr}")
+            if st.button("Merge with Existing Data"):
+                # Logic to merge and regrade would go here
+                st.info("Merge functionality coming soon - requires grader.py integration")
+                
+        except Exception as e:
+            st.error(f"❌ Error reading file: {e}")
 
 elif page == "🎯 Goals":
     st.title("🎯 Season Goals")
@@ -534,10 +722,9 @@ elif page == "🎯 Goals":
                         
                         # Progress bar
                         if to_drop > 0:
-                            # Still working toward goal
-                            st.progress(0)
+                            progress = max(0, 1 - (to_drop / max(to_drop, 5)))  # Cap at 5 seconds for visualization
+                            st.progress(progress)
                         else:
-                            # Goal achieved or exceeded
                             st.progress(1.0)
                     else:
                         st.info("No current time for this event yet.")
@@ -590,103 +777,6 @@ elif page == "🎯 Goals":
                 except Exception as e:
                     st.error(f"❌ Error: {e}")
 
-elif page == "📈 Analytics":
-    st.title("📈 Advanced Analytics")
-    
-    data = load_data()
-    
-    if data['swims'] is None:
-        st.warning("⚠️ No swim data found.")
-    else:
-        df = data['swims']
-        
-        # Event comparison
-        st.header("Event Comparison")
-        
-        pb_df = get_personal_bests(df)
-        
-        # Create radar chart of standards by stroke
-        stroke_standards = []
-        for stroke in ['Free', 'Back', 'Breast', 'Fly', 'IM']:
-            stroke_data = pb_df[pb_df['Event'].str.contains(stroke)]
-            if len(stroke_data) > 0:
-                # Count AAA, AA, A times
-                aaa_count = len(stroke_data[stroke_data['Standard'] == 'AAA'])
-                aa_count = len(stroke_data[stroke_data['Standard'] == 'AA'])
-                a_count = len(stroke_data[stroke_data['Standard'] == 'A'])
-                total_events = len(stroke_data)
-                
-                # Calculate score
-                score = (aaa_count * 3 + aa_count * 2 + a_count * 1) / max(total_events, 1)
-                
-                stroke_standards.append({
-                    'Stroke': stroke,
-                    'Score': score
-                })
-        
-        if stroke_standards:
-            fig = go.Figure(data=go.Scatterpolar(
-                r=[s['Score'] for s in stroke_standards],
-                theta=[s['Stroke'] for s in stroke_standards],
-                fill='toself',
-                line_color='#0066CC'
-            ))
-            
-            fig.update_layout(
-                polar=dict(
-                    radialaxis=dict(
-                        visible=True,
-                        range=[0, 3]
-                    )
-                ),
-                showlegend=False,
-                title="Strength by Stroke"
-            )
-            
-            st.plotly_chart(fig, use_container_width=True)
-        
-        st.markdown("---")
-        
-        # Improvement over time
-        st.header("Improvement Timeline")
-        
-        # Select event for timeline
-        events = sorted((df['Distance'].astype(str) + ' ' + df['Stroke']).unique())
-        selected = st.selectbox("Select Event", events)
-        
-        if selected:
-            dist, stroke = selected.split(' ', 1)
-            event_data = df[
-                (df['Distance'] == int(dist)) & 
-                (df['Stroke'] == stroke)
-            ].sort_values('Date')
-            
-            if len(event_data) > 1:
-                # Calculate improvement
-                event_data['Improvement'] = event_data['Time_Seconds'].diff() * -1  # Negative diff = faster
-                
-                fig = go.Figure()
-                
-                fig.add_trace(go.Scatter(
-                    x=event_data['Date'],
-                    y=event_data['Improvement'],
-                    mode='lines+markers',
-                    name='Improvement',
-                    fill='tozeroy',
-                    line=dict(color='#00A3E0', width=2),
-                    marker=dict(size=8)
-                ))
-                
-                fig.update_layout(
-                    title=f"{selected} - Improvement per Swim",
-                    xaxis_title="Date",
-                    yaxis_title="Improvement (seconds)",
-                    height=400,
-                    hovermode='closest'
-                )
-                
-                st.plotly_chart(fig, use_container_width=True)
-
 elif page == "⚙️ Settings":
     st.title("⚙️ Settings")
     
@@ -711,11 +801,13 @@ elif page == "⚙️ Settings":
     st.markdown("""
     **Swim Performance Tracker**
     
-    Version 1.0
+    Version 2.0
     
     This app helps track and analyze competitive swimming performance using USA Swimming standards.
     
     Features:
+    - **Stroke Overview** - Quick view of best times by stroke
+    - **Deep Analytics** - Advanced performance analysis
     - GoMotion data import
     - High school swim tracking
     - Personal best tracking
