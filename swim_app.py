@@ -165,6 +165,10 @@ st.markdown("""
         table-layout: auto;
     }
 
+    /* Force all stroke cards to the same height */
+    .stroke-card { min-height: 220px; display: flex; flex-direction: column; }
+    .stroke-card .pro-table { flex: 1; }
+
     .freestyle-card { border-left: 5px solid var(--freestyle-blue); }
     .backstroke-card { border-left: 5px solid var(--backstroke-green); }
     .breaststroke-card { border-left: 5px solid var(--breaststroke-orange); }
@@ -231,6 +235,7 @@ st.markdown("""
     .standard-A { background-color: var(--primary-blue); color: #FFF; }
     .standard-BB { background-color: var(--accent-blue); color: #FFF; }
     .standard-B { background-color: #87CEEB; color: #000; }
+    .standard-NA { background-color: #d0d5e0; color: #555; }
 
     /* ===== SUMMARY TABLE (replaces st.metric rows) ===== */
     .summary-table {
@@ -319,6 +324,44 @@ st.markdown("""
         border-top: 1px solid var(--border-color);
         margin-top: 2rem;
     }
+
+    /* ===== IMX SCORING ===== */
+    .imx-missing td { color: var(--text-secondary); font-style: italic; background: #fef9e7; }
+    .imx-score-big { font-size: 2.5rem; font-weight: 700; color: var(--primary-blue); text-align: center; }
+
+    /* ===== RESPONSIVE: MOBILE (<768px) ===== */
+    @media (max-width: 768px) {
+        h1 { font-size: 1.3rem; }
+        h2 { font-size: 1.1rem; }
+        h3 { font-size: 0.95rem; }
+
+        .pro-card { padding: 0.75rem; }
+
+        .pro-table { display: block; overflow-x: auto; }
+        .pro-table tbody td { white-space: normal; }
+
+        .summary-table .stat-value { font-size: 1.2rem; }
+        .summary-table td { padding: 0.5rem 0.6rem; }
+
+        .standard-badge { font-size: 0.7rem; padding: 0.15rem 0.5rem; }
+
+        .stroke-card { padding: 0.75rem; }
+
+        .imx-score-big { font-size: 1.8rem; }
+    }
+
+    /* ===== RESPONSIVE: TABLET (769-1024px) ===== */
+    @media (min-width: 769px) and (max-width: 1024px) {
+        h1 { font-size: 1.5rem; }
+        h2 { font-size: 1.2rem; }
+        h3 { font-size: 1rem; }
+
+        .pro-card { padding: 1rem; }
+
+        .pro-table tbody td { white-space: normal; }
+
+        .summary-table .stat-value { font-size: 1.4rem; }
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -332,30 +375,70 @@ PLOTLY_THEME = dict(
     colorway=['#0c0599', '#1a3fa0', '#2d6bcf', '#00875a', '#e8910c', '#d94f1a', '#6b21a8'],
 )
 
+# IMX event configuration by age group
+IMX_EVENTS = {
+    "9-10": [
+        {"name": "200 Free", "scy_event": "200 Free", "lcm_event": "200 Free", "scy_dist": 200, "lcm_dist": 200, "stroke": "Free"},
+        {"name": "100 Back", "scy_event": "100 Back", "lcm_event": "100 Back", "scy_dist": 100, "lcm_dist": 100, "stroke": "Back"},
+        {"name": "100 Breast", "scy_event": "100 Breast", "lcm_event": "100 Breast", "scy_dist": 100, "lcm_dist": 100, "stroke": "Breast"},
+        {"name": "100 Fly", "scy_event": "100 Fly", "lcm_event": "100 Fly", "scy_dist": 100, "lcm_dist": 100, "stroke": "Fly"},
+        {"name": "200 IM", "scy_event": "200 IM", "lcm_event": "200 IM", "scy_dist": 200, "lcm_dist": 200, "stroke": "IM"},
+    ],
+    "11-12": [
+        {"name": "500/400 Free", "scy_event": "500 Free", "lcm_event": "400 Free", "scy_dist": 500, "lcm_dist": 400, "stroke": "Free"},
+        {"name": "100 Back", "scy_event": "100 Back", "lcm_event": "100 Back", "scy_dist": 100, "lcm_dist": 100, "stroke": "Back"},
+        {"name": "100 Breast", "scy_event": "100 Breast", "lcm_event": "100 Breast", "scy_dist": 100, "lcm_dist": 100, "stroke": "Breast"},
+        {"name": "100 Fly", "scy_event": "100 Fly", "lcm_event": "100 Fly", "scy_dist": 100, "lcm_dist": 100, "stroke": "Fly"},
+        {"name": "200 IM", "scy_event": "200 IM", "lcm_event": "200 IM", "scy_dist": 200, "lcm_dist": 200, "stroke": "IM"},
+    ],
+    "13-18": [
+        {"name": "500/400 Free", "scy_event": "500 Free", "lcm_event": "400 Free", "scy_dist": 500, "lcm_dist": 400, "stroke": "Free"},
+        {"name": "200 Back", "scy_event": "200 Back", "lcm_event": "200 Back", "scy_dist": 200, "lcm_dist": 200, "stroke": "Back"},
+        {"name": "200 Breast", "scy_event": "200 Breast", "lcm_event": "200 Breast", "scy_dist": 200, "lcm_dist": 200, "stroke": "Breast"},
+        {"name": "200 Fly", "scy_event": "200 Fly", "lcm_event": "200 Fly", "scy_dist": 200, "lcm_dist": 200, "stroke": "Fly"},
+        {"name": "200 IM", "scy_event": "200 IM", "lcm_event": "200 IM", "scy_dist": 200, "lcm_dist": 200, "stroke": "IM"},
+        {"name": "400 IM", "scy_event": "400 IM", "lcm_event": "400 IM", "scy_dist": 400, "lcm_dist": 400, "stroke": "IM"},
+    ],
+}
+
 # Helper functions
-def load_data():
-    """Load all necessary data files"""
-    data = {}
+def _file_mod_time(path):
+    """Return file modification time for cache invalidation, or None if missing."""
+    return os.path.getmtime(path) if os.path.exists(path) else None
 
+@st.cache_data(ttl=300, show_spinner="Loading swim data...")
+def _load_swims(_mtime):
+    """Load and cache graded swim data. _mtime param triggers reload on file change."""
     if os.path.exists('graded_swim_data.xlsx'):
-        data['swims'] = pd.read_excel('graded_swim_data.xlsx')
-        data['swims']['Date'] = pd.to_datetime(data['swims']['Date'])
-    else:
-        data['swims'] = None
+        df = pd.read_excel('graded_swim_data.xlsx')
+        df['Date'] = pd.to_datetime(df['Date'])
+        return df
+    return None
 
+@st.cache_data(ttl=3600, show_spinner=False)
+def _load_standards(_mtime):
+    """Load and cache standards JSON. Rarely changes so longer TTL."""
     if os.path.exists('standards.json'):
         with open('standards.json', 'r') as f:
-            data['standards'] = json.load(f)
-    else:
-        data['standards'] = None
+            return json.load(f)
+    return None
 
+@st.cache_data(ttl=300, show_spinner=False)
+def _load_goals(_mtime):
+    """Load and cache goals CSV."""
     if os.path.exists('goals.csv'):
-        data['goals'] = pd.read_csv('goals.csv')
-    else:
-        data['goals'] = None
+        return pd.read_csv('goals.csv')
+    return None
 
-    return data
+def load_data():
+    """Load all necessary data files with caching."""
+    return {
+        'swims': _load_swims(_file_mod_time('graded_swim_data.xlsx')),
+        'standards': _load_standards(_file_mod_time('standards.json')),
+        'goals': _load_goals(_file_mod_time('goals.csv')),
+    }
 
+@st.cache_data(show_spinner=False)
 def get_personal_bests(df):
     """Calculate personal bests for each event"""
     if df is None or len(df) == 0:
@@ -386,7 +469,7 @@ def get_stroke_bests(df, stroke, course):
 
     if stroke == 'Free':
         if course == 'Yards':
-            distances = [50, 100, 200, 500, 800, 1000, 1650]
+            distances = [50, 100, 200, 500, 1000, 1650]
         else:
             distances = [50, 100, 200, 400, 800, 1500]
     elif stroke in ['Back', 'Breast', 'Fly']:
@@ -411,7 +494,16 @@ def get_stroke_bests(df, stroke, course):
                 'Distance': distance,
                 'Time': best['Finals'],
                 'Standard': best['Standard'],
-                'Date': best['Date'].strftime('%m/%d/%Y')
+                'Date': best['Date'].strftime('%m/%d/%Y'),
+                'has_time': True,
+            })
+        else:
+            results.append({
+                'Distance': distance,
+                'Time': None,
+                'Standard': None,
+                'Date': None,
+                'has_time': False,
             })
 
     return results
@@ -453,7 +545,7 @@ def render_html_table(df, columns=None):
         rows += f"<tr>{cells}</tr>"
 
     return (
-        f"<div class='pro-card'>"
+        f"<div class='pro-card' style='overflow-x:auto'>"
         f"<table class='pro-table'>"
         f"<thead><tr>{headers}</tr></thead>"
         f"<tbody>{rows}</tbody>"
@@ -513,19 +605,32 @@ def display_stroke_card(stroke, color, css_class, df, course):
 
     rows_html = ""
     for row in stroke_data:
-        std = row['Standard']
-        badge = f"<span class='standard-badge standard-{std}'>{std}</span>"
-        rows_html += (
-            f"<tr>"
-            f"<td><strong>{row['Distance']}</strong></td>"
-            f"<td style='font-family:monospace; font-weight:600;'>{row['Time']}</td>"
-            f"<td>{badge}</td>"
-            f"<td style='color:var(--text-secondary);'>{row['Date']}</td>"
-            f"</tr>"
-        )
+        if row['has_time']:
+            std = row['Standard']
+            if std in ('AAAA', 'AAA', 'AA', 'A', 'BB', 'B'):
+                badge = f"<span class='standard-badge standard-{std}'>{std}</span>"
+            else:
+                badge = "<span class='standard-badge standard-NA'>N/A</span>"
+            rows_html += (
+                f"<tr>"
+                f"<td><strong>{row['Distance']}</strong></td>"
+                f"<td style='font-family:monospace; font-weight:600;'>{row['Time']}</td>"
+                f"<td>{badge}</td>"
+                f"<td style='color:var(--text-secondary);'>{row['Date']}</td>"
+                f"</tr>"
+            )
+        else:
+            rows_html += (
+                f"<tr class='imx-missing'>"
+                f"<td><strong>{row['Distance']}</strong></td>"
+                f"<td>&#9200; N/A</td>"
+                f"<td><span class='standard-badge standard-NA'>N/A</span></td>"
+                f"<td>--</td>"
+                f"</tr>"
+            )
 
     html = (
-        f"<div class='stroke-card {css_class}'>"
+        f"<div class='stroke-card {css_class}' style='overflow-x:auto'>"
         f"<div class='pro-card-header'>{stroke}</div>"
         f"<table class='pro-table'>"
         f"<thead><tr><th>Dist</th><th>Best Time</th><th>Standard</th><th>Date</th></tr></thead>"
@@ -534,6 +639,161 @@ def display_stroke_card(stroke, color, css_class, df, course):
         f"</div>"
     )
     st.markdown(html, unsafe_allow_html=True)
+
+def parse_time_to_seconds(time_str):
+    """Convert a time string like '4:33.39' or '27.39' to seconds."""
+    if isinstance(time_str, (int, float)):
+        return float(time_str)
+    try:
+        time_str = str(time_str).strip()
+        if ':' in time_str:
+            parts = time_str.split(':')
+            return float(parts[0]) * 60 + float(parts[1])
+        return float(time_str)
+    except (ValueError, IndexError):
+        return 99999.0
+
+def calculate_power_points(swim_time, aaaa_time):
+    """Calculate FINA-style power points from swim time and AAAA standard."""
+    if swim_time <= 0 or aaaa_time <= 0:
+        return 0
+    base_time = aaaa_time * 0.9283
+    return round(1000 * (base_time / swim_time) ** 3)
+
+def get_imx_age_group(age):
+    """Map swimmer age to IMX age group key."""
+    if age <= 10:
+        return "9-10"
+    elif age <= 12:
+        return "11-12"
+    else:
+        return "13-18"
+
+def get_standards_age_group(age):
+    """Map swimmer age to standards.json age group key."""
+    if age <= 10:
+        return "10&U"
+    elif age <= 12:
+        return "11-12"
+    elif age <= 14:
+        return "13-14"
+    elif age <= 16:
+        return "15-16"
+    else:
+        return "17-18"
+
+def get_season_label(date):
+    """Return season label like '2025-2026' (seasons run Sept 1 - Aug 31)."""
+    if isinstance(date, str):
+        date = pd.to_datetime(date)
+    if date.month >= 9:
+        return f"{date.year}-{date.year + 1}"
+    else:
+        return f"{date.year - 1}-{date.year}"
+
+def get_all_seasons(df):
+    """Return sorted list of all season labels in the data."""
+    seasons = df['Date'].apply(get_season_label).unique()
+    return sorted(seasons, reverse=True)
+
+def get_season_date_range(season_label):
+    """Return (start_date, end_date) for a season label like '2025-2026'."""
+    start_year = int(season_label.split('-')[0])
+    return (
+        pd.Timestamp(start_year, 9, 1),
+        pd.Timestamp(start_year + 1, 8, 31)
+    )
+
+def get_imx_data(df, standards, course, season_label, age_group_key):
+    """Calculate IMX scores for a given season, course, and age group.
+
+    Returns (event_results, total_score, events_completed).
+    """
+    course_label = course  # "Yards" or "LCM"
+    std_course = "SCY" if course == "Yards" else "LCM"
+
+    start_date, end_date = get_season_date_range(season_label)
+
+    # Determine era from season midpoint
+    midpoint = start_date + (end_date - start_date) / 2
+    era = "2021-2024" if midpoint < pd.Timestamp(2024, 9, 1) else "2024-2028"
+
+    # Filter swims to season + course
+    season_df = df[
+        (df['Date'] >= start_date) &
+        (df['Date'] <= end_date) &
+        (df['Course'] == course_label)
+    ]
+
+    # Determine standards age group from swimmer age in this season
+    season_ages = season_df['Age'].unique()
+    if len(season_ages) > 0:
+        swimmer_age = int(season_ages.max())
+    else:
+        # No swims this season, estimate from overall data
+        swimmer_age = int(df['Age'].max())
+    std_age_group = get_standards_age_group(swimmer_age)
+
+    events = IMX_EVENTS.get(age_group_key, [])
+    event_results = []
+    total_score = 0
+    events_completed = 0
+
+    for ev in events:
+        dist = ev["scy_dist"] if course == "Yards" else ev["lcm_dist"]
+        event_key = ev["scy_event"] if course == "Yards" else ev["lcm_event"]
+        stroke = ev["stroke"]
+
+        # Find best time for this event in the season
+        ev_swims = season_df[
+            (season_df['Distance'] == dist) &
+            (season_df['Stroke'] == stroke)
+        ]
+
+        if len(ev_swims) > 0:
+            best_row = ev_swims.loc[ev_swims['Time_Seconds'].idxmin()]
+            best_time = best_row['Time_Seconds']
+            best_time_str = best_row['Finals']
+            best_date = best_row['Date']
+            best_standard = best_row['Standard']
+
+            # Look up AAAA standard for power points
+            aaaa_time = None
+            try:
+                std_time_str = standards[era][std_age_group]["Male"][std_course][event_key]["AAAA"]
+                aaaa_time = parse_time_to_seconds(std_time_str)
+            except (KeyError, TypeError):
+                pass
+
+            if aaaa_time and aaaa_time < 99999:
+                points = calculate_power_points(best_time, aaaa_time)
+            else:
+                points = 0
+
+            total_score += points
+            events_completed += 1
+
+            event_results.append({
+                "event": ev["name"],
+                "time": best_time_str,
+                "seconds": best_time,
+                "points": points,
+                "standard": best_standard,
+                "date": best_date,
+                "completed": True,
+            })
+        else:
+            event_results.append({
+                "event": ev["name"],
+                "time": None,
+                "seconds": None,
+                "points": 0,
+                "standard": None,
+                "date": None,
+                "completed": False,
+            })
+
+    return event_results, total_score, events_completed
 
 # Sidebar
 with st.sidebar:
@@ -549,7 +809,7 @@ with st.sidebar:
 
     page = st.radio(
         "Navigation",
-        ["Stroke Overview", "Quick Lookup", "Deep Analytics", "Goals", "Upload Data", "Settings"],
+        ["Stroke Overview", "Quick Lookup", "Deep Analytics", "IMX Score", "Goals", "Upload Data", "Settings"],
         label_visibility="collapsed"
     )
 
@@ -580,18 +840,78 @@ if page == "Stroke Overview":
             label_visibility="collapsed"
         )
 
+        # IMX composite score card (full width header)
+        if data['standards'] is not None:
+            current_season = get_season_label(datetime.now())
+            imx_ag = get_imx_age_group(int(df['Age'].max()))
+            _, imx_total, imx_done = get_imx_data(df, data['standards'], course_option, current_season, imx_ag)
+            imx_total_events = len(IMX_EVENTS.get(imx_ag, []))
+            st.markdown(
+                f"<div class='pro-card' style='text-align:center;'>"
+                f"<div class='pro-card-header'>IMX Composite Score ({current_season})</div>"
+                f"<div class='imx-score-big'>{imx_total:,}</div>"
+                f"<div style='color:var(--text-secondary); font-size:0.9rem; margin-top:0.25rem;'>"
+                f"{imx_done}/{imx_total_events} events &bull; {course_option}</div>"
+                f"</div>",
+                unsafe_allow_html=True
+            )
+
         st.markdown("---")
 
+        # Freestyle full width, split into sprint/distance columns
+        free_data = get_stroke_bests(df, 'Free', course_option)
+        if free_data:
+            sprint = [r for r in free_data if r['Distance'] <= 200]
+            distance = [r for r in free_data if r['Distance'] > 200]
+
+            def _free_rows(rows):
+                h = ""
+                for r in rows:
+                    if r['has_time']:
+                        std = r['Standard']
+                        if std in ('AAAA', 'AAA', 'AA', 'A', 'BB', 'B'):
+                            badge = f"<span class='standard-badge standard-{std}'>{std}</span>"
+                        else:
+                            badge = "<span class='standard-badge standard-NA'>N/A</span>"
+                        h += (f"<tr><td><strong>{r['Distance']}</strong></td>"
+                              f"<td style='font-family:monospace; font-weight:600;'>{r['Time']}</td>"
+                              f"<td>{badge}</td>"
+                              f"<td style='color:var(--text-secondary);'>{r['Date']}</td></tr>")
+                    else:
+                        h += (f"<tr class='imx-missing'><td><strong>{r['Distance']}</strong></td>"
+                              f"<td>&#9200; N/A</td>"
+                              f"<td><span class='standard-badge standard-NA'>N/A</span></td>"
+                              f"<td>--</td></tr>")
+                return h
+
+            table_head = "<thead><tr><th>Dist</th><th>Best Time</th><th>Standard</th><th>Date</th></tr></thead>"
+
+            fc1, fc2 = st.columns(2)
+            with fc1:
+                st.markdown(
+                    f"<div class='stroke-card freestyle-card' style='overflow-x:auto'>"
+                    f"<div class='pro-card-header'>Free — Sprint</div>"
+                    f"<table class='pro-table'>{table_head}<tbody>{_free_rows(sprint)}</tbody></table></div>",
+                    unsafe_allow_html=True
+                )
+            with fc2:
+                st.markdown(
+                    f"<div class='stroke-card freestyle-card' style='overflow-x:auto'>"
+                    f"<div class='pro-card-header'>Free — Distance</div>"
+                    f"<table class='pro-table'>{table_head}<tbody>{_free_rows(distance)}</tbody></table></div>",
+                    unsafe_allow_html=True
+                )
+
+        # Other strokes in 2x2 grid
         col1, col2 = st.columns(2)
 
         with col1:
-            display_stroke_card('Free', '#0c0599', 'freestyle-card', df, course_option)
+            display_stroke_card('Back', '#00875a', 'backstroke-card', df, course_option)
             display_stroke_card('Breast', '#e8910c', 'breaststroke-card', df, course_option)
-            display_stroke_card('IM', '#6b21a8', 'im-card', df, course_option)
 
         with col2:
-            display_stroke_card('Back', '#00875a', 'backstroke-card', df, course_option)
             display_stroke_card('Fly', '#d94f1a', 'butterfly-card', df, course_option)
+            display_stroke_card('IM', '#6b21a8', 'im-card', df, course_option)
 
 elif page == "Quick Lookup":
     st.title("Personal Best Quick Lookup")
@@ -827,6 +1147,253 @@ elif page == "Deep Analytics":
 
         st.markdown(card_close(), unsafe_allow_html=True)
 
+elif page == "IMX Score":
+    st.title("IMX Score")
+
+    st.markdown(
+        "<div class='pro-card'>"
+        "<div class='pro-card-header'>What is IMX?</div>"
+        "<p style='color:var(--text-secondary); margin:0;'>"
+        "USA Swimming's IMX (Individual Medley Xtreme) measures versatility by combining "
+        "power points across multiple events. Swim all required events in a single season "
+        "and course to earn your composite IMX score."
+        "</p></div>",
+        unsafe_allow_html=True
+    )
+
+    data = load_data()
+
+    if data['swims'] is None or data['standards'] is None:
+        st.warning("Swim data and standards are required for IMX scoring. Please upload data first.")
+    else:
+        df = data['swims']
+        standards = data['standards']
+
+        # Controls row
+        col1, col2, col3 = st.columns(3)
+
+        with col1:
+            imx_course = st.radio("Course", ["Yards", "LCM"], horizontal=True, key="imx_course")
+        with col2:
+            seasons = get_all_seasons(df)
+            imx_season = st.selectbox("Season", seasons, key="imx_season")
+        with col3:
+            swimmer_age = int(df['Age'].max())
+            imx_age_group = get_imx_age_group(swimmer_age)
+            st.markdown(
+                f"<div class='pro-card' style='padding:0.75rem; text-align:center;'>"
+                f"<div class='stat-label' style='font-size:0.8rem; color:var(--text-secondary); text-transform:uppercase;'>Age Group</div>"
+                f"<div style='font-size:1.3rem; font-weight:700; color:var(--primary-blue);'>{imx_age_group}</div>"
+                f"</div>",
+                unsafe_allow_html=True
+            )
+
+        st.markdown("---")
+
+        # Calculate IMX data
+        event_results, total_score, events_completed = get_imx_data(
+            df, standards, imx_course, imx_season, imx_age_group
+        )
+        total_events = len(IMX_EVENTS.get(imx_age_group, []))
+        avg_points = round(total_score / events_completed) if events_completed > 0 else 0
+
+        # Score summary
+        st.markdown(render_summary_row([
+            {"label": "IMX Composite Score", "value": f"{total_score:,}"},
+            {"label": "Events Completed", "value": f"{events_completed}/{total_events}"},
+            {"label": "Avg Points/Event", "value": f"{avg_points:,}"},
+        ]), unsafe_allow_html=True)
+
+        # Events table
+        st.markdown("### Event Breakdown")
+
+        rows_html = ""
+        for ev in event_results:
+            if ev["completed"]:
+                std = ev["standard"]
+                badge = f"<span class='standard-badge standard-{std}'>{std}</span>" if std and std in ('AAAA', 'AAA', 'AA', 'A', 'BB', 'B') else (std or "")
+                date_str = ev["date"].strftime('%m/%d/%Y') if hasattr(ev["date"], 'strftime') else str(ev["date"])
+                rows_html += (
+                    f"<tr>"
+                    f"<td><strong>{ev['event']}</strong></td>"
+                    f"<td style='font-family:monospace; font-weight:600;'>{ev['time']}</td>"
+                    f"<td style='font-weight:600; color:var(--primary-blue);'>{ev['points']:,}</td>"
+                    f"<td>{badge}</td>"
+                    f"<td style='color:var(--text-secondary);'>{date_str}</td>"
+                    f"</tr>"
+                )
+            else:
+                rows_html += (
+                    f"<tr class='imx-missing'>"
+                    f"<td><strong>{ev['event']}</strong></td>"
+                    f"<td>Not swum yet</td>"
+                    f"<td>--</td>"
+                    f"<td>--</td>"
+                    f"<td>--</td>"
+                    f"</tr>"
+                )
+
+        table_html = (
+            f"<div class='pro-card' style='overflow-x:auto'>"
+            f"<table class='pro-table'>"
+            f"<thead><tr><th>Event</th><th>Best Time</th><th>Power Points</th><th>Standard</th><th>Date</th></tr></thead>"
+            f"<tbody>{rows_html}</tbody>"
+            f"</table></div>"
+        )
+        st.markdown(table_html, unsafe_allow_html=True)
+
+        # IMR section
+        with st.expander("IM Ready (IMR) Score"):
+            st.markdown(
+                "<p style='color:var(--text-secondary);'>"
+                "IMR uses shorter-distance events to measure IM readiness for younger or developing swimmers."
+                "</p>",
+                unsafe_allow_html=True
+            )
+
+            imr_events_config = {
+                "9-10": [
+                    {"name": "100 Free", "scy_event": "100 Free", "lcm_event": "100 Free", "scy_dist": 100, "lcm_dist": 100, "stroke": "Free"},
+                    {"name": "50 Back", "scy_event": "50 Back", "lcm_event": "50 Back", "scy_dist": 50, "lcm_dist": 50, "stroke": "Back"},
+                    {"name": "50 Breast", "scy_event": "50 Breast", "lcm_event": "50 Breast", "scy_dist": 50, "lcm_dist": 50, "stroke": "Breast"},
+                    {"name": "50 Fly", "scy_event": "50 Fly", "lcm_event": "50 Fly", "scy_dist": 50, "lcm_dist": 50, "stroke": "Fly"},
+                    {"name": "100 IM", "scy_event": "100 IM", "lcm_event": "100 IM", "scy_dist": 100, "lcm_dist": 100, "stroke": "IM"},
+                ],
+                "11-12": [
+                    {"name": "200 Free", "scy_event": "200 Free", "lcm_event": "200 Free", "scy_dist": 200, "lcm_dist": 200, "stroke": "Free"},
+                    {"name": "50 Back", "scy_event": "50 Back", "lcm_event": "50 Back", "scy_dist": 50, "lcm_dist": 50, "stroke": "Back"},
+                    {"name": "50 Breast", "scy_event": "50 Breast", "lcm_event": "50 Breast", "scy_dist": 50, "lcm_dist": 50, "stroke": "Breast"},
+                    {"name": "50 Fly", "scy_event": "50 Fly", "lcm_event": "50 Fly", "scy_dist": 50, "lcm_dist": 50, "stroke": "Fly"},
+                    {"name": "200 IM", "scy_event": "200 IM", "lcm_event": "200 IM", "scy_dist": 200, "lcm_dist": 200, "stroke": "IM"},
+                ],
+                "13-18": [
+                    {"name": "200 Free", "scy_event": "200 Free", "lcm_event": "200 Free", "scy_dist": 200, "lcm_dist": 200, "stroke": "Free"},
+                    {"name": "100 Back", "scy_event": "100 Back", "lcm_event": "100 Back", "scy_dist": 100, "lcm_dist": 100, "stroke": "Back"},
+                    {"name": "100 Breast", "scy_event": "100 Breast", "lcm_event": "100 Breast", "scy_dist": 100, "lcm_dist": 100, "stroke": "Breast"},
+                    {"name": "100 Fly", "scy_event": "100 Fly", "lcm_event": "100 Fly", "scy_dist": 100, "lcm_dist": 100, "stroke": "Fly"},
+                    {"name": "200 IM", "scy_event": "200 IM", "lcm_event": "200 IM", "scy_dist": 200, "lcm_dist": 200, "stroke": "IM"},
+                ],
+            }
+
+            # Temporarily swap IMX_EVENTS to calculate IMR
+            orig_events = IMX_EVENTS.get(imx_age_group, [])
+            imr_events = imr_events_config.get(imx_age_group, [])
+
+            # Calculate IMR using same logic
+            imr_results = []
+            imr_total = 0
+            imr_completed = 0
+
+            std_course = "SCY" if imx_course == "Yards" else "LCM"
+            start_date, end_date = get_season_date_range(imx_season)
+            midpoint = start_date + (end_date - start_date) / 2
+            era = "2021-2024" if midpoint < pd.Timestamp(2024, 9, 1) else "2024-2028"
+            season_df = df[
+                (df['Date'] >= start_date) &
+                (df['Date'] <= end_date) &
+                (df['Course'] == imx_course)
+            ]
+            season_ages = season_df['Age'].unique()
+            s_age = int(season_ages.max()) if len(season_ages) > 0 else int(df['Age'].max())
+            std_ag = get_standards_age_group(s_age)
+
+            for ev in imr_events:
+                dist = ev["scy_dist"] if imx_course == "Yards" else ev["lcm_dist"]
+                event_key = ev["scy_event"] if imx_course == "Yards" else ev["lcm_event"]
+                ev_swims = season_df[(season_df['Distance'] == dist) & (season_df['Stroke'] == ev["stroke"])]
+
+                if len(ev_swims) > 0:
+                    best_row = ev_swims.loc[ev_swims['Time_Seconds'].idxmin()]
+                    aaaa_time = None
+                    try:
+                        aaaa_time = parse_time_to_seconds(standards[era][std_ag]["Male"][std_course][event_key]["AAAA"])
+                    except (KeyError, TypeError):
+                        pass
+                    pts = calculate_power_points(best_row['Time_Seconds'], aaaa_time) if aaaa_time and aaaa_time < 99999 else 0
+                    imr_total += pts
+                    imr_completed += 1
+                    imr_results.append({"event": ev["name"], "time": best_row['Finals'], "points": pts, "standard": best_row['Standard'], "date": best_row['Date'], "completed": True})
+                else:
+                    imr_results.append({"event": ev["name"], "time": None, "points": 0, "standard": None, "date": None, "completed": False})
+
+            imr_avg = round(imr_total / imr_completed) if imr_completed > 0 else 0
+            st.markdown(render_summary_row([
+                {"label": "IMR Score", "value": f"{imr_total:,}"},
+                {"label": "Events", "value": f"{imr_completed}/{len(imr_events)}"},
+                {"label": "Avg Points", "value": f"{imr_avg:,}"},
+            ]), unsafe_allow_html=True)
+
+            imr_rows = ""
+            for ev in imr_results:
+                if ev["completed"]:
+                    std = ev["standard"]
+                    badge = f"<span class='standard-badge standard-{std}'>{std}</span>" if std and std in ('AAAA', 'AAA', 'AA', 'A', 'BB', 'B') else (std or "")
+                    date_str = ev["date"].strftime('%m/%d/%Y') if hasattr(ev["date"], 'strftime') else str(ev["date"])
+                    imr_rows += f"<tr><td><strong>{ev['event']}</strong></td><td style='font-family:monospace; font-weight:600;'>{ev['time']}</td><td style='font-weight:600; color:var(--primary-blue);'>{ev['points']:,}</td><td>{badge}</td><td style='color:var(--text-secondary);'>{date_str}</td></tr>"
+                else:
+                    imr_rows += f"<tr class='imx-missing'><td><strong>{ev['event']}</strong></td><td>Not swum yet</td><td>--</td><td>--</td><td>--</td></tr>"
+
+            st.markdown(
+                f"<div class='pro-card' style='overflow-x:auto'><table class='pro-table'>"
+                f"<thead><tr><th>Event</th><th>Best Time</th><th>Power Points</th><th>Standard</th><th>Date</th></tr></thead>"
+                f"<tbody>{imr_rows}</tbody></table></div>",
+                unsafe_allow_html=True
+            )
+
+        # Season trend chart
+        st.markdown("### IMX Score by Season")
+
+        trend_data = []
+        for s in sorted(get_all_seasons(df)):
+            s_results, s_total, s_completed = get_imx_data(df, standards, imx_course, s, imx_age_group)
+            s_total_events = len(IMX_EVENTS.get(imx_age_group, []))
+            trend_data.append({
+                "Season": s,
+                "Score": s_total,
+                "Completed": s_completed,
+                "Total": s_total_events,
+                "All Complete": s_completed == s_total_events,
+            })
+
+        trend_df = pd.DataFrame(trend_data)
+        if len(trend_df) > 0 and trend_df['Score'].sum() > 0:
+            fig = go.Figure()
+
+            # All seasons as a lighter line
+            fig.add_trace(go.Scatter(
+                x=trend_df['Season'],
+                y=trend_df['Score'],
+                mode='lines+markers',
+                name='IMX Score',
+                line=dict(color='#2d6bcf', width=2, dash='dot'),
+                marker=dict(size=8, color='#2d6bcf'),
+                hovertemplate='<b>%{x}</b><br>Score: %{y:,}<extra></extra>'
+            ))
+
+            # Complete seasons as solid overlay
+            complete = trend_df[trend_df['All Complete']]
+            if len(complete) > 0:
+                fig.add_trace(go.Scatter(
+                    x=complete['Season'],
+                    y=complete['Score'],
+                    mode='markers',
+                    name='All Events Complete',
+                    marker=dict(size=12, color='#0c0599', symbol='star'),
+                    hovertemplate='<b>%{x}</b><br>Score: %{y:,} (Complete)<extra></extra>'
+                ))
+
+            fig.update_layout(
+                **PLOTLY_THEME,
+                title="IMX Composite Score Trend",
+                xaxis_title="Season",
+                yaxis_title="Power Points",
+                height=400,
+                hovermode='closest',
+            )
+            st.plotly_chart(fig, use_container_width=True)
+        else:
+            st.info("No IMX scores to chart yet for this course.")
+
 elif page == "Upload Data":
     st.title("Upload Swim Data")
 
@@ -852,6 +1419,7 @@ elif page == "Upload Data":
                 st.error(f"Missing required columns: {', '.join(missing_cols)}")
             else:
                 df.to_excel('graded_swim_data.xlsx', index=False)
+                st.cache_data.clear()
                 st.success("Data uploaded successfully!")
 
                 # Data preview as styled table
@@ -998,6 +1566,7 @@ elif page == "Goals":
 
                     goals_df = pd.concat([goals_df, new_goal], ignore_index=True)
                     goals_df.to_csv('goals.csv', index=False)
+                    st.cache_data.clear()
 
                     st.success("Goal added!")
                     st.rerun()
