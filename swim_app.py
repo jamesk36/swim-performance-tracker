@@ -8,6 +8,12 @@ import os
 import io
 from pathlib import Path
 
+# Swimmer date of birth (for current age group determination)
+SWIMMER_DOB = datetime(2010, 11, 17)
+
+# Standard hierarchy (best to worst) for penetration calculations
+STANDARD_ORDER = ['AAAA', 'AAA', 'AA', 'A', 'BB', 'B']
+
 # Page config
 st.set_page_config(
     page_title="Swim Performance Tracker",
@@ -462,8 +468,12 @@ def get_personal_bests(df):
 
     return pd.DataFrame(pb_list).sort_values(['Event', 'Course'])
 
-def get_stroke_bests(df, stroke, course):
-    """Get best times for specific stroke and course"""
+def get_stroke_bests(df, stroke, course, standards=None):
+    """Get best times for specific stroke and course.
+
+    If standards is provided, re-grades each best time against current age group standards
+    and includes next-standard penetration info.
+    """
     if df is None or len(df) == 0:
         return []
 
@@ -490,20 +500,36 @@ def get_stroke_bests(df, stroke, course):
 
         if len(event_data) > 0:
             best = event_data.loc[event_data['Time_Seconds'].idxmin()]
+            event_key = f"{distance} {stroke}"
+
+            # Re-grade against current age group if standards provided
+            if standards is not None:
+                current_std = grade_time_against_current(best['Time_Seconds'], event_key, course, standards)
+                next_info = get_next_standard_info(best['Time_Seconds'], event_key, course, standards)
+            else:
+                current_std = best['Standard']
+                next_info = None
+
             results.append({
                 'Distance': distance,
                 'Time': best['Finals'],
-                'Standard': best['Standard'],
+                'Seconds': best['Time_Seconds'],
+                'Standard': current_std,
+                'Original_Standard': best['Standard'],
                 'Date': best['Date'].strftime('%m/%d/%Y'),
                 'has_time': True,
+                'next_info': next_info,
             })
         else:
             results.append({
                 'Distance': distance,
                 'Time': None,
+                'Seconds': None,
                 'Standard': None,
+                'Original_Standard': None,
                 'Date': None,
                 'has_time': False,
+                'next_info': None,
             })
 
     return results
@@ -596,9 +622,33 @@ def create_progression_chart(df, event, course):
 
     return fig
 
-def display_stroke_card(stroke, color, css_class, df, course):
+def _penetration_bar_html(next_info):
+    """Return an HTML progress bar for next-standard penetration."""
+    if next_info is None or next_info.get('next_standard_name') is None:
+        if next_info and next_info.get('current_standard') == 'AAAA':
+            return "<span style='font-size:0.75rem; color:var(--gold);'>MAX</span>"
+        return ""
+    pct = next_info['penetration_pct']
+    if pct > 75:
+        bar_color = '#00875a'
+    elif pct >= 50:
+        bar_color = '#e8910c'
+    else:
+        bar_color = '#2d6bcf'
+    target = next_info['next_standard_name']
+    drop = next_info['time_to_drop']
+    return (
+        f"<div title='{pct:.0f}% to {target} (drop {drop:.2f}s)' style='display:flex; align-items:center; gap:4px;'>"
+        f"<div style='flex:1; background:#e0e0e0; border-radius:4px; height:8px; min-width:40px;'>"
+        f"<div style='width:{min(pct, 100):.0f}%; background:{bar_color}; height:100%; border-radius:4px;'></div>"
+        f"</div>"
+        f"<span style='font-size:0.7rem; color:var(--text-secondary); white-space:nowrap;'>{target}</span>"
+        f"</div>"
+    )
+
+def display_stroke_card(stroke, color, css_class, df, course, standards=None):
     """Display a stroke summary card with an HTML table."""
-    stroke_data = get_stroke_bests(df, stroke, course)
+    stroke_data = get_stroke_bests(df, stroke, course, standards=standards)
 
     if not stroke_data:
         return
@@ -607,15 +657,17 @@ def display_stroke_card(stroke, color, css_class, df, course):
     for row in stroke_data:
         if row['has_time']:
             std = row['Standard']
-            if std in ('AAAA', 'AAA', 'AA', 'A', 'BB', 'B'):
+            if std in STANDARD_ORDER:
                 badge = f"<span class='standard-badge standard-{std}'>{std}</span>"
             else:
-                badge = "<span class='standard-badge standard-NA'>N/A</span>"
+                badge = "<span class='standard-badge standard-NA'>NS</span>"
+            bar = _penetration_bar_html(row.get('next_info'))
             rows_html += (
                 f"<tr>"
                 f"<td><strong>{row['Distance']}</strong></td>"
                 f"<td style='font-family:monospace; font-weight:600;'>{row['Time']}</td>"
                 f"<td>{badge}</td>"
+                f"<td style='min-width:80px;'>{bar}</td>"
                 f"<td style='color:var(--text-secondary);'>{row['Date']}</td>"
                 f"</tr>"
             )
@@ -625,6 +677,7 @@ def display_stroke_card(stroke, color, css_class, df, course):
                 f"<td><strong>{row['Distance']}</strong></td>"
                 f"<td>&#9200; N/A</td>"
                 f"<td><span class='standard-badge standard-NA'>N/A</span></td>"
+                f"<td></td>"
                 f"<td>--</td>"
                 f"</tr>"
             )
@@ -633,7 +686,7 @@ def display_stroke_card(stroke, color, css_class, df, course):
         f"<div class='stroke-card {css_class}' style='overflow-x:auto'>"
         f"<div class='pro-card-header'>{stroke}</div>"
         f"<table class='pro-table'>"
-        f"<thead><tr><th>Dist</th><th>Best Time</th><th>Standard</th><th>Date</th></tr></thead>"
+        f"<thead><tr><th>Dist</th><th>Best Time</th><th>Std</th><th>Next</th><th>Date</th></tr></thead>"
         f"<tbody>{rows_html}</tbody>"
         f"</table>"
         f"</div>"
@@ -703,6 +756,107 @@ def get_season_date_range(season_label):
         pd.Timestamp(start_year, 9, 1),
         pd.Timestamp(start_year + 1, 8, 31)
     )
+
+def get_current_age_group_and_era():
+    """Return the current age group and standards era based on SWIMMER_DOB and today's date."""
+    today = datetime.now()
+    age = today.year - SWIMMER_DOB.year - ((today.month, today.day) < (SWIMMER_DOB.month, SWIMMER_DOB.day))
+    age_group = get_standards_age_group(age)
+    era = "2021-2024" if today < datetime(2024, 9, 1) else "2024-2028"
+    return age, age_group, era
+
+def grade_time_against_current(time_seconds, event_key, course, standards):
+    """Grade a time against the current age group (15-16) and era (2024-2028) standards.
+
+    Returns the standard achieved (e.g. 'AA') or 'NS' if no standard met.
+    """
+    _, age_group, era = get_current_age_group_and_era()
+    std_course = "SCY" if course == "Yards" else "LCM"
+    try:
+        event_stds = standards[era][age_group]["Male"][std_course][event_key]
+    except (KeyError, TypeError):
+        return "NS"
+    for std_name in STANDARD_ORDER:
+        if std_name in event_stds:
+            std_time = parse_time_to_seconds(event_stds[std_name])
+            if time_seconds <= std_time:
+                return std_name
+    return "NS"
+
+def get_next_standard_info(time_seconds, event_key, course, standards):
+    """Calculate penetration toward the next standard for a given time.
+
+    Returns a dict with current_standard, next_standard_name, next_standard_time,
+    time_to_drop, penetration_pct, or None if no standard data.
+    """
+    _, age_group, era = get_current_age_group_and_era()
+    std_course = "SCY" if course == "Yards" else "LCM"
+    try:
+        event_stds = standards[era][age_group]["Male"][std_course][event_key]
+    except (KeyError, TypeError):
+        return None
+
+    # Find current standard achieved
+    current_standard = None
+    current_standard_time = None
+    next_standard_name = None
+    next_standard_time = None
+
+    for i, std_name in enumerate(STANDARD_ORDER):
+        if std_name in event_stds:
+            std_time = parse_time_to_seconds(event_stds[std_name])
+            if time_seconds <= std_time:
+                current_standard = std_name
+                current_standard_time = std_time
+                # Next standard is the one before in the hierarchy (faster)
+                if i > 0:
+                    next_standard_name = STANDARD_ORDER[i - 1]
+                    next_standard_time = parse_time_to_seconds(event_stds.get(STANDARD_ORDER[i - 1], "0"))
+                break
+
+    if current_standard is None:
+        # Didn't meet any standard; next target is B
+        for std_name in reversed(STANDARD_ORDER):
+            if std_name in event_stds:
+                return {
+                    'current_standard': 'NS',
+                    'next_standard_name': std_name,
+                    'next_standard_time': parse_time_to_seconds(event_stds[std_name]),
+                    'time_to_drop': time_seconds - parse_time_to_seconds(event_stds[std_name]),
+                    'penetration_pct': 0.0,
+                }
+        return None
+
+    if next_standard_name is None:
+        # Already at AAAA - no next standard
+        return {
+            'current_standard': current_standard,
+            'next_standard_name': None,
+            'next_standard_time': None,
+            'time_to_drop': 0.0,
+            'penetration_pct': 100.0,
+        }
+
+    # Calculate penetration percentage
+    time_to_drop = time_seconds - next_standard_time
+    range_between = current_standard_time - next_standard_time
+    penetration_pct = ((current_standard_time - time_seconds) / range_between * 100) if range_between > 0 else 0.0
+
+    return {
+        'current_standard': current_standard,
+        'next_standard_name': next_standard_name,
+        'next_standard_time': next_standard_time,
+        'time_to_drop': time_to_drop,
+        'penetration_pct': min(penetration_pct, 100.0),
+    }
+
+def seconds_to_time_str(seconds):
+    """Convert seconds to a formatted time string like '1:05.49' or '27.39'."""
+    if seconds >= 60:
+        mins = int(seconds // 60)
+        secs = seconds - mins * 60
+        return f"{mins}:{secs:05.2f}"
+    return f"{seconds:.2f}"
 
 def get_imx_data(df, standards, course, season_label, age_group_key):
     """Calculate IMX scores for a given season, course, and age group.
@@ -809,7 +963,7 @@ with st.sidebar:
 
     page = st.radio(
         "Navigation",
-        ["Stroke Overview", "Quick Lookup", "Deep Analytics", "IMX Score", "Goals", "Upload Data", "Settings"],
+        ["Stroke Overview", "Quick Lookup", "Swim History", "Deep Analytics", "IMX Score", "Goals", "Data Guide", "Settings"],
         label_visibility="collapsed"
     )
 
@@ -828,9 +982,18 @@ if page == "Stroke Overview":
     data = load_data()
 
     if data['swims'] is None:
-        st.warning("No swim data found. Please upload data in the Upload Data section.")
+        st.warning("No swim data found. See the Data Guide for setup instructions.")
     else:
         df = data['swims']
+        standards = data['standards']
+
+        # Show current age group context
+        cur_age, cur_ag, cur_era = get_current_age_group_and_era()
+        st.markdown(
+            f"<div style='color:var(--text-secondary); font-size:0.85rem; margin-bottom:0.5rem;'>"
+            f"Standards graded against: <strong>{cur_ag}</strong> / <strong>{cur_era}</strong> (Age {cur_age})</div>",
+            unsafe_allow_html=True
+        )
 
         st.markdown("### Select Course")
         course_option = st.radio(
@@ -841,10 +1004,10 @@ if page == "Stroke Overview":
         )
 
         # IMX composite score card (full width header)
-        if data['standards'] is not None:
+        if standards is not None:
             current_season = get_season_label(datetime.now())
             imx_ag = get_imx_age_group(int(df['Age'].max()))
-            _, imx_total, imx_done = get_imx_data(df, data['standards'], course_option, current_season, imx_ag)
+            _, imx_total, imx_done = get_imx_data(df, standards, course_option, current_season, imx_ag)
             imx_total_events = len(IMX_EVENTS.get(imx_ag, []))
             st.markdown(
                 f"<div class='pro-card' style='text-align:center;'>"
@@ -859,7 +1022,7 @@ if page == "Stroke Overview":
         st.markdown("---")
 
         # Freestyle full width, split into sprint/distance columns
-        free_data = get_stroke_bests(df, 'Free', course_option)
+        free_data = get_stroke_bests(df, 'Free', course_option, standards=standards)
         if free_data:
             sprint = [r for r in free_data if r['Distance'] <= 200]
             distance = [r for r in free_data if r['Distance'] > 200]
@@ -869,22 +1032,25 @@ if page == "Stroke Overview":
                 for r in rows:
                     if r['has_time']:
                         std = r['Standard']
-                        if std in ('AAAA', 'AAA', 'AA', 'A', 'BB', 'B'):
+                        if std in STANDARD_ORDER:
                             badge = f"<span class='standard-badge standard-{std}'>{std}</span>"
                         else:
-                            badge = "<span class='standard-badge standard-NA'>N/A</span>"
+                            badge = "<span class='standard-badge standard-NA'>NS</span>"
+                        bar = _penetration_bar_html(r.get('next_info'))
                         h += (f"<tr><td><strong>{r['Distance']}</strong></td>"
                               f"<td style='font-family:monospace; font-weight:600;'>{r['Time']}</td>"
                               f"<td>{badge}</td>"
+                              f"<td style='min-width:80px;'>{bar}</td>"
                               f"<td style='color:var(--text-secondary);'>{r['Date']}</td></tr>")
                     else:
                         h += (f"<tr class='imx-missing'><td><strong>{r['Distance']}</strong></td>"
                               f"<td>&#9200; N/A</td>"
                               f"<td><span class='standard-badge standard-NA'>N/A</span></td>"
+                              f"<td></td>"
                               f"<td>--</td></tr>")
                 return h
 
-            table_head = "<thead><tr><th>Dist</th><th>Best Time</th><th>Standard</th><th>Date</th></tr></thead>"
+            table_head = "<thead><tr><th>Dist</th><th>Best Time</th><th>Std</th><th>Next</th><th>Date</th></tr></thead>"
 
             fc1, fc2 = st.columns(2)
             with fc1:
@@ -906,12 +1072,69 @@ if page == "Stroke Overview":
         col1, col2 = st.columns(2)
 
         with col1:
-            display_stroke_card('Back', '#00875a', 'backstroke-card', df, course_option)
-            display_stroke_card('Breast', '#e8910c', 'breaststroke-card', df, course_option)
+            display_stroke_card('Back', '#00875a', 'backstroke-card', df, course_option, standards=standards)
+            display_stroke_card('Breast', '#e8910c', 'breaststroke-card', df, course_option, standards=standards)
 
         with col2:
-            display_stroke_card('Fly', '#d94f1a', 'butterfly-card', df, course_option)
-            display_stroke_card('IM', '#6b21a8', 'im-card', df, course_option)
+            display_stroke_card('Fly', '#d94f1a', 'butterfly-card', df, course_option, standards=standards)
+            display_stroke_card('IM', '#6b21a8', 'im-card', df, course_option, standards=standards)
+
+        # Standards Progression section
+        if standards is not None:
+            st.markdown("---")
+            st.markdown("### Standards Progression")
+            st.markdown(
+                f"<p style='color:var(--text-secondary); font-size:0.85rem;'>How close each personal best is to the next standard ({cur_ag} / {cur_era} / {course_option})</p>",
+                unsafe_allow_html=True
+            )
+
+            prog_rows = ""
+            for stroke in ['Free', 'Back', 'Breast', 'Fly', 'IM']:
+                bests = get_stroke_bests(df, stroke, course_option, standards=standards)
+                for row in bests:
+                    if row['has_time'] and row.get('next_info'):
+                        ni = row['next_info']
+                        std = row['Standard']
+                        badge = f"<span class='standard-badge standard-{std}'>{std}</span>" if std in STANDARD_ORDER else "<span class='standard-badge standard-NA'>NS</span>"
+                        if ni['next_standard_name']:
+                            target_str = f"{ni['next_standard_name']} ({seconds_to_time_str(ni['next_standard_time'])})"
+                            drop_str = f"{ni['time_to_drop']:.2f}s"
+                            pct = ni['penetration_pct']
+                            if pct > 75:
+                                pct_color = '#00875a'
+                            elif pct >= 50:
+                                pct_color = '#e8910c'
+                            else:
+                                pct_color = '#2d6bcf'
+                            pct_str = f"<span style='color:{pct_color}; font-weight:600;'>{pct:.0f}%</span>"
+                            bar = _penetration_bar_html(ni)
+                        else:
+                            target_str = "MAX"
+                            drop_str = "--"
+                            pct_str = "<span style='color:var(--gold); font-weight:600;'>100%</span>"
+                            bar = ""
+
+                        prog_rows += (
+                            f"<tr>"
+                            f"<td><strong>{row['Distance']} {stroke}</strong></td>"
+                            f"<td style='font-family:monospace; font-weight:600;'>{row['Time']}</td>"
+                            f"<td>{badge}</td>"
+                            f"<td>{target_str}</td>"
+                            f"<td>{drop_str}</td>"
+                            f"<td>{pct_str}</td>"
+                            f"<td style='min-width:80px;'>{bar}</td>"
+                            f"</tr>"
+                        )
+
+            if prog_rows:
+                prog_html = (
+                    f"<div class='pro-card' style='overflow-x:auto;'>"
+                    f"<table class='pro-table'>"
+                    f"<thead><tr><th>Event</th><th>Best</th><th>Current Std</th><th>Next Target</th><th>To Drop</th><th>Progress</th><th></th></tr></thead>"
+                    f"<tbody>{prog_rows}</tbody>"
+                    f"</table></div>"
+                )
+                st.markdown(prog_html, unsafe_allow_html=True)
 
 elif page == "Quick Lookup":
     st.title("Personal Best Quick Lookup")
@@ -919,7 +1142,7 @@ elif page == "Quick Lookup":
     data = load_data()
 
     if data['swims'] is None:
-        st.warning("No swim data found. Please upload data in the Upload Data section.")
+        st.warning("No swim data found. See the Data Guide for setup instructions.")
     else:
         df = data['swims']
 
@@ -995,6 +1218,118 @@ elif page == "Quick Lookup":
             else:
                 st.info(f"No times recorded for {selected_event} ({course})")
 
+elif page == "Swim History":
+    st.title("Swim History")
+
+    data = load_data()
+
+    if data['swims'] is None:
+        st.warning("No swim data found.")
+    else:
+        df = data['swims'].copy()
+        standards = data['standards']
+
+        # Build Event column
+        df['Event'] = df['Distance'].astype(str) + ' ' + df['Stroke']
+
+        # --- Filters ---
+        st.markdown("### Filters")
+        fc1, fc2, fc3, fc4, fc5 = st.columns([2, 1, 2, 2, 2])
+
+        with fc1:
+            strokes = ['All'] + sorted(df['Stroke'].unique().tolist())
+            sel_stroke = st.selectbox("Stroke", strokes, key="hist_stroke")
+        with fc2:
+            sel_course = st.radio("Course", ["All", "Yards", "LCM"], key="hist_course", horizontal=True)
+        with fc3:
+            std_options = ['All'] + STANDARD_ORDER + ['NS']
+            sel_standard = st.selectbox("Standard", std_options, key="hist_standard")
+        with fc4:
+            date_min = df['Date'].min().date()
+            date_max = df['Date'].max().date()
+            sel_dates = st.date_input("Date Range", value=(date_min, date_max), min_value=date_min, max_value=date_max, key="hist_dates")
+        with fc5:
+            meet_search = st.text_input("Meet Search", key="hist_meet", placeholder="Search meet name...")
+
+        # Apply filters
+        filtered = df.copy()
+        if sel_stroke != 'All':
+            filtered = filtered[filtered['Stroke'] == sel_stroke]
+        if sel_course != 'All':
+            filtered = filtered[filtered['Course'] == sel_course]
+        if sel_standard != 'All':
+            if sel_standard == 'NS':
+                filtered = filtered[~filtered['Standard'].isin(STANDARD_ORDER)]
+            else:
+                filtered = filtered[filtered['Standard'] == sel_standard]
+        if isinstance(sel_dates, tuple) and len(sel_dates) == 2:
+            filtered = filtered[
+                (filtered['Date'].dt.date >= sel_dates[0]) &
+                (filtered['Date'].dt.date <= sel_dates[1])
+            ]
+        if meet_search.strip():
+            filtered = filtered[filtered['Meet'].str.contains(meet_search.strip(), case=False, na=False)]
+
+        # Summary stats
+        total_shown = len(filtered)
+        if total_shown > 0:
+            date_range_str = f"{filtered['Date'].min().strftime('%m/%d/%Y')} - {filtered['Date'].max().strftime('%m/%d/%Y')}"
+            std_counts = filtered[filtered['Standard'].isin(STANDARD_ORDER)]['Standard'].value_counts()
+            std_summary = " | ".join(f"{s}: {std_counts.get(s, 0)}" for s in STANDARD_ORDER if std_counts.get(s, 0) > 0)
+        else:
+            date_range_str = "N/A"
+            std_summary = "None"
+
+        st.markdown(render_summary_row([
+            {"label": "Swims Shown", "value": total_shown},
+            {"label": "Date Range", "value": date_range_str},
+            {"label": "Standards", "value": std_summary if std_summary else "None"},
+        ]), unsafe_allow_html=True)
+
+        # Current Rating toggle
+        show_current_rating = st.checkbox("Show Current Rating column (re-grade against current 15-16 standards)", value=False, key="hist_current_rating")
+
+        # Build display dataframe
+        display_df = filtered.sort_values('Date', ascending=False).copy()
+        display_df['Date_Fmt'] = display_df['Date'].dt.strftime('%m/%d/%Y')
+
+        if show_current_rating and standards is not None:
+            display_df['Current_Rating'] = display_df.apply(
+                lambda r: grade_time_against_current(r['Time_Seconds'], str(int(r['Distance'])) + ' ' + r['Stroke'], r['Course'], standards),
+                axis=1
+            )
+
+        # Build HTML table
+        if show_current_rating and standards is not None:
+            col_map = ['Date_Fmt', 'Age', 'Event', 'Course', 'Finals', 'Standard', 'Current_Rating', 'Meet']
+            col_headers = ['Date', 'Age', 'Event', 'Course', 'Time', 'Original Std', 'Current Rating', 'Meet']
+        else:
+            col_map = ['Date_Fmt', 'Age', 'Event', 'Course', 'Finals', 'Standard', 'Meet']
+            col_headers = ['Date', 'Age', 'Event', 'Course', 'Time', 'Standard', 'Meet']
+
+        headers_html = "".join(f"<th>{h}</th>" for h in col_headers)
+        rows_html = ""
+        for _, row in display_df.iterrows():
+            cells = ""
+            for col_key in col_map:
+                val = row.get(col_key, '')
+                if col_key in ('Standard', 'Current_Rating') and isinstance(val, str) and val in STANDARD_ORDER:
+                    cells += f"<td><span class='standard-badge standard-{val}'>{val}</span></td>"
+                elif col_key in ('Standard', 'Current_Rating') and val == 'NS':
+                    cells += f"<td><span class='standard-badge standard-NA'>NS</span></td>"
+                else:
+                    cells += f"<td>{val}</td>"
+            rows_html += f"<tr>{cells}</tr>"
+
+        table_html = (
+            f"<div class='pro-card' style='overflow-x:auto; max-height:600px; overflow-y:auto;'>"
+            f"<table class='pro-table'>"
+            f"<thead><tr>{headers_html}</tr></thead>"
+            f"<tbody>{rows_html}</tbody>"
+            f"</table></div>"
+        )
+        st.markdown(table_html, unsafe_allow_html=True)
+
 elif page == "Deep Analytics":
     st.title("Deep Analytics")
 
@@ -1006,28 +1341,54 @@ elif page == "Deep Analytics":
         df = data['swims']
 
         # Standards distribution
-        st.markdown(card_open("Standards Distribution"), unsafe_allow_html=True)
+        rated_df = df[df['Standard'].isin(STANDARD_ORDER)].copy()
+        rated_df['Age_Group'] = rated_df['Age'].apply(get_standards_age_group)
+        rated_df['Season'] = rated_df['Date'].apply(get_season_label)
 
-        standards_count = df[df['Standard'] != 'Unrated']['Standard'].value_counts()
+        std_colors = {
+            'AAAA': '#FFD700', 'AAA': '#C0C0C0', 'AA': '#CD7F32',
+            'A': '#0c0599', 'BB': '#2d6bcf', 'B': '#87CEEB'
+        }
 
-        fig = px.bar(
-            x=standards_count.index,
-            y=standards_count.values,
-            labels={'x': 'Standard', 'y': 'Count'},
-            title='Number of Swims by Standard',
-            color=standards_count.index,
-            color_discrete_map={
-                'AAAA': '#FFD700',
-                'AAA': '#C0C0C0',
-                'AA': '#CD7F32',
-                'A': '#0c0599',
-                'BB': '#2d6bcf',
-                'B': '#87CEEB'
-            }
+        # --- By Age Group ---
+        st.markdown(card_open("Standards Distribution by Age Group"), unsafe_allow_html=True)
+
+        ag_order = ['10&U', '11-12', '13-14', '15-16', '17-18']
+        present_ags = [ag for ag in ag_order if ag in rated_df['Age_Group'].values]
+
+        fig_ag = go.Figure()
+        for std in STANDARD_ORDER:
+            counts = [len(rated_df[(rated_df['Age_Group'] == ag) & (rated_df['Standard'] == std)]) for ag in present_ags]
+            if sum(counts) > 0:
+                fig_ag.add_trace(go.Bar(name=std, x=present_ags, y=counts, marker_color=std_colors[std]))
+
+        fig_ag.update_layout(
+            **PLOTLY_THEME, barmode='group',
+            title='Number of Swims by Standard & Age Group',
+            xaxis_title='Age Group', yaxis_title='Count', legend_title='Standard',
         )
-        fig.update_layout(**PLOTLY_THEME)
+        st.plotly_chart(fig_ag, use_container_width=True)
+        st.markdown(card_close(), unsafe_allow_html=True)
 
-        st.plotly_chart(fig, use_container_width=True)
+        st.markdown("---")
+
+        # --- By Season ---
+        st.markdown(card_open("Standards Distribution by Season"), unsafe_allow_html=True)
+
+        present_seasons = sorted(rated_df['Season'].unique())
+
+        fig_season = go.Figure()
+        for std in STANDARD_ORDER:
+            counts = [len(rated_df[(rated_df['Season'] == s) & (rated_df['Standard'] == std)]) for s in present_seasons]
+            if sum(counts) > 0:
+                fig_season.add_trace(go.Bar(name=std, x=present_seasons, y=counts, marker_color=std_colors[std]))
+
+        fig_season.update_layout(
+            **PLOTLY_THEME, barmode='group',
+            title='Number of Swims by Standard & Season',
+            xaxis_title='Season', yaxis_title='Count', legend_title='Standard',
+        )
+        st.plotly_chart(fig_season, use_container_width=True)
         st.markdown(card_close(), unsafe_allow_html=True)
 
         st.markdown("---")
@@ -1164,7 +1525,7 @@ elif page == "IMX Score":
     data = load_data()
 
     if data['swims'] is None or data['standards'] is None:
-        st.warning("Swim data and standards are required for IMX scoring. Please upload data first.")
+        st.warning("Swim data and standards are required for IMX scoring. See the Data Guide for setup instructions.")
     else:
         df = data['swims']
         standards = data['standards']
@@ -1394,71 +1755,54 @@ elif page == "IMX Score":
         else:
             st.info("No IMX scores to chart yet for this course.")
 
-elif page == "Upload Data":
-    st.title("Upload Swim Data")
+elif page == "Data Guide":
+    st.title("Data Management Guide")
 
-    st.markdown("""
-    Upload your graded swim data Excel file to update the tracker.
+    st.markdown(
+        "<div class='pro-card'>"
+        "<div class='pro-card-header'>Why Local Data Management?</div>"
+        "<p style='color:var(--text-secondary); margin:0;'>"
+        "Swim data is managed through a local pipeline to ensure data security and persistence. "
+        "Your data files stay on your machine and are processed by Python scripts that scrape, clean, "
+        "and grade your swim history automatically."
+        "</p></div>",
+        unsafe_allow_html=True
+    )
 
-    **Expected format:** `graded_swim_data.xlsx`
+    st.markdown("### Step-by-Step Pipeline")
 
-    The file should contain columns for:
-    - Date, Age, Distance, Stroke, Course, Finals, Time_Seconds, Standard, Meet
-    """)
+    steps = [
+        ("1. Download Swim History", "Log in to your GoMotion/TeamUnify account and download your swim history page as <code>swim_history.html</code>."),
+        ("2. Run the Scraper", "Open a terminal in this project folder and run:<br><code>python scraper.py</code><br>This extracts all swim results from the HTML file into structured data."),
+        ("3. Run the Cleaner", "Run:<br><code>python cleaner.py</code><br>This standardizes event names, fixes formatting, and removes duplicates."),
+        ("4. Edit High School Swims", "Open <code>high_school_swims.csv</code> and add/update any high school meet results that aren't on GoMotion."),
+        ("5. Run the Grader", "Run:<br><code>python grader.py</code><br>This merges all data sources, grades each swim against USA Swimming standards, and produces <code>graded_swim_data.xlsx</code>."),
+    ]
 
-    uploaded_file = st.file_uploader("Choose graded_swim_data.xlsx file", type=['xlsx'])
-
-    if uploaded_file is not None:
-        try:
-            df = pd.read_excel(uploaded_file)
-
-            required_cols = ['Date', 'Age', 'Distance', 'Stroke', 'Course', 'Finals', 'Time_Seconds', 'Standard', 'Meet']
-            missing_cols = [col for col in required_cols if col not in df.columns]
-
-            if missing_cols:
-                st.error(f"Missing required columns: {', '.join(missing_cols)}")
-            else:
-                df.to_excel('graded_swim_data.xlsx', index=False)
-                st.cache_data.clear()
-                st.success("Data uploaded successfully!")
-
-                # Data preview as styled table
-                st.subheader("Data Preview")
-                st.markdown(render_html_table(df.head(10)), unsafe_allow_html=True)
-
-                # Summary stats
-                st.markdown(render_summary_row([
-                    {"label": "Total Swims", "value": len(df)},
-                    {"label": "Date Range", "value": f"{df['Date'].min()} to {df['Date'].max()}"},
-                    {"label": "Unique Events", "value": len(df.groupby(['Distance', 'Stroke']))},
-                ]), unsafe_allow_html=True)
-
-        except Exception as e:
-            st.error(f"Error reading file: {e}")
+    for title, desc in steps:
+        st.markdown(
+            f"<div class='pro-card'>"
+            f"<div class='pro-card-header'>{title}</div>"
+            f"<p style='color:var(--text-secondary); margin:0;'>{desc}</p>"
+            f"</div>",
+            unsafe_allow_html=True
+        )
 
     st.markdown("---")
-
-    st.header("Merge High School Data")
-
-    st.markdown("""
-    Upload high school swim data (CSV format) to merge with GoMotion data.
-
-    **Expected format:**
-    - Date, Age, Distance, Stroke, Course, Time, Meet
-    """)
-
-    hs_file = st.file_uploader("Choose high school CSV file", type=['csv'])
-
-    if hs_file is not None:
-        try:
-            hs_df = pd.read_csv(hs_file)
-            st.success("High school data loaded!")
-
-            if st.button("Merge with Existing Data"):
-                st.info("Merge functionality coming soon - requires grader.py integration")
-
-        except Exception as e:
-            st.error(f"Error reading file: {e}")
+    st.markdown("### Data Files Reference")
+    files_rows = (
+        "<tr><td><strong>swim_history.html</strong></td><td>Raw GoMotion export</td></tr>"
+        "<tr><td><strong>high_school_swims.csv</strong></td><td>Manual HS meet entries</td></tr>"
+        "<tr><td><strong>graded_swim_data.xlsx</strong></td><td>Final graded output (loaded by this app)</td></tr>"
+        "<tr><td><strong>standards.json</strong></td><td>USA Swimming time standards (2021-2024 &amp; 2024-2028)</td></tr>"
+        "<tr><td><strong>goals.csv</strong></td><td>Season goals</td></tr>"
+    )
+    st.markdown(
+        f"<div class='pro-card' style='overflow-x:auto;'><table class='pro-table'>"
+        f"<thead><tr><th>File</th><th>Purpose</th></tr></thead>"
+        f"<tbody>{files_rows}</tbody></table></div>",
+        unsafe_allow_html=True
+    )
 
 elif page == "Goals":
     st.title("Season Goals")
@@ -1466,7 +1810,7 @@ elif page == "Goals":
     data = load_data()
 
     if data['swims'] is None:
-        st.warning("No swim data found. Upload data first.")
+        st.warning("No swim data found. See the Data Guide for setup instructions.")
     else:
         df = data['swims']
         pb_df = get_personal_bests(df)
@@ -1591,15 +1935,16 @@ elif page == "Settings":
 
     st.markdown(card_open("About"), unsafe_allow_html=True)
     st.markdown("""
-    **Swim Performance Tracker** -- Version 2.0
+    **Swim Performance Tracker** -- Version 2.1
 
     Track and analyze competitive swimming performance using USA Swimming standards.
 
-    - **Stroke Overview** -- Best times by stroke at a glance
+    - **Stroke Overview** -- Best times graded against current age group standards with next-standard progress
+    - **Swim History** -- Full sortable/filterable history with current-rating comparison
     - **Deep Analytics** -- Advanced performance analysis
-    - GoMotion and high school data import
-    - Personal best tracking
-    - Goal setting and progress monitoring
+    - **IMX Score** -- IMX and IMR composite scoring
+    - Local data pipeline (scraper, cleaner, grader)
+    - Personal best tracking and goal setting
     - Interactive visualizations
 
     Built with Streamlit and Python
