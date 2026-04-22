@@ -1,0 +1,1261 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<title>Swim Tracker — Jack Kirby · 2025-26</title>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet"/>
+
+<style>
+/* ── Swim Tracker — shared TP-style tokens ── */
+:root {
+  --bg: #FAFAFA;
+  --panel: #FFFFFF;
+  --panel-alt: #F5F6F7;
+  --line: #E4E6EA;
+  --line-strong: #CDD1D7;
+  --ink: #1A1D21;
+  --ink-2: #3D434B;
+  --muted: #6B7280;
+  --muted-2: #9AA1AC;
+  --signal: #B54A2E;
+  --signal-2: #8B2817;
+  --good: #2F7A4D;
+  --bad: #B54A2E;
+  --fr: #3B6EA8; --bk: #4A8C8C; --br: #5B8A3A; --fl: #B77A2B; --im: #7A4E8F;
+  --sans: 'Inter', -apple-system, system-ui, sans-serif;
+  --mono: 'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; font-family: var(--sans); color: var(--ink); background: var(--bg); height: 100%; }
+body { font-size: 13px; -webkit-font-smoothing: antialiased; }
+.mono { font-family: var(--mono); font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
+.t-num { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+.panel { background: var(--panel); border: 1px solid var(--line); }
+.hair { border-color: var(--line); }
+.muted { color: var(--muted); }
+.kpi-label { font-size: 9.5px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); font-weight: 600; }
+.kpi-value { font-family: var(--mono); font-weight: 500; font-variant-numeric: tabular-nums; }
+.tier-chip { display: inline-flex; align-items: center; justify-content: center; font-family: var(--mono); font-weight: 600; font-size: 10px; padding: 1px 5px; line-height: 1.3; letter-spacing: 0.02em; }
+.tag { font-size: 10px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted); }
+.hr { border: 0; border-top: 1px solid var(--line); margin: 0; }
+.btn { font: 11px var(--sans); color: var(--ink-2); background: var(--panel); border: 1px solid var(--line-strong); padding: 4px 9px; cursor: pointer; }
+.btn:hover { background: var(--panel-alt); }
+.btn.active { background: var(--ink); color: #fff; border-color: var(--ink); }
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--line-strong); }
+::-webkit-scrollbar-thumb:hover { background: var(--muted-2); }
+table.data { width: 100%; border-collapse: collapse; }
+table.data th { font-size: 9.5px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); font-weight: 600; text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); background: var(--panel-alt); position: sticky; top: 0; z-index: 1; }
+table.data td { font-size: 12px; padding: 5px 8px; border-bottom: 1px solid var(--line); }
+table.data tr:hover td { background: #FCFCFD; }
+table.data td.num, table.data th.num { text-align: right; font-family: var(--mono); font-variant-numeric: tabular-nums; }
+@keyframes slide { from { transform: translateX(30px); opacity: 0 } to { transform: translateX(0); opacity: 1 } }
+@keyframes fadeIn { from { opacity: 0 } to { opacity: 1 } }
+#root { height: 100vh; display: flex; flex-direction: column; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+<!-- ══════════════════════════════════════════
+     DATA — window.SWIM + window.SWIM_EX
+     ══════════════════════════════════════════ -->
+<script>
+// Shared swim data + tokens
+window.SWIM = (() => {
+  const strokes = {
+    FR: { name: 'Free',   color: '#3B6EA8', short: 'FR' },
+    BK: { name: 'Back',   color: '#4A8C8C', short: 'BK' },
+    BR: { name: 'Breast', color: '#5B8A3A', short: 'BR' },
+    FL: { name: 'Fly',    color: '#B77A2B', short: 'FL' },
+    IM: { name: 'IM',     color: '#7A4E8F', short: 'IM' },
+  };
+  const tiers = [
+    { key: 'B',    label: 'B',    color: '#C4C8CE', fg: '#4B5260' },
+    { key: 'BB',   label: 'BB',   color: '#9AA1AC', fg: '#1A1D21' },
+    { key: 'A',    label: 'A',    color: '#D4A574', fg: '#1A1D21' },
+    { key: 'AA',   label: 'AA',   color: '#C97A4A', fg: '#fff' },
+    { key: 'AAA',  label: 'AAA',  color: '#B54A2E', fg: '#fff' },
+    { key: 'AAAA', label: 'AAAA', color: '#8B2817', fg: '#fff' },
+  ];
+  const tierIdx = k => tiers.findIndex(t => t.key === k);
+  const athlete = { name: 'Jack Kirby', age: 15, team: 'Riverside Aquatic Club', lsc: 'PV', season: '2025–26 SC', meets: 8, swims: 62 };
+  const events = [
+    { ev: '50 FR',  stroke: 'FR', course: 'SCY', pb: 22.84,  tier: 'AA',   next: { tier: 'AAA',  cut: 22.19,  gap: 0.65 }, trend: -1.8 },
+    { ev: '100 FR', stroke: 'FR', course: 'SCY', pb: 50.12,  tier: 'AA',   next: { tier: 'AAA',  cut: 48.89,  gap: 1.23 }, trend: -2.4 },
+    { ev: '200 FR', stroke: 'FR', course: 'SCY', pb: 110.37, tier: 'A',    next: { tier: 'AA',   cut: 108.29, gap: 2.08 }, trend: -1.1 },
+    { ev: '500 FR', stroke: 'FR', course: 'SCY', pb: 302.44, tier: 'A',    next: { tier: 'AA',   cut: 295.99, gap: 6.45 }, trend: -0.6 },
+    { ev: '100 BK', stroke: 'BK', course: 'SCY', pb: 57.91,  tier: 'AA',   next: { tier: 'AAA',  cut: 56.29,  gap: 1.62 }, trend: -2.0 },
+    { ev: '200 BK', stroke: 'BK', course: 'SCY', pb: 125.62, tier: 'A',    next: { tier: 'AA',   cut: 123.09, gap: 2.53 }, trend: -0.8 },
+    { ev: '100 BR', stroke: 'BR', course: 'SCY', pb: 64.08,  tier: 'BB',   next: { tier: 'A',    cut: 63.19,  gap: 0.89 }, trend: -1.4 },
+    { ev: '200 BR', stroke: 'BR', course: 'SCY', pb: 141.77, tier: 'BB',   next: { tier: 'A',    cut: 138.49, gap: 3.28 }, trend: +0.3 },
+    { ev: '100 FL', stroke: 'FL', course: 'SCY', pb: 55.41,  tier: 'AAA',  next: { tier: 'AAAA', cut: 53.79,  gap: 1.62 }, trend: -1.9 },
+    { ev: '200 FL', stroke: 'FL', course: 'SCY', pb: 121.08, tier: 'AA',   next: { tier: 'AAA',  cut: 118.99, gap: 2.09 }, trend: -1.3 },
+    { ev: '200 IM', stroke: 'IM', course: 'SCY', pb: 118.22, tier: 'AA',   next: { tier: 'AAA',  cut: 115.69, gap: 2.53 }, trend: -1.6 },
+    { ev: '400 IM', stroke: 'IM', course: 'SCY', pb: 254.88, tier: 'A',    next: { tier: 'AA',   cut: 250.49, gap: 4.39 }, trend: -0.9 },
+  ];
+  const meets = [
+    { name: 'Fall Invite',          date: '2025-10-04', day: 4,   loc: 'Germantown',   swims: 6,  pbs: 4 },
+    { name: 'PVS Oktoberfest',      date: '2025-10-25', day: 25,  loc: 'Fairfax',      swims: 8,  pbs: 3 },
+    { name: 'Thanksgiving Open',    date: '2025-11-22', day: 52,  loc: 'Richmond',     swims: 7,  pbs: 2 },
+    { name: 'December Dash',        date: '2025-12-13', day: 73,  loc: 'Annapolis',    swims: 9,  pbs: 5 },
+    { name: 'Winter Champs',        date: '2026-01-17', day: 108, loc: 'Fairfax',      swims: 10, pbs: 6 },
+    { name: 'Mid-Atl Zones',        date: '2026-02-14', day: 136, loc: 'Christiansbg', swims: 9,  pbs: 3 },
+    { name: 'Age Group Sectionals', date: '2026-03-14', day: 164, loc: 'Cary NC',      swims: 8,  pbs: 4 },
+    { name: 'Spring Champs',        date: '2026-04-11', day: 192, loc: 'Fairfax',      swims: 5,  pbs: 2 },
+  ];
+  const imx = {
+    total: 3482, max: 5000, rank: 2410, rankOf: 8921,
+    events: [
+      { ev: '200 IM', pts: 742 },
+      { ev: '100 FL', pts: 798 },
+      { ev: '500 FR', pts: 612 },
+      { ev: '100 BK', pts: 714 },
+      { ev: '100 BR', pts: 616 },
+    ],
+  };
+  const trend = {
+    '50 FR':  [23.52,23.48,23.41,23.29,23.30,23.18,23.14,23.08,23.02,22.94,22.88,22.84],
+    '100 FL': [57.12,57.04,56.88,56.61,56.52,56.30,56.14,55.98,55.82,55.69,55.55,55.41],
+    '200 IM': [121.80,121.55,121.10,120.92,120.41,120.02,119.68,119.30,118.94,118.62,118.38,118.22],
+    '100 BK': [59.60,59.38,59.05,58.80,58.62,58.40,58.24,58.08,57.98,57.94,57.95,57.91],
+  };
+  const splits200IM = [
+    { leg: 'FL 50', t: 27.84, avg: 28.50, color: strokes.FL.color },
+    { leg: 'BK 50', t: 31.02, avg: 31.40, color: strokes.BK.color },
+    { leg: 'BR 50', t: 34.66, avg: 33.90, color: strokes.BR.color },
+    { leg: 'FR 50', t: 24.70, avg: 25.20, color: strokes.FR.color },
+  ];
+  const hist50FR = [
+    { t: 23.8, n: 1 },{ t: 23.6, n: 2 },{ t: 23.4, n: 3 },{ t: 23.2, n: 5 },
+    { t: 23.0, n: 7 },{ t: 22.9, n: 8 },{ t: 22.8, n: 4 },{ t: 22.7, n: 2 },
+  ];
+  const penetration = events.map(e => ({
+    ev: e.ev, stroke: e.stroke,
+    pct: (() => {
+      const base = { AAAA:97, AAA:88, AA:72, A:52, BB:28, B:10 }[e.tier] || 50;
+      // seeded offset to avoid random re-renders
+      const seed = e.ev.charCodeAt(0) + e.ev.charCodeAt(e.ev.length-1);
+      return base + (seed % 7) - 3;
+    })(),
+  }));
+  const pbTimeline = [
+    { date: '2024-11', ev: '50 FR',  t: 24.92, tier: 'A'   },
+    { date: '2025-01', ev: '100 FL', t: 58.10, tier: 'AA'  },
+    { date: '2025-02', ev: '50 FR',  t: 24.10, tier: 'A'   },
+    { date: '2025-03', ev: '200 IM', t: 121.40,tier: 'A'   },
+    { date: '2025-06', ev: '100 BK', t: 58.88, tier: 'A'   },
+    { date: '2025-07', ev: '50 FR',  t: 23.52, tier: 'AA'  },
+    { date: '2025-10', ev: '100 FL', t: 56.30, tier: 'AA'  },
+    { date: '2025-12', ev: '200 IM', t: 119.80,tier: 'AA'  },
+    { date: '2026-01', ev: '100 FL', t: 55.69, tier: 'AAA' },
+    { date: '2026-02', ev: '50 FR',  t: 22.94, tier: 'AA'  },
+    { date: '2026-03', ev: '100 BK', t: 57.91, tier: 'AA'  },
+    { date: '2026-04', ev: '50 FR',  t: 22.84, tier: 'AA'  },
+  ];
+  return { strokes, tiers, tierIdx, athlete, events, meets, imx, trend, splits200IM, hist50FR, penetration, pbTimeline };
+})();
+
+// Extra data — races, history, IMX history, quick-lookup index
+window.SWIM_EX = (() => {
+  const races50FR = [
+    { date:'2024-11-02', meet:'Fall Invite',       t:23.58, place:6, heat:3, pb:true,  tier:'A',  split:[11.12,12.46] },
+    { date:'2024-12-14', meet:'December Dash',     t:23.41, place:4, heat:4, pb:true,  tier:'A',  split:[11.02,12.39] },
+    { date:'2025-01-25', meet:'Winter Champs',     t:23.29, place:3, heat:5, pb:true,  tier:'A',  split:[10.98,12.31] },
+    { date:'2025-02-21', meet:'Zones',             t:23.30, place:5, heat:4, pb:false, tier:'A',  split:[11.01,12.29] },
+    { date:'2025-03-15', meet:'Sectionals',        t:23.18, place:2, heat:5, pb:true,  tier:'AA', split:[10.94,12.24] },
+    { date:'2025-04-12', meet:'Spring Champs',     t:23.14, place:3, heat:5, pb:true,  tier:'AA', split:[10.91,12.23] },
+    { date:'2025-07-18', meet:'Summer Senior',     t:23.08, place:4, heat:4, pb:true,  tier:'AA', split:[10.89,12.19] },
+    { date:'2025-10-04', meet:'Fall Invite',       t:23.02, place:2, heat:5, pb:true,  tier:'AA', split:[10.86,12.16] },
+    { date:'2025-10-25', meet:'PVS Oktoberfest',   t:22.98, place:2, heat:5, pb:true,  tier:'AA', split:[10.84,12.14] },
+    { date:'2025-11-22', meet:'Thanksgiving Open', t:22.94, place:1, heat:5, pb:true,  tier:'AA', split:[10.82,12.12] },
+    { date:'2025-12-13', meet:'December Dash',     t:22.92, place:2, heat:5, pb:false, tier:'AA', split:[10.80,12.12] },
+    { date:'2026-01-17', meet:'Winter Champs',     t:22.88, place:1, heat:5, pb:true,  tier:'AA', split:[10.78,12.10] },
+    { date:'2026-02-14', meet:'Mid-Atl Zones',     t:22.89, place:2, heat:5, pb:false, tier:'AA', split:[10.79,12.10] },
+    { date:'2026-03-14', meet:'Age Group Sect.',   t:22.86, place:1, heat:5, pb:true,  tier:'AA', split:[10.77,12.09] },
+    { date:'2026-04-11', meet:'Spring Champs',     t:22.84, place:1, heat:5, pb:true,  tier:'AA', split:[10.76,12.08] },
+  ];
+
+  // Generate seeded history rows
+  const history = [];
+  const evList = ['50 FR','100 FR','200 FR','100 BK','200 BK','100 BR','200 BR','100 FL','200 FL','200 IM','400 IM','500 FR'];
+  let rowId = 1;
+  const rand = (seed => () => (seed = (seed*9301+49297)%233280) / 233280)(42);
+  for (const m of SWIM.meets) {
+    const n = m.swims;
+    const evSet = [...evList].sort(() => rand()-0.5).slice(0, n);
+    for (const ev of evSet) {
+      const base = (SWIM.events.find(e => e.ev === ev) || {}).pb || 60;
+      const t = base * (1 + (rand()-0.3) * 0.02);
+      history.push({
+        id: rowId++, date: m.date, meet: m.name, course: 'SCY', event: ev,
+        time: +t.toFixed(2), place: Math.ceil(rand()*8), heat: Math.ceil(rand()*5)+2,
+        pb: rand() < 0.28,
+      });
+    }
+  }
+  history.sort((a,b) => b.date.localeCompare(a.date));
+
+  const imxHistory = [
+    { season:'2023-24 SC', score: 2680, rank: 5120 },
+    { season:'2024 LC',    score: 2770, rank: 4810 },
+    { season:'2024-25 SC', score: 3108, rank: 3440 },
+    { season:'2025 LC',    score: 3220, rank: 3010 },
+    { season:'2025-26 SC', score: 3482, rank: 2410 },
+  ];
+
+  const quickIndex = SWIM.events.map(e => ({
+    ...e, search: (e.ev + ' ' + SWIM.strokes[e.stroke].name).toLowerCase()
+  }));
+
+  return { races50FR, history, imxHistory, quickIndex };
+})();
+
+// Formatters
+window.fmtT = (s) => {
+  if (s == null) return '—';
+  if (s < 60) return s.toFixed(2);
+  const m = Math.floor(s / 60);
+  const r = (s - m*60).toFixed(2).padStart(5,'0');
+  return `${m}:${r}`;
+};
+window.fmtGap = (g) => (g > 0 ? '-' : '+') + Math.abs(g).toFixed(2);
+</script>
+
+<!-- ══════════════════════════════════════════
+     CHROME — TierChip, StrokeDot, Sparkline,
+              TierLadder, Sidebar, TopBar
+     ══════════════════════════════════════════ -->
+<script type="text/babel">
+const { useState, useMemo } = React;
+
+const TierChip = ({ tier, size = 'md' }) => {
+  const t = SWIM.tiers.find(x => x.key === tier);
+  if (!t) return null;
+  const sizes = {
+    sm: { fs: 9,  pad: '0 4px',   h: 13 },
+    md: { fs: 10, pad: '1px 5px', h: 15 },
+    lg: { fs: 12, pad: '2px 7px', h: 19 },
+  }[size];
+  return (
+    <span className="tier-chip" style={{ background: t.color, color: t.fg, fontSize: sizes.fs, padding: sizes.pad, height: sizes.h, minWidth: sizes.h + 4 }}>
+      {t.label}
+    </span>
+  );
+};
+
+const StrokeDot = ({ stroke, size = 8 }) => {
+  const s = SWIM.strokes[stroke];
+  return <span style={{ display:'inline-block', width:size, height:size, background:s.color, verticalAlign:'middle', marginRight:6, borderRadius: 1 }} />;
+};
+
+const Sparkline = ({ data, w = 80, h = 22, color = '#1A1D21', invert = true, fill = false }) => {
+  if (!data || !data.length) return null;
+  const min = Math.min(...data), max = Math.max(...data);
+  const rng = max - min || 1;
+  const pts = data.map((v, i) => {
+    const x = (i / (data.length - 1)) * (w - 2) + 1;
+    const norm = invert ? (max - v) / rng : (v - min) / rng;
+    const y = h - 2 - norm * (h - 4) + 1;
+    return [x, y];
+  });
+  const d = 'M ' + pts.map(p => p.join(',')).join(' L ');
+  const area = d + ` L ${w-1},${h-1} L 1,${h-1} Z`;
+  return (
+    <svg width={w} height={h} style={{ display:'block' }}>
+      {fill && <path d={area} fill={color} opacity="0.10" />}
+      <path d={d} fill="none" stroke={color} strokeWidth="1.25" />
+      <circle cx={pts[pts.length-1][0]} cy={pts[pts.length-1][1]} r="1.75" fill={color} />
+    </svg>
+  );
+};
+
+const TierLadder = ({ tier, next, progress, width = 220 }) => {
+  const idx = SWIM.tierIdx(tier);
+  const nextIdx = idx + 1;
+  return (
+    <div style={{ width, display:'flex', flexDirection:'column', gap:3 }}>
+      <div style={{ display:'flex', height: 10 }}>
+        {SWIM.tiers.map((t, i) => (
+          <div key={t.key} style={{ flex:1, background: i <= idx ? t.color : '#EEF0F3', borderRight: i < SWIM.tiers.length-1 ? '1px solid #fff' : 'none', position:'relative' }}>
+            {i === nextIdx && progress != null && (
+              <div style={{ position:'absolute', left:0, top:0, bottom:0, width:`${Math.max(0,Math.min(100,progress))}%`, background:'repeating-linear-gradient(45deg, #B54A2E 0 3px, transparent 3px 6px)', opacity:0.7 }} />
+            )}
+          </div>
+        ))}
+      </div>
+      <div style={{ display:'flex', fontFamily:'var(--mono)', fontSize:8.5, color:'var(--muted)', letterSpacing:'0.02em' }}>
+        {SWIM.tiers.map(t => <div key={t.key} style={{ flex:1, textAlign:'center' }}>{t.label}</div>)}
+      </div>
+    </div>
+  );
+};
+
+Object.assign(window, { TierChip, StrokeDot, Sparkline, TierLadder });
+</script>
+
+<!-- ══════════════════════════════════════════
+     SHELL v2 — full tabbed app shell
+     ══════════════════════════════════════════ -->
+<script type="text/babel">
+const { useState: uS, useMemo: uM, useEffect: uE } = React;
+
+const strokeOf = (ev) => {
+  if (ev.includes('IM')) return 'IM';
+  if (ev.includes('FL')) return 'FL';
+  if (ev.includes('BK')) return 'BK';
+  if (ev.includes('BR')) return 'BR';
+  return 'FR';
+};
+
+// Refined tier ladder with labels + current/next markers
+const TierLadderV2 = ({ tier, next, pb, nextCut, width = '100%' }) => {
+  const idx = SWIM.tierIdx(tier);
+  const nextIdx = idx + 1;
+  return (
+    <div style={{ width, display:'flex', flexDirection:'column', gap:3 }}>
+      <div style={{ display:'flex', height:14, border:'1px solid var(--line)', position:'relative' }}>
+        {SWIM.tiers.map((t, i) => (
+          <div key={t.key} style={{
+            flex:1,
+            background: i <= idx ? t.color : (i === nextIdx ? `repeating-linear-gradient(45deg, ${t.color}44 0 4px, ${t.color}22 4px 8px)` : '#F3F4F6'),
+            borderRight: i < SWIM.tiers.length-1 ? '1px solid #fff' : 'none',
+            position:'relative',
+          }}>
+            {i <= idx && <div style={{ position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center', color:t.fg, fontSize:9, fontFamily:'var(--mono)', fontWeight:700 }}>{t.label}</div>}
+            {i === nextIdx && <div style={{ position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center', color:'var(--signal)', fontSize:9, fontFamily:'var(--mono)', fontWeight:700 }}>{t.label}</div>}
+          </div>
+        ))}
+        <div style={{ position:'absolute', left:`${((idx+1)/SWIM.tiers.length)*100 - 1}%`, top:-3, bottom:-3, width:2, background:'var(--ink)' }} />
+      </div>
+      <div style={{ display:'flex', justifyContent:'space-between', fontFamily:'var(--mono)', fontSize:9, color:'var(--muted)' }}>
+        <span>current <span style={{ color:'var(--ink)' }}>{fmtT(pb)}</span></span>
+        <span>→ <span style={{ color:'var(--signal)' }}>{fmtT(nextCut)}</span></span>
+      </div>
+    </div>
+  );
+};
+
+const TABS = ['Stroke Overview','Quick Lookup','Swim History','Deep Analytics','IMX Score','Goals','Data Guide','Settings'];
+
+const SideNavV2 = ({ active, onSelect }) => (
+  <aside style={{ width:186, background:'#FFF', borderRight:'1px solid var(--line)', display:'flex', flexDirection:'column', fontSize:12, flexShrink:0 }}>
+    <div style={{ padding:'14px 14px 10px', borderBottom:'1px solid var(--line)' }}>
+      <div style={{ fontFamily:'var(--mono)', fontSize:10, color:'var(--muted)', letterSpacing:'0.14em' }}>SWIMTRACKER</div>
+      <div style={{ fontWeight:700, fontSize:14, letterSpacing:'-0.01em', marginTop:2 }}>{SWIM.athlete.name}</div>
+      <div className="mono" style={{ fontSize:10, color:'var(--muted)', marginTop:2 }}>15yo · PV · BOYS</div>
+    </div>
+    <nav style={{ padding:'6px 0', flex:1, overflowY:'auto' }}>
+      {TABS.map(label => (
+        <div key={label} onClick={() => onSelect(label)} style={{
+          padding:'6px 14px', cursor:'pointer',
+          background: label === active ? '#F5F6F7' : 'transparent',
+          borderLeft: label === active ? '2px solid var(--signal)' : '2px solid transparent',
+          color: label === active ? 'var(--ink)' : 'var(--ink-2)',
+          fontWeight: label === active ? 600 : 400,
+          transition: 'background .1s',
+        }}>{label}</div>
+      ))}
+    </nav>
+    <div style={{ padding:'10px 14px', borderTop:'1px solid var(--line)', fontSize:10, color:'var(--muted)' }}>
+      <div style={{ display:'flex', justifyContent:'space-between' }}><span>Season</span><span className="mono">{SWIM.athlete.season}</span></div>
+      <div style={{ display:'flex', justifyContent:'space-between' }}><span>Meets</span><span className="mono">{SWIM.athlete.meets}</span></div>
+      <div style={{ display:'flex', justifyContent:'space-between' }}><span>Swims</span><span className="mono">{SWIM.athlete.swims}</span></div>
+    </div>
+  </aside>
+);
+
+const TopBar = ({ title, onCourse }) => {
+  const [c, setC] = uS('SCY');
+  return (
+    <div style={{ display:'flex', alignItems:'center', gap:16, padding:'10px 18px', borderBottom:'1px solid var(--line)', background:'#fff', flexShrink:0 }}>
+      <div style={{ fontWeight:700, fontSize:14 }}>{title}</div>
+      <div className="mono" style={{ fontSize:10, color:'var(--muted)' }}>updated 2026-04-21 · 19:04 ET</div>
+      <div style={{ flex:1 }} />
+      <div style={{ display:'flex', gap:0, border:'1px solid var(--line-strong)' }}>
+        {['SCY','SCM','LCM'].map(x => (
+          <button key={x} onClick={() => { setC(x); onCourse && onCourse(x); }}
+            className={'btn ' + (c===x ? 'active' : '')}
+            style={{ border:'none', borderRight: x!=='LCM' ? '1px solid var(--line-strong)' : 'none', borderRadius:0 }}>{x}</button>
+        ))}
+      </div>
+      <button className="btn">Export ▾</button>
+      <button className="btn">Season ▾</button>
+    </div>
+  );
+};
+
+// ── Stroke Overview (Countdown style) ──
+const StrokeOverviewV2 = ({ onEvent }) => {
+  const priority = [...SWIM.events].sort((a,b) => a.next.gap - b.next.gap);
+  const hero = priority[0];
+  const top6 = priority.slice(1, 7);
+  const rest = priority.slice(7);
+
+  return (
+    <div style={{ flex:1, overflow:'auto', padding:16, display:'flex', flexDirection:'column', gap:12 }}>
+      {/* HERO */}
+      <div className="panel" style={{ padding:'16px 20px', display:'grid', gridTemplateColumns:'1.1fr 1fr 1fr', gap:22 }}>
+        <div>
+          <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+            <div className="kpi-label" style={{ color: SWIM.strokes[hero.stroke].color }}>CLOSEST CUT</div>
+            <div className="mono" style={{ fontSize:9, color:'var(--muted)', letterSpacing:'0.1em' }}>· 2024-28 STANDARDS</div>
+          </div>
+          <div onClick={() => onEvent(hero.ev)} style={{ cursor:'pointer', marginTop:4 }}>
+            <div style={{ display:'flex', alignItems:'baseline', gap:10 }}>
+              <div style={{ fontWeight:800, fontSize:26, letterSpacing:'-0.02em' }}>{hero.ev}</div>
+              <TierChip tier={hero.tier} />
+              <span className="mono" style={{ color:'var(--muted)' }}>→</span>
+              <TierChip tier={hero.next.tier} size="lg" />
+              <span className="mono" style={{ fontSize:10, color:'var(--muted-2)', marginLeft:'auto' }}>view history ↗</span>
+            </div>
+            <div style={{ display:'flex', alignItems:'baseline', gap:4, marginTop:10 }}>
+              <div className="mono" style={{ fontSize:64, fontWeight:500, letterSpacing:'-0.03em', lineHeight:1, color:'var(--signal)' }}>−{hero.next.gap.toFixed(2)}</div>
+              <div className="mono" style={{ fontSize:16, color:'var(--muted)' }}>s</div>
+            </div>
+            <div className="mono" style={{ fontSize:11, color:'var(--muted-2)', marginTop:4 }}>
+              PB {fmtT(hero.pb)} · cut {fmtT(hero.next.cut)} · trend {hero.trend.toFixed(1)}%/90d
+            </div>
+          </div>
+        </div>
+
+        <div style={{ borderLeft:'1px solid var(--line)', paddingLeft:20, display:'flex', flexDirection:'column', justifyContent:'space-between' }}>
+          <div>
+            <div className="kpi-label">SEASON TRAJECTORY</div>
+            <div style={{ marginTop:8 }}>
+              <Sparkline data={SWIM.trend['50 FR']} w={320} h={64} color={SWIM.strokes[hero.stroke].color} fill />
+            </div>
+            <div className="mono" style={{ fontSize:10, color:'var(--muted)', marginTop:2, display:'flex', justifyContent:'space-between' }}>
+              <span>12 wk ago · {fmtT(SWIM.trend['50 FR'][0])}</span>
+              <span>today · {fmtT(hero.pb)}</span>
+            </div>
+          </div>
+          <div style={{ paddingTop:10, marginTop:10, borderTop:'1px solid var(--line)' }}>
+            <div className="kpi-label">ON TRACK?</div>
+            <div style={{ display:'flex', alignItems:'baseline', gap:8, marginTop:2 }}>
+              <div className="mono" style={{ fontSize:18, color:'var(--good)', fontWeight:600 }}>YES</div>
+              <div className="mono" style={{ fontSize:11, color:'var(--muted)' }}>−0.040s/wk · ~16 wk to cut</div>
+            </div>
+          </div>
+        </div>
+
+        <div style={{ borderLeft:'1px solid var(--line)', paddingLeft:20 }}>
+          <div className="kpi-label">TIER LADDER</div>
+          <div style={{ marginTop:10 }}>
+            <TierLadderV2 tier={hero.tier} next={hero.next.tier} pb={hero.pb} nextCut={hero.next.cut} />
+          </div>
+          <div style={{ marginTop:14, fontSize:11 }}>
+            {[
+              ['Races this season','14'],
+              ['Sub-23 attempts','9 · 64%'],
+              ['PB rate','5 / 14'],
+              ['Last attempt','Apr 11 · 22.84'],
+            ].map(([k,v],i,arr) => (
+              <div key={k} style={{ display:'flex', justifyContent:'space-between', padding:'3px 0', borderBottom: i<arr.length-1 ? '1px dotted var(--line-strong)' : 'none' }}>
+                <span style={{ color:'var(--ink-2)' }}>{k}</span><span className="mono">{v}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* 6 event cards */}
+      <div style={{ display:'grid', gridTemplateColumns:'repeat(3, 1fr)', gap:10 }}>
+        {top6.map(e => (
+          <div key={e.ev} className="panel" style={{ padding:'11px 14px', cursor:'pointer' }} onClick={() => onEvent(e.ev)}>
+            <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+              <StrokeDot stroke={e.stroke} size={10} />
+              <div style={{ fontWeight:700, fontSize:13 }}>{e.ev}</div>
+              <div style={{ flex:1 }} />
+              <TierChip tier={e.tier} />
+              <span className="mono" style={{ fontSize:10, color:'var(--muted)' }}>→</span>
+              <TierChip tier={e.next.tier} size="sm" />
+            </div>
+            <div style={{ marginTop:9 }}>
+              <TierLadderV2 tier={e.tier} next={e.next.tier} pb={e.pb} nextCut={e.next.cut} />
+            </div>
+            <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr 60px', gap:8, marginTop:10, alignItems:'center' }}>
+              <div><div className="kpi-label">PB</div><div className="mono" style={{ fontSize:14 }}>{fmtT(e.pb)}</div></div>
+              <div><div className="kpi-label">GAP</div><div className="mono" style={{ fontSize:14, color:'var(--signal)', fontWeight:600 }}>−{e.next.gap.toFixed(2)}</div></div>
+              <div><div className="kpi-label">90d</div><div className="mono" style={{ fontSize:14, color: e.trend<0 ? 'var(--good)' : 'var(--signal)' }}>{e.trend.toFixed(1)}%</div></div>
+              {SWIM.trend[e.ev] ? <Sparkline data={SWIM.trend[e.ev]} color={SWIM.strokes[e.stroke].color} w={60} h={22} fill /> : <div />}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Longer horizon */}
+      <div className="panel">
+        <div style={{ padding:'9px 14px', borderBottom:'1px solid var(--line)', display:'flex', alignItems:'center' }}>
+          <div style={{ fontWeight:700, fontSize:12 }}>LONGER HORIZON</div>
+          <div className="mono muted" style={{ fontSize:10, marginLeft:8 }}>gaps &gt; 2.5s · click row for detail</div>
+        </div>
+        <table className="data">
+          <thead>
+            <tr><th>Event</th><th className="num">PB</th><th>Tier</th><th>Next</th><th className="num">Cut</th><th className="num">Gap</th><th className="num">Est. weeks</th><th>Trend</th></tr>
+          </thead>
+          <tbody>
+            {rest.map(e => {
+              const perWeek = Math.abs(e.trend) * e.pb / 100 / 12;
+              const weeks = e.trend < 0 && perWeek > 0 ? Math.ceil(e.next.gap / perWeek) : '—';
+              return (
+                <tr key={e.ev} style={{ cursor:'pointer' }} onClick={() => onEvent(e.ev)}>
+                  <td><StrokeDot stroke={e.stroke} />{e.ev}</td>
+                  <td className="num">{fmtT(e.pb)}</td>
+                  <td><TierChip tier={e.tier} size="sm" /></td>
+                  <td><TierChip tier={e.next.tier} size="sm" /></td>
+                  <td className="num muted">{fmtT(e.next.cut)}</td>
+                  <td className="num" style={{ color:'var(--signal)', fontWeight:600 }}>−{e.next.gap.toFixed(2)}</td>
+                  <td className="num mono">{weeks}</td>
+                  <td style={{ width:100 }}>{SWIM.trend[e.ev] ? <Sparkline data={SWIM.trend[e.ev]} color={SWIM.strokes[e.stroke].color} w={90} h={16} /> : <span className="mono muted">—</span>}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+};
+
+// ── Event Detail Drawer ──
+const EventDetail = ({ ev, onClose }) => {
+  const e = SWIM.events.find(x => x.ev === ev) || SWIM.events[0];
+  const stroke = SWIM.strokes[e.stroke];
+  const races = SWIM_EX.races50FR;
+  const best = Math.min(...races.map(r => r.t));
+  const worst = Math.max(...races.map(r => r.t));
+  const W = 680, H = 200, padL = 42, padR = 12, padT = 12, padB = 22;
+  const pts = races.map((r, i) => {
+    const x = padL + (i/(races.length-1))*(W-padL-padR);
+    const y = padT + ((r.t - best)/(worst - best))*(H-padT-padB);
+    return { x, y, r };
+  });
+  const dPath = 'M ' + pts.map(p => `${p.x},${p.y}`).join(' L ');
+  const tiersLines = [
+    { key:'A',   t: 23.19 },
+    { key:'AA',  t: 22.79 },
+    { key:'AAA', t: 22.19 },
+  ];
+
+  return (
+    <div style={{ position:'absolute', inset:0, background:'rgba(26,29,33,0.35)', display:'flex', justifyContent:'flex-end', zIndex:20, animation:'fadeIn .15s' }}>
+      <div style={{ width:760, background:'#fff', borderLeft:'1px solid var(--line-strong)', display:'flex', flexDirection:'column', animation:'slide .2s ease-out' }}>
+        <div style={{ padding:'12px 18px', borderBottom:'1px solid var(--line)', display:'flex', alignItems:'center', gap:10, flexShrink:0 }}>
+          <StrokeDot stroke={e.stroke} size={10} />
+          <div style={{ fontWeight:800, fontSize:18, letterSpacing:'-0.01em' }}>{e.ev}</div>
+          <div className="mono" style={{ fontSize:10, color:'var(--muted)' }}>SCY · {stroke.name}</div>
+          <div style={{ flex:1 }}/>
+          <button className="btn" onClick={onClose}>Close ✕</button>
+        </div>
+        <div style={{ flex:1, overflow:'auto', padding:18, display:'flex', flexDirection:'column', gap:14 }}>
+          {/* KPI row */}
+          <div style={{ display:'grid', gridTemplateColumns:'repeat(5, 1fr)', border:'1px solid var(--line)' }}>
+            {[
+              ['PB', fmtT(e.pb), 'var(--ink)'],
+              ['TIER', e.tier, stroke.color],
+              ['NEXT CUT', fmtT(e.next.cut), 'var(--muted)'],
+              ['GAP', '−'+e.next.gap.toFixed(2)+'s', 'var(--signal)'],
+              ['90d Δ', e.trend.toFixed(1)+'%', e.trend<0 ? 'var(--good)' : 'var(--signal)'],
+            ].map(([k,v,c],i) => (
+              <div key={k} style={{ padding:'10px 12px', borderRight: i<4 ? '1px solid var(--line)' : 'none' }}>
+                <div className="kpi-label">{k}</div>
+                <div className="mono" style={{ fontSize:18, color:c, fontWeight:500 }}>{v}</div>
+              </div>
+            ))}
+          </div>
+
+          {/* Chart */}
+          <div>
+            <div style={{ fontWeight:700, fontSize:12, marginBottom:6 }}>TIME PROGRESSION · {races.length} races</div>
+            <svg width="100%" viewBox={`0 0 ${W} ${H}`} style={{ border:'1px solid var(--line)' }}>
+              {tiersLines.map(l => {
+                const y = padT + ((l.t - best)/(worst - best))*(H-padT-padB);
+                const tier = SWIM.tiers.find(t => t.key === l.key);
+                return (
+                  <g key={l.key}>
+                    <line x1={padL} x2={W-padR} y1={y} y2={y} stroke={tier.color} strokeDasharray="3 3" strokeWidth="1"/>
+                    <text x={W-padR-3} y={y-3} textAnchor="end" fontFamily="var(--mono)" fontSize="9" fill={tier.color}>{l.key} {fmtT(l.t)}</text>
+                  </g>
+                );
+              })}
+              <path d={dPath} fill="none" stroke={stroke.color} strokeWidth="1.5"/>
+              {pts.map((p,i) => (
+                <g key={i}>
+                  <circle cx={p.x} cy={p.y} r={p.r.pb ? 4 : 2.5} fill={p.r.pb ? 'var(--signal)' : '#fff'} stroke={p.r.pb ? 'var(--signal)' : stroke.color} strokeWidth="1.5"/>
+                  {p.r.pb && <text x={p.x} y={p.y-7} textAnchor="middle" fontFamily="var(--mono)" fontSize="8.5" fill="var(--signal)">{p.r.t.toFixed(2)}</text>}
+                </g>
+              ))}
+              {pts.filter((_,i) => i%3===0).map((p,i) => (
+                <text key={i} x={p.x} y={H-6} textAnchor="middle" fontFamily="var(--mono)" fontSize="9" fill="#9AA1AC">{p.r.date.slice(5)}</text>
+              ))}
+            </svg>
+          </div>
+
+          {/* Splits */}
+          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:16 }}>
+            <div>
+              <div style={{ fontWeight:700, fontSize:12, marginBottom:6 }}>SPLIT ANALYSIS · last race</div>
+              {races[races.length-1].split.map((s,i) => (
+                <div key={i} style={{ display:'flex', justifyContent:'space-between', padding:'4px 0', borderBottom:'1px solid var(--line)', fontSize:12 }}>
+                  <span className="mono" style={{ color:'var(--muted)' }}>{i===0 ? 'Front' : 'Back'} 25m</span>
+                  <span className="mono" style={{ fontWeight:600 }}>{s.toFixed(2)}</span>
+                </div>
+              ))}
+              <div style={{ display:'flex', justifyContent:'space-between', padding:'6px 0', fontSize:12, fontWeight:700 }}>
+                <span>Total</span>
+                <span className="mono">{fmtT(races[races.length-1].t)}</span>
+              </div>
+            </div>
+            <div>
+              <div style={{ fontWeight:700, fontSize:12, marginBottom:6 }}>QUICK STATS</div>
+              {[
+                ['Season races', races.length],
+                ['PB swims', races.filter(r=>r.pb).length],
+                ['Best place', Math.min(...races.map(r=>r.place))],
+                ['Avg time', fmtT(races.reduce((s,r)=>s+r.t,0)/races.length)],
+                ['Improvement', `${(races[0].t - races[races.length-1].t).toFixed(2)}s`],
+              ].map(([k,v]) => (
+                <div key={k} style={{ display:'flex', justifyContent:'space-between', padding:'4px 0', borderBottom:'1px solid var(--line)', fontSize:12 }}>
+                  <span style={{ color:'var(--ink-2)' }}>{k}</span>
+                  <span className="mono">{v}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Race log */}
+          <div>
+            <div style={{ fontWeight:700, fontSize:12, marginBottom:4 }}>RACE LOG</div>
+            <table className="data">
+              <thead>
+                <tr><th>Date</th><th>Meet</th><th className="num">Time</th><th className="num">First 25</th><th className="num">Second 25</th><th>Tier</th><th className="num">Place</th><th>PB</th></tr>
+              </thead>
+              <tbody>
+                {races.slice().reverse().map((r,i) => (
+                  <tr key={i}>
+                    <td className="mono" style={{ fontSize:11 }}>{r.date}</td>
+                    <td>{r.meet}</td>
+                    <td className="num" style={{ fontWeight:600 }}>{r.t.toFixed(2)}</td>
+                    <td className="num muted">{r.split[0].toFixed(2)}</td>
+                    <td className="num muted">{r.split[1].toFixed(2)}</td>
+                    <td><TierChip tier={r.tier} size="sm"/></td>
+                    <td className="num">{r.place}</td>
+                    <td>{r.pb ? <span className="mono" style={{ color:'var(--signal)', fontSize:10, fontWeight:700 }}>PB</span> : ''}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ── Quick Lookup ──
+const QuickLookup = ({ onEvent }) => {
+  const [q, setQ] = uS('');
+  const list = uM(() => SWIM_EX.quickIndex.filter(e => !q || e.search.includes(q.toLowerCase())), [q]);
+  const [sel, setSel] = uS(list[0]?.ev);
+  uE(() => { if (list.length && !list.find(l => l.ev === sel)) setSel(list[0].ev); }, [list, sel]);
+  const e = SWIM.events.find(x => x.ev === sel);
+
+  return (
+    <div style={{ flex:1, overflow:'hidden', display:'grid', gridTemplateColumns:'300px 1fr', gap:1, background:'var(--line)' }}>
+      <div style={{ background:'#fff', display:'flex', flexDirection:'column' }}>
+        <div style={{ padding:10, borderBottom:'1px solid var(--line)' }}>
+          <input autoFocus value={q} onChange={ev => setQ(ev.target.value)} placeholder="50 fr · fly · 200 im…"
+            style={{ width:'100%', padding:'7px 9px', fontFamily:'var(--mono)', fontSize:12, border:'1px solid var(--line-strong)', outline:'none', background:'var(--panel-alt)' }}/>
+          <div className="mono muted" style={{ fontSize:9.5, marginTop:4 }}>{list.length} results</div>
+        </div>
+        <div style={{ flex:1, overflow:'auto' }}>
+          {list.map(x => (
+            <div key={x.ev} onClick={() => setSel(x.ev)} style={{
+              padding:'8px 12px', borderBottom:'1px solid var(--line)', cursor:'pointer',
+              background: sel === x.ev ? '#F5F6F7' : '#fff',
+              borderLeft: sel === x.ev ? '2px solid var(--signal)' : '2px solid transparent',
+            }}>
+              <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+                <StrokeDot stroke={x.stroke} size={7}/>
+                <span style={{ fontWeight:600, fontSize:12 }}>{x.ev}</span>
+                <div style={{ flex:1 }}/>
+                <TierChip tier={x.tier} size="sm"/>
+              </div>
+              <div className="mono" style={{ fontSize:10, color:'var(--muted)', marginTop:2, display:'flex', gap:10 }}>
+                <span>{fmtT(x.pb)}</span><span>→ {x.next.tier}</span><span style={{ color:'var(--signal)' }}>−{x.next.gap.toFixed(2)}s</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div style={{ background:'#fff', padding:20, overflow:'auto' }}>
+        {e && (
+          <div>
+            <div style={{ display:'flex', alignItems:'baseline', gap:10 }}>
+              <StrokeDot stroke={e.stroke} size={10}/>
+              <div style={{ fontWeight:800, fontSize:22 }}>{e.ev}</div>
+              <div className="mono muted" style={{ fontSize:11 }}>{SWIM.strokes[e.stroke].name} · SCY</div>
+              <div style={{ flex:1 }}/>
+              <button className="btn" onClick={() => onEvent(e.ev)}>Open detail ↗</button>
+            </div>
+            <div style={{ display:'grid', gridTemplateColumns:'2fr 1fr', gap:20, marginTop:16 }}>
+              <div>
+                <div className="kpi-label">GAP TO NEXT STANDARD</div>
+                <div style={{ display:'flex', alignItems:'baseline', gap:8, marginTop:4 }}>
+                  <div className="mono" style={{ fontSize:46, color:'var(--signal)', fontWeight:500, letterSpacing:'-0.02em' }}>−{e.next.gap.toFixed(2)}</div>
+                  <div className="mono" style={{ color:'var(--muted)' }}>s → {e.next.tier}</div>
+                </div>
+                <div style={{ marginTop:14 }}>
+                  <TierLadderV2 tier={e.tier} next={e.next.tier} pb={e.pb} nextCut={e.next.cut}/>
+                </div>
+                <div style={{ marginTop:18, display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:0, border:'1px solid var(--line)' }}>
+                  {[['PB',fmtT(e.pb)],['TIER',e.tier],['90d',e.trend.toFixed(1)+'%'],['COURSE','SCY']].map(([k,v],i) => (
+                    <div key={k} style={{ padding:'8px 10px', borderRight: i<3 ? '1px solid var(--line)' : 'none' }}>
+                      <div className="kpi-label">{k}</div><div className="mono" style={{ fontSize:15 }}>{v}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <div className="kpi-label">12-WEEK TREND</div>
+                {SWIM.trend[e.ev] ? <Sparkline data={SWIM.trend[e.ev]} w={260} h={80} color={SWIM.strokes[e.stroke].color} fill/> : <div className="mono muted" style={{ fontSize:11, marginTop:8 }}>no data</div>}
+                {SWIM.trend[e.ev] && <div className="mono muted" style={{ fontSize:10, marginTop:4, display:'flex', justifyContent:'space-between' }}>
+                  <span>{fmtT(SWIM.trend[e.ev][0])}</span><span>{fmtT(SWIM.trend[e.ev][SWIM.trend[e.ev].length-1])}</span>
+                </div>}
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+// ── Swim History ──
+const SwimHistory = () => {
+  const [filter, setFilter] = uS({ stroke:'ALL', pb:false, q:'' });
+  const rows = uM(() => SWIM_EX.history.filter(r => {
+    if (filter.stroke !== 'ALL' && strokeOf(r.event) !== filter.stroke) return false;
+    if (filter.pb && !r.pb) return false;
+    if (filter.q && !(r.event+r.meet).toLowerCase().includes(filter.q.toLowerCase())) return false;
+    return true;
+  }), [filter]);
+
+  return (
+    <div style={{ flex:1, overflow:'hidden', display:'flex', flexDirection:'column' }}>
+      <div style={{ padding:'10px 16px', borderBottom:'1px solid var(--line)', background:'#fff', display:'flex', alignItems:'center', gap:10, flexShrink:0 }}>
+        <input value={filter.q} onChange={e => setFilter({...filter, q:e.target.value})} placeholder="Filter by event or meet…"
+          style={{ width:240, padding:'5px 8px', fontFamily:'var(--mono)', fontSize:11, border:'1px solid var(--line-strong)', outline:'none', background:'var(--panel-alt)' }}/>
+        <div style={{ display:'flex', border:'1px solid var(--line-strong)' }}>
+          {['ALL','FR','BK','BR','FL','IM'].map((s,i,arr) => (
+            <button key={s} onClick={() => setFilter({...filter, stroke:s})}
+              className={'btn ' + (filter.stroke===s ? 'active' : '')}
+              style={{ border:'none', borderRight: i<arr.length-1 ? '1px solid var(--line-strong)' : 'none', borderRadius:0, padding:'4px 10px' }}>{s}</button>
+          ))}
+        </div>
+        <label style={{ display:'flex', alignItems:'center', gap:5, fontSize:11, color:'var(--ink-2)', cursor:'pointer', userSelect:'none' }}>
+          <input type="checkbox" checked={filter.pb} onChange={e => setFilter({...filter, pb:e.target.checked})}/>
+          PBs only
+        </label>
+        <div style={{ flex:1 }}/>
+        <div className="mono muted" style={{ fontSize:10 }}>{rows.length} of {SWIM_EX.history.length} swims</div>
+        <button className="btn">Export CSV</button>
+      </div>
+      <div style={{ flex:1, overflow:'auto', background:'#fff' }}>
+        <table className="data">
+          <thead>
+            <tr>
+              <th style={{ width:28 }}>#</th>
+              <th>Date</th>
+              <th>Meet</th>
+              <th>Event</th>
+              <th className="num">Time</th>
+              <th className="num">Place</th>
+              <th className="num">Heat</th>
+              <th>Course</th>
+              <th>Flag</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((r,i) => (
+              <tr key={r.id} style={{ background: r.pb ? '#FFF6F3' : undefined }}>
+                <td className="mono muted" style={{ fontSize:10 }}>{String(i+1).padStart(3,'0')}</td>
+                <td className="mono" style={{ fontSize:11 }}>{r.date}</td>
+                <td>{r.meet}</td>
+                <td><StrokeDot stroke={strokeOf(r.event)} size={6}/>{r.event}</td>
+                <td className="num" style={{ fontWeight: r.pb ? 700 : 500 }}>{fmtT(r.time)}</td>
+                <td className="num">{r.place}</td>
+                <td className="num muted">{r.heat}</td>
+                <td className="mono muted" style={{ fontSize:10 }}>{r.course}</td>
+                <td>{r.pb ? <span className="mono" style={{ color:'var(--signal)', fontSize:10, fontWeight:700 }}>PB</span> : ''}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+};
+
+// ── IMX Score ──
+const IMXScore = () => {
+  const imx = SWIM.imx;
+  const hist = SWIM_EX.imxHistory;
+  const W = 580, H = 140, padL = 40, padR = 10, padT = 10, padB = 22;
+  const maxS = 5000, minS = 2500;
+  const pts = hist.map((h,i) => ({
+    x: padL + (i/(hist.length-1))*(W-padL-padR),
+    y: padT + (1-(h.score-minS)/(maxS-minS))*(H-padT-padB),
+    h,
+  }));
+
+  return (
+    <div style={{ flex:1, overflow:'auto', padding:16, display:'flex', flexDirection:'column', gap:12 }}>
+      <div className="panel" style={{ padding:'18px 22px', display:'grid', gridTemplateColumns:'1fr 1.2fr', gap:28 }}>
+        <div>
+          <div className="kpi-label">IMX · 2025-26 SHORT COURSE YARDS</div>
+          <div style={{ display:'flex', alignItems:'baseline', gap:10, marginTop:6 }}>
+            <div className="mono" style={{ fontSize:72, fontWeight:500, letterSpacing:'-0.03em', lineHeight:1 }}>{imx.total.toLocaleString()}</div>
+            <div className="mono" style={{ fontSize:14, color:'var(--muted)' }}>/ {imx.max.toLocaleString()}</div>
+          </div>
+          <div className="mono" style={{ fontSize:11, color:'var(--muted)', marginTop:6 }}>
+            rank <span style={{ color:'var(--ink)', fontWeight:600 }}>{imx.rank.toLocaleString()}</span> of {imx.rankOf.toLocaleString()} · BOYS 15-16 · national
+          </div>
+          <div style={{ marginTop:14, position:'relative', height:16, background:'#F3F4F6', border:'1px solid var(--line)' }}>
+            <div style={{ position:'absolute', left:0, top:0, bottom:0, width:`${(imx.total/maxS)*100}%`, background:'linear-gradient(to right, #C97A4A, #B54A2E)' }}/>
+            {[1000,2000,3000,4000].map(v => (
+              <div key={v} style={{ position:'absolute', left:`${(v/maxS)*100}%`, top:-2, bottom:-2, width:1, background:'var(--line-strong)' }}/>
+            ))}
+          </div>
+          <div className="mono" style={{ display:'flex', justifyContent:'space-between', fontSize:9, color:'var(--muted)', marginTop:2 }}>
+            <span>0</span><span>1k</span><span>2k</span><span>3k</span><span>4k</span><span>5k</span>
+          </div>
+        </div>
+        <div style={{ borderLeft:'1px solid var(--line)', paddingLeft:28 }}>
+          <div className="kpi-label">HISTORY · last 5 seasons</div>
+          <svg width="100%" viewBox={`0 0 ${W} ${H}`} style={{ marginTop:6 }}>
+            {[2500,3000,3500,4000,4500].map(v => {
+              const y = padT + (1-(v-minS)/(maxS-minS))*(H-padT-padB);
+              return (
+                <g key={v}>
+                  <line x1={padL} x2={W-padR} y1={y} y2={y} stroke="#F0F1F4" strokeWidth="1"/>
+                  <text x={padL-4} y={y+3} textAnchor="end" fontFamily="var(--mono)" fontSize="9" fill="#9AA1AC">{v}</text>
+                </g>
+              );
+            })}
+            <path d={'M '+pts.map(p=>`${p.x},${p.y}`).join(' L ')} fill="none" stroke="var(--signal)" strokeWidth="1.8"/>
+            <path d={'M '+pts.map(p=>`${p.x},${p.y}`).join(' L ')+` L ${pts[pts.length-1].x},${H-padB} L ${pts[0].x},${H-padB} Z`} fill="var(--signal)" opacity="0.08"/>
+            {pts.map((p,i) => (
+              <g key={i}>
+                <circle cx={p.x} cy={p.y} r="3" fill="#fff" stroke="var(--signal)" strokeWidth="1.5"/>
+                <text x={p.x} y={p.y-7} textAnchor="middle" fontFamily="var(--mono)" fontSize="9" fill="var(--ink)">{p.h.score}</text>
+                <text x={p.x} y={H-6} textAnchor="middle" fontFamily="var(--mono)" fontSize="9" fill="#9AA1AC">{p.h.season.slice(0,7)}</text>
+              </g>
+            ))}
+          </svg>
+        </div>
+      </div>
+
+      <div className="panel">
+        <div style={{ padding:'10px 14px', borderBottom:'1px solid var(--line)', display:'flex', alignItems:'center' }}>
+          <div style={{ fontWeight:700, fontSize:12 }}>CONTRIBUTION BY EVENT</div>
+          <div className="mono muted" style={{ fontSize:10, marginLeft:8 }}>best score per IMX event · max 1000 each</div>
+        </div>
+        <div style={{ padding:'14px 16px', display:'flex', flexDirection:'column', gap:10 }}>
+          {imx.events.map(ev => {
+            const s = strokeOf(ev.ev);
+            return (
+              <div key={ev.ev} style={{ display:'grid', gridTemplateColumns:'100px 1fr 60px 48px', alignItems:'center', gap:12 }}>
+                <div style={{ fontSize:12, fontWeight:600 }}><StrokeDot stroke={s} size={7}/>{ev.ev}</div>
+                <div style={{ position:'relative', height:16, background:'#F3F4F6', border:'1px solid var(--line)' }}>
+                  <div style={{ position:'absolute', left:0, top:0, bottom:0, width:`${(ev.pts/1000)*100}%`, background:SWIM.strokes[s].color, opacity:0.85 }}/>
+                  {[250,500,750].map(v => <div key={v} style={{ position:'absolute', left:`${v/10}%`, top:-1, bottom:-1, width:1, background:'rgba(255,255,255,0.6)' }}/>)}
+                </div>
+                <div className="mono" style={{ fontSize:14, textAlign:'right', fontWeight:600 }}>{ev.pts}</div>
+                <div className="mono muted" style={{ fontSize:10, textAlign:'right' }}>{((ev.pts/1000)*100).toFixed(0)}%</div>
+              </div>
+            );
+          })}
+          <div style={{ display:'grid', gridTemplateColumns:'100px 1fr 60px 48px', alignItems:'center', gap:12, marginTop:4, paddingTop:10, borderTop:'1px solid var(--line)' }}>
+            <div style={{ fontSize:12, fontWeight:700 }}>TOTAL</div>
+            <div/>
+            <div className="mono" style={{ fontSize:16, textAlign:'right', fontWeight:700, color:'var(--signal)' }}>{imx.total}</div>
+            <div className="mono muted" style={{ fontSize:10, textAlign:'right' }}>{((imx.total/5000)*100).toFixed(0)}%</div>
+          </div>
+        </div>
+      </div>
+
+      <div className="panel" style={{ padding:'14px 18px' }}>
+        <div style={{ fontWeight:700, fontSize:12, marginBottom:10 }}>SEASON-OVER-SEASON RANK</div>
+        <div style={{ display:'grid', gridTemplateColumns:'repeat(5,1fr)', gap:1, background:'var(--line)' }}>
+          {hist.map(h => (
+            <div key={h.season} style={{ background:'#fff', padding:'10px 12px', textAlign:'center' }}>
+              <div className="mono" style={{ fontSize:9, color:'var(--muted)' }}>{h.season}</div>
+              <div className="mono" style={{ fontSize:18, fontWeight:600, marginTop:4 }}>{h.score.toLocaleString()}</div>
+              <div className="mono" style={{ fontSize:10, color:'var(--muted)', marginTop:2 }}>#{h.rank.toLocaleString()}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ── Placeholder tabs ──
+const PlaceholderTab = ({ name }) => (
+  <div style={{ flex:1, display:'flex', alignItems:'center', justifyContent:'center' }}>
+    <div style={{ textAlign:'center' }}>
+      <div className="mono" style={{ fontSize:10, letterSpacing:'0.14em', color:'var(--muted)' }}>TAB</div>
+      <div style={{ fontWeight:800, fontSize:28, marginTop:4 }}>{name}</div>
+      <div className="mono muted" style={{ fontSize:11, marginTop:8, lineHeight:1.6 }}>Coming in the next iteration.</div>
+    </div>
+  </div>
+);
+
+// ── Shell ──
+const Shell = () => {
+  const [tab, setTab] = uS('Stroke Overview');
+  const [openEv, setOpenEv] = uS(null);
+  return (
+    <div style={{ width:'100%', flex:1, background:'var(--bg)', display:'flex', fontFamily:'var(--sans)', position:'relative', overflow:'hidden' }}>
+      <SideNavV2 active={tab} onSelect={t => { setTab(t); setOpenEv(null); }}/>
+      <div style={{ flex:1, display:'flex', flexDirection:'column', overflow:'hidden' }}>
+        <TopBar title={tab} />
+        {tab === 'Stroke Overview' && <StrokeOverviewV2 onEvent={setOpenEv}/>}
+        {tab === 'Quick Lookup'    && <QuickLookup onEvent={setOpenEv}/>}
+        {tab === 'Swim History'    && <SwimHistory/>}
+        {tab === 'IMX Score'       && <IMXScore/>}
+        {!['Stroke Overview','Quick Lookup','Swim History','IMX Score'].includes(tab) && <PlaceholderTab name={tab}/>}
+      </div>
+      {openEv && <EventDetail ev={openEv} onClose={() => setOpenEv(null)}/>}
+    </div>
+  );
+};
+
+window.Shell = Shell;
+</script>
+
+<!-- ══════════════════════════════════════════
+     MOBILE SUITE — 4 phone frames
+     ══════════════════════════════════════════ -->
+<script type="text/babel">
+const { useState: mS } = React;
+
+const MobileFrame = ({ label, children }) => (
+  <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+    <div className="mono" style={{ fontSize:10, color:'var(--muted)', letterSpacing:'0.1em', textTransform:'uppercase' }}>{label}</div>
+    <div style={{ width:360, height:760, background:'var(--bg)', fontFamily:'var(--sans)', display:'flex', flexDirection:'column', overflow:'hidden', border:'1px solid var(--line-strong)', borderRadius:28, padding:8, boxShadow:'0 4px 24px rgba(26,29,33,0.08)' }}>
+      <div style={{ flex:1, background:'#fff', borderRadius:22, overflow:'hidden', display:'flex', flexDirection:'column' }}>{children}</div>
+    </div>
+  </div>
+);
+const MStatus = () => (
+  <div style={{ height:36, display:'flex', alignItems:'center', justifyContent:'space-between', padding:'0 18px', flexShrink:0 }}>
+    <div className="mono" style={{ fontSize:12, fontWeight:700 }}>9:41</div>
+    <div className="mono" style={{ fontSize:10, color:'var(--muted)' }}>●●●●● 5G</div>
+  </div>
+);
+const MHeader = ({ title }) => (
+  <div style={{ padding:'6px 14px 10px', borderBottom:'1px solid var(--line)', flexShrink:0 }}>
+    <div className="mono" style={{ fontSize:9, color:'var(--muted)', letterSpacing:'0.14em' }}>SWIMTRACKER · SCY</div>
+    <div style={{ fontWeight:800, fontSize:18, marginTop:2, letterSpacing:'-0.01em' }}>{title}</div>
+  </div>
+);
+const MTabBar = ({ active = 'Strokes' }) => (
+  <div style={{ height:52, background:'#fff', borderTop:'1px solid var(--line)', display:'grid', gridTemplateColumns:'repeat(5,1fr)', padding:'4px 0', flexShrink:0 }}>
+    {['Strokes','Search','History','IMX','Goals'].map(t => (
+      <div key={t} style={{ display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:2, color: t===active ? 'var(--signal)' : 'var(--muted)' }}>
+        <div style={{ width:16, height:16, background: t===active ? 'var(--signal)' : 'var(--muted-2)', opacity: t===active ? 1 : 0.4, borderRadius:2 }}/>
+        <div style={{ fontSize:9, fontWeight: t===active ? 700 : 500 }}>{t}</div>
+      </div>
+    ))}
+  </div>
+);
+
+const MOverview = () => {
+  const priority = [...SWIM.events].sort((a,b) => a.next.gap - b.next.gap);
+  const hero = priority[0];
+  const TierLadderMobile = ({ tier, next, pb, nextCut }) => {
+    const idx = SWIM.tierIdx(tier);
+    const nextIdx = idx + 1;
+    return (
+      <div style={{ display:'flex', flexDirection:'column', gap:3 }}>
+        <div style={{ display:'flex', height:12, border:'1px solid var(--line)', position:'relative' }}>
+          {SWIM.tiers.map((t, i) => (
+            <div key={t.key} style={{ flex:1, background: i <= idx ? t.color : (i===nextIdx ? `${t.color}44` : '#F3F4F6'), borderRight: i < SWIM.tiers.length-1 ? '1px solid #fff' : 'none' }} />
+          ))}
+          <div style={{ position:'absolute', left:`${((idx+1)/SWIM.tiers.length)*100 - 1}%`, top:-2, bottom:-2, width:2, background:'var(--ink)' }} />
+        </div>
+        <div style={{ display:'flex', justifyContent:'space-between', fontFamily:'var(--mono)', fontSize:9, color:'var(--muted)' }}>
+          <span>{fmtT(pb)}</span><span style={{ color:'var(--signal)' }}>→ {fmtT(nextCut)}</span>
+        </div>
+      </div>
+    );
+  };
+  return (
+    <MobileFrame label="01 · Stroke Overview">
+      <MStatus/>
+      <MHeader title="Stroke Overview"/>
+      <div style={{ flex:1, overflow:'auto', padding:10, display:'flex', flexDirection:'column', gap:8 }}>
+        <div className="panel" style={{ padding:'12px 14px' }}>
+          <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+            <StrokeDot stroke={hero.stroke} size={8}/>
+            <div style={{ fontWeight:700, fontSize:13 }}>{hero.ev}</div>
+            <div style={{ flex:1 }}/>
+            <TierChip tier={hero.tier} size="sm"/><span className="mono muted" style={{ fontSize:10 }}>→</span><TierChip tier={hero.next.tier}/>
+          </div>
+          <div className="kpi-label" style={{ marginTop:8 }}>NEXT CUT</div>
+          <div style={{ display:'flex', alignItems:'baseline', gap:4, marginTop:2 }}>
+            <div className="mono" style={{ fontSize:48, fontWeight:500, letterSpacing:'-0.03em', lineHeight:1, color:'var(--signal)' }}>−{hero.next.gap.toFixed(2)}</div>
+            <div className="mono" style={{ fontSize:13, color:'var(--muted)' }}>s</div>
+          </div>
+          <div className="mono" style={{ fontSize:10, color:'var(--muted)', marginTop:4 }}>PB {fmtT(hero.pb)} · cut {fmtT(hero.next.cut)}</div>
+          <div style={{ marginTop:10 }}><TierLadderMobile tier={hero.tier} next={hero.next.tier} pb={hero.pb} nextCut={hero.next.cut}/></div>
+        </div>
+        {priority.slice(1,6).map(e => {
+          const pct = Math.max(5, Math.min(95, 100 - (e.next.gap / (e.pb * 0.04)) * 100));
+          return (
+            <div key={e.ev} className="panel" style={{ padding:'9px 12px' }}>
+              <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+                <StrokeDot stroke={e.stroke} size={7}/>
+                <div style={{ fontWeight:600, fontSize:12 }}>{e.ev}</div>
+                <TierChip tier={e.tier} size="sm"/>
+                <div style={{ flex:1 }}/>
+                <div className="mono" style={{ fontSize:13, color:'var(--signal)', fontWeight:600 }}>−{e.next.gap.toFixed(2)}</div>
+              </div>
+              <div style={{ display:'flex', alignItems:'center', gap:8, marginTop:6 }}>
+                <div style={{ flex:1, position:'relative', height:5, background:'#EEF0F3' }}>
+                  <div style={{ position:'absolute', left:0, top:0, bottom:0, width:`${pct}%`, background: SWIM.strokes[e.stroke].color }}/>
+                </div>
+                <div className="mono" style={{ fontSize:10, color:'var(--muted)' }}>{fmtT(e.pb)}</div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      <MTabBar active="Strokes"/>
+    </MobileFrame>
+  );
+};
+
+const MEventDetail = () => {
+  const e = SWIM.events[0];
+  const races = SWIM_EX.races50FR.slice(-8);
+  const best = Math.min(...races.map(r => r.t));
+  const worst = Math.max(...races.map(r => r.t));
+  const W=320,H=100,padL=28,padR=6,padT=8,padB=20;
+  return (
+    <MobileFrame label="02 · Event Detail">
+      <MStatus/>
+      <div style={{ padding:'6px 14px 10px', borderBottom:'1px solid var(--line)', flexShrink:0 }}>
+        <div className="mono" style={{ fontSize:10, color:'var(--signal)' }}>← Stroke Overview</div>
+        <div style={{ display:'flex', alignItems:'baseline', gap:8, marginTop:2 }}>
+          <StrokeDot stroke={e.stroke} size={9}/>
+          <div style={{ fontWeight:800, fontSize:20 }}>{e.ev}</div>
+          <div className="mono muted" style={{ fontSize:11 }}>SCY</div>
+        </div>
+      </div>
+      <div style={{ flex:1, overflow:'auto', padding:10, display:'flex', flexDirection:'column', gap:10 }}>
+        <div className="panel" style={{ padding:'10px 12px' }}>
+          <div className="kpi-label">CURRENT PB</div>
+          <div style={{ display:'flex', alignItems:'baseline', gap:8 }}>
+            <div className="mono" style={{ fontSize:36, fontWeight:500, letterSpacing:'-0.02em', lineHeight:1 }}>{fmtT(e.pb)}</div>
+            <TierChip tier={e.tier}/>
+          </div>
+          <div className="mono muted" style={{ fontSize:10, marginTop:2 }}>Apr 11 · Spring Champs</div>
+          <div style={{ marginTop:10, display:'flex', flexDirection:'column', gap:3 }}>
+            <div style={{ display:'flex', height:12, border:'1px solid var(--line)', position:'relative' }}>
+              {SWIM.tiers.map((t, i) => {
+                const idx = SWIM.tierIdx(e.tier);
+                return <div key={t.key} style={{ flex:1, background: i<=idx ? t.color : '#F3F4F6', borderRight: i<SWIM.tiers.length-1 ? '1px solid #fff':'' }}/>;
+              })}
+            </div>
+            <div className="mono" style={{ fontSize:9, color:'var(--muted)', display:'flex', justifyContent:'space-between' }}>
+              <span>{fmtT(e.pb)}</span><span style={{color:'var(--signal)'}}>→ {fmtT(e.next.cut)}</span>
+            </div>
+          </div>
+        </div>
+        <div className="panel" style={{ padding:'10px 12px' }}>
+          <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+            <div style={{ fontWeight:700, fontSize:11 }}>PROGRESSION</div>
+            <div className="mono muted" style={{ fontSize:9 }}>last 8 races</div>
+          </div>
+          <svg width="100%" viewBox={`0 0 ${W} ${H}`} style={{ marginTop:4 }}>
+            {[{k:'AA',t:22.79},{k:'AAA',t:22.19}].map(l => {
+              const y = padT + ((l.t-best)/(worst-best+0.01))*(H-padT-padB);
+              const tier = SWIM.tiers.find(t=>t.key===l.k);
+              return (<g key={l.k}>
+                <line x1={padL} x2={W-padR} y1={y} y2={y} stroke={tier.color} strokeDasharray="2 2"/>
+                <text x={W-padR-2} y={y-2} textAnchor="end" fontFamily="var(--mono)" fontSize="8" fill={tier.color}>{l.k}</text>
+              </g>);
+            })}
+            {races.map((r,i,arr) => {
+              const x = padL + (i/(arr.length-1))*(W-padL-padR);
+              const y = padT + ((r.t-best)/(worst-best+0.01))*(H-padT-padB);
+              const prev = i>0 ? arr[i-1] : null;
+              const px = prev ? padL + ((i-1)/(arr.length-1))*(W-padL-padR) : null;
+              const py = prev ? padT + ((prev.t-best)/(worst-best+0.01))*(H-padT-padB) : null;
+              return (<g key={i}>
+                {prev && <line x1={px} y1={py} x2={x} y2={y} stroke={SWIM.strokes.FR.color} strokeWidth="1.3"/>}
+                <circle cx={x} cy={y} r={r.pb ? 3 : 2} fill={r.pb ? 'var(--signal)' : '#fff'} stroke={r.pb ? 'var(--signal)' : SWIM.strokes.FR.color} strokeWidth="1.3"/>
+              </g>);
+            })}
+          </svg>
+        </div>
+        <div className="panel">
+          <div style={{ padding:'8px 12px', borderBottom:'1px solid var(--line)', fontWeight:700, fontSize:11 }}>RECENT RACES</div>
+          {races.slice().reverse().slice(0,5).map((r,i) => (
+            <div key={i} style={{ padding:'7px 12px', borderBottom: i<4 ? '1px solid var(--line)' : 'none', display:'grid', gridTemplateColumns:'60px 1fr 48px 28px', alignItems:'center', gap:6 }}>
+              <div className="mono" style={{ fontSize:10, color:'var(--muted)' }}>{r.date.slice(5)}</div>
+              <div style={{ fontSize:11 }}>{r.meet}</div>
+              <div className="mono" style={{ fontSize:12, fontWeight:600, textAlign:'right' }}>{r.t.toFixed(2)}</div>
+              <div style={{ textAlign:'right' }}>{r.pb && <span className="mono" style={{ color:'var(--signal)', fontSize:9, fontWeight:700 }}>PB</span>}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+      <MTabBar active="Strokes"/>
+    </MobileFrame>
+  );
+};
+
+const MIMX = () => (
+  <MobileFrame label="03 · IMX Score">
+    <MStatus/>
+    <MHeader title="IMX Score"/>
+    <div style={{ flex:1, overflow:'auto', padding:10, display:'flex', flexDirection:'column', gap:10 }}>
+      <div className="panel" style={{ padding:'14px 14px' }}>
+        <div className="kpi-label">2025-26 SCY</div>
+        <div style={{ display:'flex', alignItems:'baseline', gap:6, marginTop:4 }}>
+          <div className="mono" style={{ fontSize:56, fontWeight:500, letterSpacing:'-0.03em', lineHeight:1 }}>{SWIM.imx.total.toLocaleString()}</div>
+          <div className="mono" style={{ fontSize:13, color:'var(--muted)' }}>/ 5000</div>
+        </div>
+        <div className="mono muted" style={{ fontSize:10, marginTop:4 }}>rank {SWIM.imx.rank.toLocaleString()} of {SWIM.imx.rankOf.toLocaleString()} · national</div>
+        <div style={{ marginTop:12, position:'relative', height:12, background:'#F3F4F6', border:'1px solid var(--line)' }}>
+          <div style={{ position:'absolute', left:0, top:0, bottom:0, width:`${(SWIM.imx.total/5000)*100}%`, background:'linear-gradient(to right, #C97A4A, #B54A2E)' }}/>
+        </div>
+        <div className="mono" style={{ display:'flex', justifyContent:'space-between', fontSize:9, color:'var(--muted)', marginTop:2 }}>
+          <span>0</span><span>1k</span><span>2k</span><span>3k</span><span>4k</span><span>5k</span>
+        </div>
+      </div>
+      <div className="panel">
+        <div style={{ padding:'8px 12px', borderBottom:'1px solid var(--line)', fontWeight:700, fontSize:11 }}>CONTRIBUTION</div>
+        <div style={{ padding:'10px 12px', display:'flex', flexDirection:'column', gap:8 }}>
+          {SWIM.imx.events.map(ev => {
+            const sk = strokeOf(ev.ev);
+            return (
+              <div key={ev.ev} style={{ display:'grid', gridTemplateColumns:'64px 1fr 38px', alignItems:'center', gap:8 }}>
+                <div style={{ fontSize:11, fontWeight:600 }}><StrokeDot stroke={sk} size={6}/>{ev.ev}</div>
+                <div style={{ position:'relative', height:10, background:'#F3F4F6' }}>
+                  <div style={{ position:'absolute', left:0, top:0, bottom:0, width:`${(ev.pts/1000)*100}%`, background:SWIM.strokes[sk].color, opacity:0.85 }}/>
+                </div>
+                <div className="mono" style={{ fontSize:11, textAlign:'right', fontWeight:600 }}>{ev.pts}</div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+      <div className="panel" style={{ padding:'10px 12px' }}>
+        <div className="kpi-label">5-SEASON TREND</div>
+        <Sparkline data={SWIM_EX.imxHistory.map(h => -h.score)} w={320} h={48} color="var(--signal)" fill/>
+        <div className="mono muted" style={{ fontSize:9, marginTop:4, display:'flex', justifyContent:'space-between' }}>
+          <span>2023-24 · 2680</span><span>now · 3,482</span>
+        </div>
+      </div>
+    </div>
+    <MTabBar active="IMX"/>
+  </MobileFrame>
+);
+
+const MHistory = () => {
+  const rows = SWIM_EX.history.slice(0, 14);
+  return (
+    <MobileFrame label="04 · Swim History">
+      <MStatus/>
+      <MHeader title="Swim History"/>
+      <div style={{ padding:'8px 10px', borderBottom:'1px solid var(--line)', display:'flex', gap:4, overflowX:'auto', flexShrink:0 }}>
+        {['ALL','FR','BK','BR','FL','IM','PBs'].map(s => (
+          <button key={s} className={'btn '+(s==='ALL'?'active':'')} style={{ padding:'3px 10px', fontSize:10, whiteSpace:'nowrap' }}>{s}</button>
+        ))}
+      </div>
+      <div style={{ flex:1, overflow:'auto' }}>
+        {rows.map((r,i) => (
+          <div key={r.id} style={{ padding:'8px 12px', borderBottom:'1px solid var(--line)', background: r.pb ? '#FFF6F3' : '#fff', display:'grid', gridTemplateColumns:'1fr 60px', gap:4 }}>
+            <div>
+              <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+                <StrokeDot stroke={strokeOf(r.event)} size={6}/>
+                <div style={{ fontWeight:600, fontSize:12 }}>{r.event}</div>
+                {r.pb && <span className="mono" style={{ color:'var(--signal)', fontSize:9, fontWeight:700 }}>PB</span>}
+              </div>
+              <div className="mono" style={{ fontSize:10, color:'var(--muted)', marginTop:2 }}>{r.date} · {r.meet}</div>
+            </div>
+            <div style={{ textAlign:'right' }}>
+              <div className="mono" style={{ fontSize:14, fontWeight: r.pb ? 700 : 500 }}>{fmtT(r.time)}</div>
+              <div className="mono" style={{ fontSize:9, color:'var(--muted)' }}>pl {r.place}</div>
+            </div>
+          </div>
+        ))}
+      </div>
+      <MTabBar active="History"/>
+    </MobileFrame>
+  );
+};
+
+const MobileSuite = () => (
+  <div style={{ padding:28, background:'var(--bg)', display:'flex', gap:24, flexWrap:'wrap', minHeight:'100%' }}>
+    <MOverview/>
+    <MEventDetail/>
+    <MIMX/>
+    <MHistory/>
+  </div>
+);
+
+window.MobileSuite = MobileSuite;
+</script>
+
+<!-- ══════════════════════════════════════════
+     APP ENTRY POINT — view toggle
+     ══════════════════════════════════════════ -->
+<script type="text/babel">
+const App = () => {
+  const [view, setView] = React.useState('desktop');
+  return (
+    <div style={{ height:'100vh', display:'flex', flexDirection:'column', background:'var(--bg)' }}>
+      {/* App chrome — view switcher */}
+      <div style={{ flexShrink:0, height:40, background:'var(--ink)', display:'flex', alignItems:'center', gap:0, padding:'0 14px', borderBottom:'1px solid var(--signal-2)' }}>
+        <div style={{ fontFamily:'var(--mono)', fontSize:11, color:'rgba(255,255,255,0.5)', letterSpacing:'0.14em', marginRight:16 }}>SWIMTRACKER</div>
+        <div style={{ color:'rgba(255,255,255,0.9)', fontWeight:700, fontSize:12, marginRight:'auto' }}>Jack Kirby · 2025–26 SC</div>
+        <div style={{ display:'flex', gap:0, border:'1px solid rgba(255,255,255,0.2)' }}>
+          {[['desktop','Desktop'],['mobile','Mobile']].map(([key,label]) => (
+            <button key={key} onClick={() => setView(key)}
+              style={{ border:'none', borderRight: key==='desktop' ? '1px solid rgba(255,255,255,0.2)' : 'none', padding:'0 14px', height:28, cursor:'pointer', fontFamily:'var(--sans)', fontSize:11, fontWeight: view===key ? 700 : 400,
+                background: view===key ? 'rgba(255,255,255,0.15)' : 'transparent',
+                color: view===key ? '#fff' : 'rgba(255,255,255,0.55)',
+              }}>{label}</button>
+          ))}
+        </div>
+      </div>
+
+      {/* Content */}
+      {view === 'desktop'
+        ? <Shell />
+        : <div style={{ flex:1, overflow:'auto' }}><MobileSuite /></div>
+      }
+    </div>
+  );
+};
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>
