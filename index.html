@@ -1,0 +1,1012 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<title>Swim Tracker</title>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet"/>
+<style>
+:root {
+  --bg:#FAFAFA;--panel:#FFFFFF;--panel-alt:#F5F6F7;--line:#E4E6EA;
+  --line-strong:#CDD1D7;--ink:#1A1D21;--ink-2:#3D434B;--muted:#6B7280;
+  --muted-2:#9AA1AC;--signal:#B54A2E;--signal-2:#8B2817;--good:#2F7A4D;
+  --sans:'Inter',-apple-system,system-ui,sans-serif;
+  --mono:'IBM Plex Mono',ui-monospace,'SF Mono',Menlo,monospace;
+}
+*{box-sizing:border-box}
+html,body{margin:0;font-family:var(--sans);color:var(--ink);background:var(--bg);height:100%}
+body{font-size:13px;-webkit-font-smoothing:antialiased}
+#root{height:100vh;display:flex;flex-direction:column}
+.mono{font-family:var(--mono);font-variant-numeric:tabular-nums;letter-spacing:-0.01em}
+.panel{background:var(--panel);border:1px solid var(--line)}
+.muted{color:var(--muted)}
+.kpi-label{font-size:9.5px;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);font-weight:600}
+.tier-chip{display:inline-flex;align-items:center;justify-content:center;font-family:var(--mono);font-weight:600;font-size:10px;padding:1px 5px;line-height:1.3;letter-spacing:0.02em}
+.btn{font:11px var(--sans);color:var(--ink-2);background:var(--panel);border:1px solid var(--line-strong);padding:4px 9px;cursor:pointer}
+.btn:hover{background:var(--panel-alt)}
+.btn.active{background:var(--ink);color:#fff;border-color:var(--ink)}
+::-webkit-scrollbar{width:8px;height:8px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--line-strong)}
+::-webkit-scrollbar-thumb:hover{background:var(--muted-2)}
+table.data{width:100%;border-collapse:collapse}
+table.data th{font-size:9.5px;text-transform:uppercase;letter-spacing:0.06em;color:var(--muted);font-weight:600;text-align:left;padding:6px 8px;border-bottom:1px solid var(--line);background:var(--panel-alt);position:sticky;top:0;z-index:1}
+table.data td{font-size:12px;padding:5px 8px;border-bottom:1px solid var(--line)}
+table.data tr:hover td{background:#FCFCFD}
+table.data td.num,table.data th.num{text-align:right;font-family:var(--mono);font-variant-numeric:tabular-nums}
+@keyframes slide{from{transform:translateX(30px);opacity:0}to{transform:translateX(0);opacity:1}}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+<script type="text/babel">
+const { useState, useEffect, useMemo, useContext, createContext } = React;
+
+// ─── Formatters ───────────────────────────────────────────────────────────────
+const fmtT = (s) => {
+  if (s == null || s === '') return '—';
+  s = parseFloat(s);
+  if (isNaN(s)) return '—';
+  if (s < 60) return s.toFixed(2);
+  const m = Math.floor(s / 60);
+  return `${m}:${(s - m * 60).toFixed(2).padStart(5, '0')}`;
+};
+const fmtDate = (d) => d ? d.slice(0, 7) : '—';
+
+// ─── Data context ─────────────────────────────────────────────────────────────
+const DataCtx = createContext(null);
+const useData = () => useContext(DataCtx);
+
+// ─── Shared atoms ─────────────────────────────────────────────────────────────
+const TierChip = ({ tier, size = 'md' }) => {
+  const SD = useData();
+  const t = SD.tiers.find(x => x.key === tier);
+  if (!t) return null;
+  const sz = { sm:{fs:9,pad:'0 4px',h:13}, md:{fs:10,pad:'1px 5px',h:15}, lg:{fs:12,pad:'2px 7px',h:19} }[size];
+  return <span className="tier-chip" style={{background:t.color,color:t.fg,fontSize:sz.fs,padding:sz.pad,height:sz.h,minWidth:sz.h+4}}>{t.label}</span>;
+};
+
+const StrokeDot = ({ stroke, size = 8 }) => {
+  const SD = useData();
+  const s = SD.strokes[stroke];
+  if (!s) return null;
+  return <span style={{display:'inline-block',width:size,height:size,background:s.color,verticalAlign:'middle',marginRight:6,borderRadius:1}}/>;
+};
+
+const Sparkline = ({ data, w=80, h=22, color='#1A1D21', fill=false }) => {
+  if (!data || data.length < 2) return null;
+  const min = Math.min(...data), max = Math.max(...data), rng = max - min || 0.01;
+  const pts = data.map((v,i) => [
+    (i/(data.length-1))*(w-2)+1,
+    h-2-((max-v)/rng)*(h-4)+1
+  ]);
+  const d = 'M '+pts.map(p=>p.join(',')).join(' L ');
+  return (
+    <svg width={w} height={h} style={{display:'block'}}>
+      {fill && <path d={d+` L ${w-1},${h-1} L 1,${h-1} Z`} fill={color} opacity="0.10"/>}
+      <path d={d} fill="none" stroke={color} strokeWidth="1.25"/>
+      <circle cx={pts[pts.length-1][0]} cy={pts[pts.length-1][1]} r="1.75" fill={color}/>
+    </svg>
+  );
+};
+
+const TierLadderV2 = ({ tier, pb, nextCut, width='100%' }) => {
+  const SD = useData();
+  const idx = SD.tiers.findIndex(t => t.key === tier);
+  return (
+    <div style={{width,display:'flex',flexDirection:'column',gap:3}}>
+      <div style={{display:'flex',height:14,border:'1px solid var(--line)',position:'relative'}}>
+        {SD.tiers.map((t,i) => (
+          <div key={t.key} style={{
+            flex:1,
+            background: i<=idx ? t.color : (i===idx+1 ? `${t.color}44` : '#F3F4F6'),
+            borderRight: i<SD.tiers.length-1 ? '1px solid #fff' : 'none',
+            position:'relative',
+          }}>
+            {i<=idx && <div style={{position:'absolute',inset:0,display:'flex',alignItems:'center',justifyContent:'center',color:t.fg,fontSize:9,fontFamily:'var(--mono)',fontWeight:700}}>{t.label}</div>}
+            {i===idx+1 && <div style={{position:'absolute',inset:0,display:'flex',alignItems:'center',justifyContent:'center',color:'var(--signal)',fontSize:9,fontFamily:'var(--mono)',fontWeight:700}}>{t.label}</div>}
+          </div>
+        ))}
+        {idx >= 0 && <div style={{position:'absolute',left:`${((idx+1)/SD.tiers.length)*100-1}%`,top:-3,bottom:-3,width:2,background:'var(--ink)'}}/>}
+      </div>
+      <div style={{display:'flex',justifyContent:'space-between',fontFamily:'var(--mono)',fontSize:9,color:'var(--muted)'}}>
+        <span>PB <span style={{color:'var(--ink)'}}>{fmtT(pb)}</span></span>
+        {nextCut && <span>next <span style={{color:'var(--signal)'}}>{fmtT(nextCut)}</span></span>}
+      </div>
+    </div>
+  );
+};
+
+const strokeOf = ev => {
+  if (!ev) return 'FR';
+  if (ev.includes('IM'))  return 'IM';
+  if (ev.includes('FL'))  return 'FL';
+  if (ev.includes('BK'))  return 'BK';
+  if (ev.includes('BR'))  return 'BR';
+  return 'FR';
+};
+
+// ─── Navigation ───────────────────────────────────────────────────────────────
+const TABS = ['Stroke Overview','Quick Lookup','Swim History','Deep Analytics','IMX Score','Goals','Data Guide','Settings'];
+
+const SideNav = ({ active, onSelect }) => {
+  const SD = useData();
+  return (
+    <aside style={{width:186,background:'#fff',borderRight:'1px solid var(--line)',display:'flex',flexDirection:'column',fontSize:12,flexShrink:0}}>
+      <div style={{padding:'14px 14px 10px',borderBottom:'1px solid var(--line)'}}>
+        <div style={{fontFamily:'var(--mono)',fontSize:10,color:'var(--muted)',letterSpacing:'0.14em'}}>SWIMTRACKER</div>
+        <div style={{fontWeight:700,fontSize:14,letterSpacing:'-0.01em',marginTop:2}}>{SD.athlete.name}</div>
+        <div className="mono" style={{fontSize:10,color:'var(--muted)',marginTop:2}}>{SD.athlete.age}yo · {SD.athlete.lsc} · {SD.athlete.team.split(' ')[0]}</div>
+      </div>
+      <nav style={{padding:'6px 0',flex:1,overflowY:'auto'}}>
+        {TABS.map(label => (
+          <div key={label} onClick={()=>onSelect(label)} style={{
+            padding:'6px 14px',cursor:'pointer',
+            background: label===active ? '#F5F6F7' : 'transparent',
+            borderLeft: label===active ? '2px solid var(--signal)' : '2px solid transparent',
+            color: label===active ? 'var(--ink)' : 'var(--ink-2)',
+            fontWeight: label===active ? 600 : 400,
+          }}>{label}</div>
+        ))}
+      </nav>
+      <div style={{padding:'10px 14px',borderTop:'1px solid var(--line)',fontSize:10,color:'var(--muted)'}}>
+        <div style={{display:'flex',justifyContent:'space-between'}}><span>Season</span><span className="mono">{SD.athlete.season}</span></div>
+        <div style={{display:'flex',justifyContent:'space-between'}}><span>Meets</span><span className="mono">{SD.athlete.meets}</span></div>
+        <div style={{display:'flex',justifyContent:'space-between'}}><span>Swims</span><span className="mono">{SD.athlete.swims}</span></div>
+      </div>
+    </aside>
+  );
+};
+
+const TopBar = ({ title }) => {
+  const [c, setC] = useState('SCY');
+  return (
+    <div style={{display:'flex',alignItems:'center',gap:16,padding:'10px 18px',borderBottom:'1px solid var(--line)',background:'#fff',flexShrink:0}}>
+      <div style={{fontWeight:700,fontSize:14}}>{title}</div>
+      <div style={{flex:1}}/>
+      <div style={{display:'flex',gap:0,border:'1px solid var(--line-strong)'}}>
+        {['SCY','SCM','LCM'].map(x => (
+          <button key={x} onClick={()=>setC(x)} className={'btn '+(c===x?'active':'')}
+            style={{border:'none',borderRight:x!=='LCM'?'1px solid var(--line-strong)':'none',borderRadius:0}}>{x}</button>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+// ─── Tab: Stroke Overview ─────────────────────────────────────────────────────
+const StrokeOverview = ({ onEvent }) => {
+  const SD = useData();
+  const priority = [...SD.events].filter(e=>e.next&&e.next.gap>=0).sort((a,b)=>a.next.gap-b.next.gap);
+  const hero = priority[0];
+  const top6 = priority.slice(1, 7);
+  const rest = priority.slice(7);
+  if (!hero) return <div style={{padding:24,color:'var(--muted)'}}>No event data yet.</div>;
+
+  return (
+    <div style={{flex:1,overflow:'auto',padding:16,display:'flex',flexDirection:'column',gap:12}}>
+      {/* Hero */}
+      <div className="panel" style={{padding:'16px 20px',display:'grid',gridTemplateColumns:'1.1fr 1fr 1fr',gap:22}}>
+        <div>
+          <div style={{display:'flex',alignItems:'center',gap:8}}>
+            <div className="kpi-label" style={{color:SD.strokes[hero.stroke]?.color}}>CLOSEST CUT · 2024-28 STANDARDS</div>
+          </div>
+          <div onClick={()=>onEvent(hero.ev)} style={{cursor:'pointer',marginTop:4}}>
+            <div style={{display:'flex',alignItems:'baseline',gap:10,flexWrap:'wrap'}}>
+              <div style={{fontWeight:800,fontSize:26,letterSpacing:'-0.02em'}}>{hero.ev}</div>
+              <TierChip tier={hero.tier}/>
+              {hero.next.tier && <><span className="mono" style={{color:'var(--muted)'}}>→</span><TierChip tier={hero.next.tier} size="lg"/></>}
+              <span className="mono" style={{fontSize:10,color:'var(--muted-2)',marginLeft:'auto'}}>view history ↗</span>
+            </div>
+            {hero.next.gap > 0 && (
+              <div style={{display:'flex',alignItems:'baseline',gap:4,marginTop:10}}>
+                <div className="mono" style={{fontSize:64,fontWeight:500,letterSpacing:'-0.03em',lineHeight:1,color:'var(--signal)'}}>−{hero.next.gap.toFixed(2)}</div>
+                <div className="mono" style={{fontSize:16,color:'var(--muted)'}}>s</div>
+              </div>
+            )}
+            {hero.next.gap === 0 && <div className="mono" style={{fontSize:22,color:'var(--good)',marginTop:10}}>CUT ACHIEVED</div>}
+            <div className="mono" style={{fontSize:11,color:'var(--muted-2)',marginTop:4}}>
+              PB {fmtT(hero.pb)} · {hero.next.tier ? `cut ${fmtT(hero.next.cut)}` : 'AAAA achieved'} · trend {(hero.trend||0).toFixed(1)}%/90d
+            </div>
+          </div>
+        </div>
+
+        <div style={{borderLeft:'1px solid var(--line)',paddingLeft:20,display:'flex',flexDirection:'column',justifyContent:'space-between'}}>
+          <div>
+            <div className="kpi-label">SEASON TRAJECTORY</div>
+            <div style={{marginTop:8}}>
+              {SD.trend[hero.ev]
+                ? <Sparkline data={SD.trend[hero.ev]} w={320} h={64} color={SD.strokes[hero.stroke]?.color||'#333'} fill/>
+                : <div className="mono muted" style={{fontSize:11,marginTop:16}}>Not enough data yet</div>}
+            </div>
+            {SD.trend[hero.ev] && <div className="mono" style={{fontSize:10,color:'var(--muted)',marginTop:2,display:'flex',justifyContent:'space-between'}}>
+              <span>earliest · {fmtT(SD.trend[hero.ev][0])}</span>
+              <span>latest · {fmtT(hero.pb)}</span>
+            </div>}
+          </div>
+          <div style={{paddingTop:10,marginTop:10,borderTop:'1px solid var(--line)'}}>
+            <div className="kpi-label">90-DAY TREND</div>
+            <div style={{display:'flex',alignItems:'baseline',gap:8,marginTop:2}}>
+              <div className="mono" style={{fontSize:18,fontWeight:600,color:hero.trend<0?'var(--good)':'var(--signal)'}}>
+                {(hero.trend||0) < 0 ? `${Math.abs(hero.trend).toFixed(1)}% faster` : (hero.trend||0) === 0 ? 'No change' : `${hero.trend.toFixed(1)}% slower`}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div style={{borderLeft:'1px solid var(--line)',paddingLeft:20}}>
+          <div className="kpi-label">TIER LADDER</div>
+          <div style={{marginTop:10}}>
+            <TierLadderV2 tier={hero.tier} pb={hero.pb} nextCut={hero.next.cut}/>
+          </div>
+          <div style={{marginTop:14,fontSize:11}}>
+            {[
+              ['Current PB', fmtT(hero.pb)],
+              ['Next cut', hero.next.tier ? fmtT(hero.next.cut) : 'AAAA — top tier'],
+              ['Gap', hero.next.gap > 0 ? `−${hero.next.gap.toFixed(2)}s` : 'Cut achieved'],
+              ['All-cuts season', `${SD.athlete.meets} meets · ${SD.athlete.swims} swims`],
+            ].map(([k,v],i,arr) => (
+              <div key={k} style={{display:'flex',justifyContent:'space-between',padding:'3px 0',borderBottom:i<arr.length-1?'1px dotted var(--line-strong)':'none'}}>
+                <span style={{color:'var(--ink-2)'}}>{k}</span><span className="mono">{v}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* 6 event cards */}
+      {top6.length > 0 && (
+        <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:10}}>
+          {top6.map(e => (
+            <div key={e.ev} className="panel" style={{padding:'11px 14px',cursor:'pointer'}} onClick={()=>onEvent(e.ev)}>
+              <div style={{display:'flex',alignItems:'center',gap:8}}>
+                <StrokeDot stroke={e.stroke} size={10}/>
+                <div style={{fontWeight:700,fontSize:13}}>{e.ev}</div>
+                <div style={{flex:1}}/>
+                <TierChip tier={e.tier}/>
+                {e.next.tier && <><span className="mono" style={{fontSize:10,color:'var(--muted)'}}>→</span><TierChip tier={e.next.tier} size="sm"/></>}
+              </div>
+              <div style={{marginTop:9}}>
+                <TierLadderV2 tier={e.tier} pb={e.pb} nextCut={e.next.cut}/>
+              </div>
+              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr 60px',gap:8,marginTop:10,alignItems:'center'}}>
+                <div><div className="kpi-label">PB</div><div className="mono" style={{fontSize:14}}>{fmtT(e.pb)}</div></div>
+                <div><div className="kpi-label">GAP</div><div className="mono" style={{fontSize:14,color:'var(--signal)',fontWeight:600}}>{e.next.gap>0?`−${e.next.gap.toFixed(2)}`:'✓'}</div></div>
+                <div><div className="kpi-label">90d</div><div className="mono" style={{fontSize:14,color:e.trend<0?'var(--good)':'var(--signal)'}}>{(e.trend||0).toFixed(1)}%</div></div>
+                {SD.trend[e.ev] ? <Sparkline data={SD.trend[e.ev]} color={SD.strokes[e.stroke]?.color||'#333'} w={60} h={22} fill/> : <div/>}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Longer horizon */}
+      {rest.length > 0 && (
+        <div className="panel">
+          <div style={{padding:'9px 14px',borderBottom:'1px solid var(--line)',display:'flex',alignItems:'center'}}>
+            <div style={{fontWeight:700,fontSize:12}}>ALL EVENTS</div>
+            <div className="mono muted" style={{fontSize:10,marginLeft:8}}>click row to open detail</div>
+          </div>
+          <table className="data">
+            <thead><tr>
+              <th>Event</th><th className="num">PB</th><th>Tier</th><th>Next</th>
+              <th className="num">Cut</th><th className="num">Gap</th><th className="num">90d</th><th>Trend</th>
+            </tr></thead>
+            <tbody>
+              {rest.map(e => {
+                const perWeek = Math.abs(e.trend||0) * e.pb / 100 / 12;
+                const weeks = e.trend<0 && perWeek>0 ? Math.ceil(e.next.gap/perWeek) : '—';
+                return (
+                  <tr key={e.ev} style={{cursor:'pointer'}} onClick={()=>onEvent(e.ev)}>
+                    <td><StrokeDot stroke={e.stroke}/>{e.ev}</td>
+                    <td className="num">{fmtT(e.pb)}</td>
+                    <td><TierChip tier={e.tier} size="sm"/></td>
+                    <td>{e.next.tier ? <TierChip tier={e.next.tier} size="sm"/> : <span className="mono muted" style={{fontSize:10}}>top</span>}</td>
+                    <td className="num muted">{e.next.cut ? fmtT(e.next.cut) : '—'}</td>
+                    <td className="num" style={{color:'var(--signal)',fontWeight:600}}>{e.next.gap>0?`−${e.next.gap.toFixed(2)}`:'✓'}</td>
+                    <td className="num" style={{color:e.trend<0?'var(--good)':'var(--signal)'}}>{(e.trend||0).toFixed(1)}%</td>
+                    <td style={{width:100}}>{SD.trend[e.ev] ? <Sparkline data={SD.trend[e.ev]} color={SD.strokes[e.stroke]?.color||'#333'} w={90} h={16}/> : <span className="mono muted">—</span>}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ─── Tab: Event Detail Drawer ─────────────────────────────────────────────────
+const EventDetail = ({ ev, onClose }) => {
+  const SD = useData();
+  const e = SD.events.find(x => x.ev === ev) || SD.events[0];
+  if (!e) return null;
+  const stroke = SD.strokes[e.stroke] || {name:e.stroke,color:'#333'};
+
+  // Build history for this event
+  const races = SD.history.filter(r => r.event === ev).sort((a,b) => a.date.localeCompare(b.date));
+  const times = races.map(r => r.time);
+  const best = Math.min(...times), worst = Math.max(...times);
+  const W=680,H=200,pL=42,pR=12,pT=12,pB=22;
+
+  const pts = races.map((r,i) => ({
+    x: pL + (i/(races.length-1||1))*(W-pL-pR),
+    y: pT + ((r.time-best)/(worst-best||0.01))*(H-pT-pB),
+    r,
+  }));
+  const dPath = pts.length>1 ? 'M '+pts.map(p=>`${p.x},${p.y}`).join(' L ') : '';
+
+  // Cut reference lines
+  const cutLines = Object.entries(e.cuts||{}).filter(([,t])=>t>best&&t<worst+0.5).map(([k,t])=>({k,t}));
+
+  return (
+    <div style={{position:'absolute',inset:0,background:'rgba(26,29,33,0.35)',display:'flex',justifyContent:'flex-end',zIndex:20,animation:'fadeIn .15s'}}>
+      <div style={{width:760,background:'#fff',borderLeft:'1px solid var(--line-strong)',display:'flex',flexDirection:'column',animation:'slide .2s ease-out'}}>
+        <div style={{padding:'12px 18px',borderBottom:'1px solid var(--line)',display:'flex',alignItems:'center',gap:10,flexShrink:0}}>
+          <StrokeDot stroke={e.stroke} size={10}/>
+          <div style={{fontWeight:800,fontSize:18}}>{e.ev}</div>
+          <div className="mono" style={{fontSize:10,color:'var(--muted)'}}>SCY · {stroke.name}</div>
+          <div style={{flex:1}}/>
+          <button className="btn" onClick={onClose}>Close ✕</button>
+        </div>
+        <div style={{flex:1,overflow:'auto',padding:18,display:'flex',flexDirection:'column',gap:14}}>
+          {/* KPIs */}
+          <div style={{display:'grid',gridTemplateColumns:'repeat(5,1fr)',border:'1px solid var(--line)'}}>
+            {[
+              ['PB', fmtT(e.pb), 'var(--ink)'],
+              ['TIER', e.tier, stroke.color],
+              ['NEXT CUT', e.next.cut ? fmtT(e.next.cut) : 'Top tier', 'var(--muted)'],
+              ['GAP', e.next.gap>0 ? `−${e.next.gap.toFixed(2)}s` : 'Cut achieved', 'var(--signal)'],
+              ['90d Δ', `${(e.trend||0).toFixed(1)}%`, e.trend<0?'var(--good)':'var(--signal)'],
+            ].map(([k,v,c],i) => (
+              <div key={k} style={{padding:'10px 12px',borderRight:i<4?'1px solid var(--line)':'none'}}>
+                <div className="kpi-label">{k}</div>
+                <div className="mono" style={{fontSize:18,color:c,fontWeight:500}}>{v}</div>
+              </div>
+            ))}
+          </div>
+
+          {/* Chart */}
+          {pts.length > 1 && (
+            <div>
+              <div style={{fontWeight:700,fontSize:12,marginBottom:6}}>TIME PROGRESSION · {races.length} races</div>
+              <svg width="100%" viewBox={`0 0 ${W} ${H}`} style={{border:'1px solid var(--line)'}}>
+                {cutLines.map(({k,t}) => {
+                  const y = pT+((t-best)/(worst-best||0.01))*(H-pT-pB);
+                  const tier = SD.tiers.find(x=>x.key===k);
+                  return (<g key={k}>
+                    <line x1={pL} x2={W-pR} y1={y} y2={y} stroke={tier?.color||'#ccc'} strokeDasharray="3 3" strokeWidth="1"/>
+                    <text x={W-pR-3} y={y-3} textAnchor="end" fontFamily="var(--mono)" fontSize="9" fill={tier?.color||'#ccc'}>{k} {fmtT(t)}</text>
+                  </g>);
+                })}
+                <path d={dPath} fill="none" stroke={stroke.color} strokeWidth="1.5"/>
+                {pts.map((p,i) => (
+                  <g key={i}>
+                    <circle cx={p.x} cy={p.y} r={p.r.pb?4:2.5} fill={p.r.pb?'var(--signal)':'#fff'} stroke={p.r.pb?'var(--signal)':stroke.color} strokeWidth="1.5"/>
+                    {p.r.pb && <text x={p.x} y={p.y-7} textAnchor="middle" fontFamily="var(--mono)" fontSize="8.5" fill="var(--signal)">{fmtT(p.r.time)}</text>}
+                  </g>
+                ))}
+                {pts.filter((_,i)=>i%Math.max(1,Math.floor(pts.length/6))===0).map((p,i)=>(
+                  <text key={i} x={p.x} y={H-6} textAnchor="middle" fontFamily="var(--mono)" fontSize="9" fill="#9AA1AC">{p.r.date.slice(5)}</text>
+                ))}
+              </svg>
+            </div>
+          )}
+
+          {/* Tier cuts reference */}
+          {Object.keys(e.cuts||{}).length > 0 && (
+            <div>
+              <div style={{fontWeight:700,fontSize:12,marginBottom:6}}>USA SWIMMING CUTS · {e.ev} · SCY 15-16 Male</div>
+              <div style={{display:'grid',gridTemplateColumns:'repeat(6,1fr)',gap:1,background:'var(--line)'}}>
+                {['B','BB','A','AA','AAA','AAAA'].map(tier => {
+                  const t = SD.tiers.find(x=>x.key===tier);
+                  const cut = e.cuts[tier];
+                  const isPb = tier === e.tier;
+                  return (
+                    <div key={tier} style={{background:isPb?t?.color:'#fff',padding:'8px 10px',textAlign:'center'}}>
+                      <div style={{fontSize:9,fontWeight:700,color:isPb?t?.fg:'var(--muted)',letterSpacing:'0.06em'}}>{tier}</div>
+                      <div className="mono" style={{fontSize:13,color:isPb?t?.fg:'var(--ink)',marginTop:2}}>{fmtT(cut)}</div>
+                      {isPb && <div style={{fontSize:8,color:t?.fg,marginTop:1,opacity:0.8}}>current</div>}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Race log */}
+          {races.length > 0 && (
+            <div>
+              <div style={{fontWeight:700,fontSize:12,marginBottom:4}}>RACE LOG</div>
+              <table className="data">
+                <thead><tr><th>Date</th><th>Meet</th><th className="num">Time</th><th>Tier</th><th className="num">PB</th></tr></thead>
+                <tbody>
+                  {races.slice().reverse().map((r,i) => (
+                    <tr key={i}>
+                      <td className="mono" style={{fontSize:11}}>{r.date}</td>
+                      <td>{r.meet}</td>
+                      <td className="num" style={{fontWeight:r.pb?700:500}}>{fmtT(r.time)}</td>
+                      <td>{r.tier ? <TierChip tier={r.tier} size="sm"/> : <span className="mono muted" style={{fontSize:9}}>&lt;B</span>}</td>
+                      <td className="num">{r.pb?<span className="mono" style={{color:'var(--signal)',fontSize:10,fontWeight:700}}>PB</span>:''}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ─── Tab: Quick Lookup ────────────────────────────────────────────────────────
+const QuickLookup = ({ onEvent }) => {
+  const SD = useData();
+  const [q, setQ] = useState('');
+  const list = useMemo(() => SD.events.filter(e => !q || (e.ev+' '+(SD.strokes[e.stroke]?.name||'')).toLowerCase().includes(q.toLowerCase())), [q]);
+  const [sel, setSel] = useState(list[0]?.ev);
+  useEffect(() => { if (list.length && !list.find(l=>l.ev===sel)) setSel(list[0].ev); }, [list]);
+  const e = SD.events.find(x => x.ev === sel);
+
+  return (
+    <div style={{flex:1,overflow:'hidden',display:'grid',gridTemplateColumns:'300px 1fr',gap:1,background:'var(--line)'}}>
+      <div style={{background:'#fff',display:'flex',flexDirection:'column'}}>
+        <div style={{padding:10,borderBottom:'1px solid var(--line)'}}>
+          <input autoFocus value={q} onChange={ev=>setQ(ev.target.value)} placeholder="50 fr · fly · 200 im…"
+            style={{width:'100%',padding:'7px 9px',fontFamily:'var(--mono)',fontSize:12,border:'1px solid var(--line-strong)',outline:'none',background:'var(--panel-alt)'}}/>
+          <div className="mono muted" style={{fontSize:9.5,marginTop:4}}>{list.length} results</div>
+        </div>
+        <div style={{flex:1,overflow:'auto'}}>
+          {list.map(x => (
+            <div key={x.ev} onClick={()=>setSel(x.ev)} style={{
+              padding:'8px 12px',borderBottom:'1px solid var(--line)',cursor:'pointer',
+              background:sel===x.ev?'#F5F6F7':'#fff',
+              borderLeft:sel===x.ev?'2px solid var(--signal)':'2px solid transparent',
+            }}>
+              <div style={{display:'flex',alignItems:'center',gap:6}}>
+                <StrokeDot stroke={x.stroke} size={7}/>
+                <span style={{fontWeight:600,fontSize:12}}>{x.ev}</span>
+                <div style={{flex:1}}/><TierChip tier={x.tier} size="sm"/>
+              </div>
+              <div className="mono" style={{fontSize:10,color:'var(--muted)',marginTop:2,display:'flex',gap:10}}>
+                <span>{fmtT(x.pb)}</span>
+                {x.next.tier && <span>→ {x.next.tier}</span>}
+                {x.next.gap>0 && <span style={{color:'var(--signal)'}}>−{x.next.gap.toFixed(2)}s</span>}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+      <div style={{background:'#fff',padding:20,overflow:'auto'}}>
+        {e && (
+          <div>
+            <div style={{display:'flex',alignItems:'baseline',gap:10}}>
+              <StrokeDot stroke={e.stroke} size={10}/>
+              <div style={{fontWeight:800,fontSize:22}}>{e.ev}</div>
+              <div className="mono muted" style={{fontSize:11}}>{SD.strokes[e.stroke]?.name} · SCY</div>
+              <div style={{flex:1}}/>
+              <button className="btn" onClick={()=>onEvent(e.ev)}>Open detail ↗</button>
+            </div>
+            <div style={{display:'grid',gridTemplateColumns:'2fr 1fr',gap:20,marginTop:16}}>
+              <div>
+                {e.next.gap > 0
+                  ? <><div className="kpi-label">GAP TO NEXT STANDARD</div>
+                    <div style={{display:'flex',alignItems:'baseline',gap:8,marginTop:4}}>
+                      <div className="mono" style={{fontSize:46,color:'var(--signal)',fontWeight:500,letterSpacing:'-0.02em'}}>−{e.next.gap.toFixed(2)}</div>
+                      <div className="mono" style={{color:'var(--muted)'}}>s → {e.next.tier}</div>
+                    </div></>
+                  : <div className="mono" style={{fontSize:20,color:'var(--good)',marginTop:8}}>
+                      {e.next.tier ? 'Cut achieved' : 'Top tier (AAAA)'}
+                    </div>
+                }
+                <div style={{marginTop:14}}><TierLadderV2 tier={e.tier} pb={e.pb} nextCut={e.next.cut}/></div>
+                <div style={{marginTop:18,display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:0,border:'1px solid var(--line)'}}>
+                  {[['PB',fmtT(e.pb)],['TIER',e.tier],['90d',`${(e.trend||0).toFixed(1)}%`],['COURSE','SCY']].map(([k,v],i)=>(
+                    <div key={k} style={{padding:'8px 10px',borderRight:i<3?'1px solid var(--line)':'none'}}>
+                      <div className="kpi-label">{k}</div><div className="mono" style={{fontSize:15}}>{v}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <div className="kpi-label">TREND</div>
+                {SD.trend[e.ev]
+                  ? <><Sparkline data={SD.trend[e.ev]} w={260} h={80} color={SD.strokes[e.stroke]?.color||'#333'} fill/>
+                    <div className="mono muted" style={{fontSize:10,marginTop:4,display:'flex',justifyContent:'space-between'}}>
+                      <span>{fmtT(SD.trend[e.ev][0])}</span><span>{fmtT(e.pb)}</span></div></>
+                  : <div className="mono muted" style={{fontSize:11,marginTop:8}}>not enough data</div>}
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+// ─── Tab: Swim History ────────────────────────────────────────────────────────
+const SwimHistory = () => {
+  const SD = useData();
+  const [filter, setFilter] = useState({stroke:'ALL',pb:false,q:''});
+  const rows = useMemo(() => SD.history.filter(r => {
+    if (filter.stroke !== 'ALL' && strokeOf(r.event) !== filter.stroke) return false;
+    if (filter.pb && !r.pb) return false;
+    if (filter.q && !(r.event+r.meet).toLowerCase().includes(filter.q.toLowerCase())) return false;
+    return true;
+  }), [filter]);
+  return (
+    <div style={{flex:1,overflow:'hidden',display:'flex',flexDirection:'column'}}>
+      <div style={{padding:'10px 16px',borderBottom:'1px solid var(--line)',background:'#fff',display:'flex',alignItems:'center',gap:10,flexShrink:0,flexWrap:'wrap'}}>
+        <input value={filter.q} onChange={e=>setFilter({...filter,q:e.target.value})} placeholder="Filter by event or meet…"
+          style={{width:230,padding:'5px 8px',fontFamily:'var(--mono)',fontSize:11,border:'1px solid var(--line-strong)',outline:'none',background:'var(--panel-alt)'}}/>
+        <div style={{display:'flex',border:'1px solid var(--line-strong)'}}>
+          {['ALL','FR','BK','BR','FL','IM'].map((s,i,arr)=>(
+            <button key={s} onClick={()=>setFilter({...filter,stroke:s})}
+              className={'btn '+(filter.stroke===s?'active':'')}
+              style={{border:'none',borderRight:i<arr.length-1?'1px solid var(--line-strong)':'none',borderRadius:0,padding:'4px 10px'}}>{s}</button>
+          ))}
+        </div>
+        <label style={{display:'flex',alignItems:'center',gap:5,fontSize:11,color:'var(--ink-2)',cursor:'pointer',userSelect:'none'}}>
+          <input type="checkbox" checked={filter.pb} onChange={e=>setFilter({...filter,pb:e.target.checked})}/> PBs only
+        </label>
+        <div style={{flex:1}}/>
+        <div className="mono muted" style={{fontSize:10}}>{rows.length} of {SD.history.length} swims</div>
+      </div>
+      <div style={{flex:1,overflow:'auto',background:'#fff'}}>
+        <table className="data">
+          <thead><tr>
+            <th style={{width:28}}>#</th><th>Date</th><th>Meet</th><th>Event</th>
+            <th className="num">Time</th><th>Course</th><th>Tier</th><th>PB</th>
+          </tr></thead>
+          <tbody>
+            {rows.map((r,i)=>(
+              <tr key={r.id} style={{background:r.pb?'#FFF6F3':undefined}}>
+                <td className="mono muted" style={{fontSize:10}}>{String(i+1).padStart(3,'0')}</td>
+                <td className="mono" style={{fontSize:11}}>{r.date}</td>
+                <td style={{maxWidth:240,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{r.meet}</td>
+                <td><StrokeDot stroke={strokeOf(r.event)} size={6}/>{r.event}</td>
+                <td className="num" style={{fontWeight:r.pb?700:500}}>{fmtT(r.time)}</td>
+                <td className="mono muted" style={{fontSize:10}}>{r.course}</td>
+                <td>{r.tier ? <TierChip tier={r.tier} size="sm"/> : <span className="mono muted" style={{fontSize:9}}>&lt;B</span>}</td>
+                <td>{r.pb?<span className="mono" style={{color:'var(--signal)',fontSize:10,fontWeight:700}}>PB</span>:''}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+};
+
+// ─── Tab: Deep Analytics ─────────────────────────────────────────────────────
+const DeepAnalytics = ({ onEvent }) => {
+  const SD = useData();
+  const seasons = Object.keys(SD.seasonPbs||{}).sort();
+  const [selSeason, setSelSeason] = useState(seasons[seasons.length-1]);
+
+  // Season-over-season comparison for key events
+  const compEvents = SD.events.map(e=>e.ev);
+
+  // PB timeline as chart
+  const ptl = SD.pbTimeline || [];
+  const tierToY = (tier) => {
+    const idx = SD.tiers.findIndex(t=>t.key===tier);
+    return idx >= 0 ? idx : 0;
+  };
+
+  // Group PB timeline by event
+  const ptlBySeries = {};
+  ptl.forEach(p => {
+    if (!ptlBySeries[p.ev]) ptlBySeries[p.ev] = [];
+    ptlBySeries[p.ev].push(p);
+  });
+
+  const tlDates = ptl.map(p=>p.date);
+  const tlMinDate = tlDates.reduce((a,b)=>a<b?a:b,'9999');
+  const tlMaxDate = tlDates.reduce((a,b)=>a>b?a:b,'0000');
+  const tlSpanMonths = (new Date(tlMaxDate) - new Date(tlMinDate)) / (1000*60*60*24*30) || 1;
+
+  const dateToX = (d) => {
+    const months = (new Date(d) - new Date(tlMinDate)) / (1000*60*60*24*30);
+    return 44 + (months/tlSpanMonths) * 596;
+  };
+  const tierColors = ['#C4C8CE','#9AA1AC','#D4A574','#C97A4A','#B54A2E','#8B2817'];
+  const tlH = 120, tlPadT = 10, tlPadB = 20;
+
+  const tlSeriesColors = {};
+  ['50 FR','100 FL','200 IM','100 BK','100 FR'].forEach((ev,i) => {
+    const s = SD.events.find(x=>x.ev===ev);
+    tlSeriesColors[ev] = s ? (SD.strokes[s.stroke]?.color||'#333') : '#333';
+  });
+
+  return (
+    <div style={{flex:1,overflow:'auto',padding:16,display:'flex',flexDirection:'column',gap:12}}>
+
+      {/* PB Timeline chart */}
+      <div className="panel" style={{padding:'14px 18px'}}>
+        <div style={{fontWeight:700,fontSize:13,marginBottom:4}}>PB TIMELINE — STANDARD PROGRESSION</div>
+        <div className="mono muted" style={{fontSize:10,marginBottom:10}}>Each dot = new personal best. Position = standard achieved at that time.</div>
+        {ptl.length > 0 ? (
+          <svg width="100%" viewBox="0 0 680 120" style={{overflow:'visible'}}>
+            {/* tier band backgrounds */}
+            {SD.tiers.map((t,i) => (
+              <rect key={t.key} x={44} y={tlPadT+(i/SD.tiers.length)*(tlH-tlPadT-tlPadB)}
+                width={636} height={(tlH-tlPadT-tlPadB)/SD.tiers.length} fill={t.color} opacity="0.08"/>
+            ))}
+            {SD.tiers.map((t,i) => (
+              <text key={'l'+t.key} x={40} y={tlPadT+((i+0.5)/SD.tiers.length)*(tlH-tlPadT-tlPadB)+3}
+                textAnchor="end" fontFamily="var(--mono)" fontSize="9" fill="#6B7280">{t.label}</text>
+            ))}
+            {Object.entries(ptlBySeries).filter(([ev])=>tlSeriesColors[ev]).map(([ev,pts]) => {
+              const mapped = pts.map(p => ({
+                x: dateToX(p.date+'-01'),
+                y: tlPadT+((SD.tiers.length-1-tierToY(p.tier))/SD.tiers.length)*(tlH-tlPadT-tlPadB)+(tlH-tlPadT-tlPadB)/(SD.tiers.length*2),
+                p,
+              }));
+              const d = mapped.length>1 ? 'M '+mapped.map(m=>`${m.x},${m.y}`).join(' L ') : '';
+              const col = tlSeriesColors[ev];
+              return (
+                <g key={ev}>
+                  {d && <path d={d} fill="none" stroke={col} strokeWidth="1.5"/>}
+                  {mapped.map((m,i)=>(
+                    <g key={i}>
+                      <circle cx={m.x} cy={m.y} r="3" fill="#fff" stroke={col} strokeWidth="1.5"/>
+                      {i===mapped.length-1 && <text x={m.x+6} y={m.y+3} fontFamily="var(--mono)" fontSize="9" fill={col}>{ev}</text>}
+                    </g>
+                  ))}
+                </g>
+              );
+            })}
+          </svg>
+        ) : <div className="mono muted" style={{fontSize:11}}>No PB timeline data yet.</div>}
+      </div>
+
+      {/* Season comparison */}
+      {seasons.length > 0 && (
+        <div className="panel">
+          <div style={{padding:'10px 14px',borderBottom:'1px solid var(--line)',display:'flex',alignItems:'center',gap:12}}>
+            <div style={{fontWeight:700,fontSize:12}}>SEASON BEST TIMES</div>
+            <div style={{display:'flex',gap:0,border:'1px solid var(--line-strong)',marginLeft:'auto'}}>
+              {seasons.map(s=>(
+                <button key={s} onClick={()=>setSelSeason(s)}
+                  className={'btn '+(selSeason===s?'active':'')}
+                  style={{border:'none',borderRight:s!==seasons[seasons.length-1]?'1px solid var(--line-strong)':'none',borderRadius:0,padding:'4px 10px',fontSize:10}}>{s}</button>
+              ))}
+            </div>
+          </div>
+          <table className="data">
+            <thead><tr>
+              <th>Event</th><th>Tier</th>
+              {seasons.map(s=><th key={s} className="num" style={{color:s===selSeason?'var(--ink)':'var(--muted)'}}>{s}</th>)}
+              <th className="num">Best ever</th>
+            </tr></thead>
+            <tbody>
+              {compEvents.map(ev=>{
+                const e = SD.events.find(x=>x.ev===ev);
+                return (
+                  <tr key={ev} style={{cursor:'pointer'}} onClick={()=>onEvent(ev)}>
+                    <td><StrokeDot stroke={strokeOf(ev)} size={6}/><strong>{ev}</strong></td>
+                    <td>{e ? <TierChip tier={e.tier} size="sm"/> : null}</td>
+                    {seasons.map(s=>{
+                      const t = SD.seasonPbs[s]?.[ev];
+                      const isSelected = s === selSeason;
+                      return <td key={s} className="num mono" style={{fontWeight:isSelected?700:400,color:isSelected?'var(--ink)':'var(--muted)'}}>{t ? fmtT(t) : '—'}</td>;
+                    })}
+                    <td className="num" style={{fontWeight:700,color:'var(--signal)'}}>{e ? fmtT(e.pb) : '—'}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* Penetration rates */}
+      {(SD.penetration||[]).length > 0 && (
+        <div className="panel" style={{padding:'14px 18px'}}>
+          <div style={{fontWeight:700,fontSize:12,marginBottom:4}}>ESTIMATED PERCENTILE vs AGE GROUP PEERS</div>
+          <div className="mono muted" style={{fontSize:10,marginBottom:12}}>Based on USA Swimming standard tier achieved. Approximate.</div>
+          <div style={{display:'flex',flexDirection:'column',gap:6}}>
+            {SD.penetration.map(p=>(
+              <div key={p.ev} style={{display:'grid',gridTemplateColumns:'70px 1fr 38px',alignItems:'center',gap:10}}>
+                <div style={{fontSize:11}}><StrokeDot stroke={p.stroke} size={6}/>{p.ev}</div>
+                <div style={{position:'relative',height:12,background:'#F3F4F6'}}>
+                  <div style={{position:'absolute',left:0,top:0,bottom:0,width:`${p.pct}%`,background:SD.strokes[p.stroke]?.color||'#333',opacity:0.85}}/>
+                  {[25,50,75].map(t=><div key={t} style={{position:'absolute',left:`${t}%`,top:-1,bottom:-1,width:1,background:'rgba(255,255,255,0.6)'}}/>)}
+                </div>
+                <div className="mono" style={{fontSize:10,textAlign:'right'}}>{p.pct}%</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ─── Tab: IMX Score ───────────────────────────────────────────────────────────
+const IMXScore = () => {
+  const SD = useData();
+  const imx = SD.imx;
+  const hist = SD.imxHistory||[];
+  if (!imx) return <div style={{padding:24,color:'var(--muted)'}}>No IMX data.</div>;
+  const W=580,H=140,pL=40,pR=10,pT=10,pB=22,maxS=5000,minS=0;
+  const pts = hist.filter(h=>h.score).map((h,i)=>({
+    x: pL+(i/(hist.length-1||1))*(W-pL-pR),
+    y: pT+(1-(h.score-minS)/(maxS-minS))*(H-pT-pB),
+    h,
+  }));
+  return (
+    <div style={{flex:1,overflow:'auto',padding:16,display:'flex',flexDirection:'column',gap:12}}>
+      <div className="panel" style={{padding:'18px 22px',display:'grid',gridTemplateColumns:'1fr 1.2fr',gap:28}}>
+        <div>
+          <div className="kpi-label">IMX ESTIMATE · {SD.athlete.season}</div>
+          <div style={{display:'flex',alignItems:'baseline',gap:10,marginTop:6}}>
+            <div className="mono" style={{fontSize:72,fontWeight:500,letterSpacing:'-0.03em',lineHeight:1}}>{imx.total.toLocaleString()}</div>
+            <div className="mono" style={{fontSize:14,color:'var(--muted)'}}>/ {imx.max.toLocaleString()}</div>
+          </div>
+          <div className="mono muted" style={{fontSize:11,marginTop:6}}>Score based on 5 IMX events · linear B→AAAA scale</div>
+          <div style={{marginTop:14,position:'relative',height:16,background:'#F3F4F6',border:'1px solid var(--line)'}}>
+            <div style={{position:'absolute',left:0,top:0,bottom:0,width:`${(imx.total/imx.max)*100}%`,background:'linear-gradient(to right, #C97A4A, #B54A2E)'}}/>
+            {[1000,2000,3000,4000].map(v=>(
+              <div key={v} style={{position:'absolute',left:`${(v/imx.max)*100}%`,top:-2,bottom:-2,width:1,background:'var(--line-strong)'}}/>
+            ))}
+          </div>
+          <div className="mono" style={{display:'flex',justifyContent:'space-between',fontSize:9,color:'var(--muted)',marginTop:2}}>
+            <span>0</span><span>1k</span><span>2k</span><span>3k</span><span>4k</span><span>5k</span>
+          </div>
+        </div>
+        <div style={{borderLeft:'1px solid var(--line)',paddingLeft:28}}>
+          <div className="kpi-label">HISTORY</div>
+          {pts.length > 1 ? (
+            <svg width="100%" viewBox={`0 0 ${W} ${H}`} style={{marginTop:6}}>
+              {[1000,2000,3000,4000].map(v=>{const y=pT+(1-(v-minS)/(maxS-minS))*(H-pT-pB);return(
+                <g key={v}><line x1={pL} x2={W-pR} y1={y} y2={y} stroke="#F0F1F4" strokeWidth="1"/>
+                <text x={pL-4} y={y+3} textAnchor="end" fontFamily="var(--mono)" fontSize="9" fill="#9AA1AC">{v}</text></g>
+              );})}
+              <path d={'M '+pts.map(p=>`${p.x},${p.y}`).join(' L ')} fill="none" stroke="var(--signal)" strokeWidth="1.8"/>
+              {pts.map((p,i)=>(
+                <g key={i}>
+                  <circle cx={p.x} cy={p.y} r="3" fill="#fff" stroke="var(--signal)" strokeWidth="1.5"/>
+                  <text x={p.x} y={p.y-7} textAnchor="middle" fontFamily="var(--mono)" fontSize="9" fill="var(--ink)">{p.h.score}</text>
+                  <text x={p.x} y={H-6} textAnchor="middle" fontFamily="var(--mono)" fontSize="9" fill="#9AA1AC">{p.h.season}</text>
+                </g>
+              ))}
+            </svg>
+          ) : <div className="mono muted" style={{fontSize:11,marginTop:12}}>Data accumulates over multiple seasons.</div>}
+        </div>
+      </div>
+
+      <div className="panel">
+        <div style={{padding:'10px 14px',borderBottom:'1px solid var(--line)',display:'flex',alignItems:'center'}}>
+          <div style={{fontWeight:700,fontSize:12}}>EVENT CONTRIBUTION</div>
+          <div className="mono muted" style={{fontSize:10,marginLeft:8}}>200 FR · 100 BK · 100 BR · 100 FL · 400 IM · max 1000 each</div>
+        </div>
+        <div style={{padding:'14px 16px',display:'flex',flexDirection:'column',gap:10}}>
+          {imx.events.map(ev=>{
+            const s = strokeOf(ev.ev);
+            return (
+              <div key={ev.ev} style={{display:'grid',gridTemplateColumns:'100px 1fr 60px 48px',alignItems:'center',gap:12}}>
+                <div style={{fontSize:12,fontWeight:600}}><StrokeDot stroke={s} size={7}/>{ev.ev}</div>
+                <div style={{position:'relative',height:16,background:'#F3F4F6',border:'1px solid var(--line)'}}>
+                  <div style={{position:'absolute',left:0,top:0,bottom:0,width:`${(ev.pts/1000)*100}%`,background:SD.strokes[s]?.color||'#333',opacity:0.85}}/>
+                </div>
+                <div className="mono" style={{fontSize:14,textAlign:'right',fontWeight:600}}>{ev.pts}</div>
+                <div className="mono muted" style={{fontSize:10,textAlign:'right'}}>{((ev.pts/1000)*100).toFixed(0)}%</div>
+              </div>
+            );
+          })}
+          <div style={{display:'grid',gridTemplateColumns:'100px 1fr 60px 48px',alignItems:'center',gap:12,paddingTop:10,borderTop:'1px solid var(--line)'}}>
+            <div style={{fontSize:12,fontWeight:700}}>TOTAL</div><div/>
+            <div className="mono" style={{fontSize:16,textAlign:'right',fontWeight:700,color:'var(--signal)'}}>{imx.total}</div>
+            <div className="mono muted" style={{fontSize:10,textAlign:'right'}}>{((imx.total/5000)*100).toFixed(0)}%</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ─── Tab: Goals ───────────────────────────────────────────────────────────────
+const Goals = ({ onEvent }) => {
+  const SD = useData();
+  const goals = SD.goals || [];
+  if (goals.length === 0) return (
+    <div style={{flex:1,display:'flex',alignItems:'center',justifyContent:'center',flexDirection:'column',gap:12,color:'var(--muted)'}}>
+      <div style={{fontSize:14,fontWeight:600}}>No goals set</div>
+      <div className="mono" style={{fontSize:11}}>Add goals to goals.csv and run python generate_data.py</div>
+    </div>
+  );
+  return (
+    <div style={{flex:1,overflow:'auto',padding:16,display:'flex',flexDirection:'column',gap:10}}>
+      {goals.map(g => {
+        const pct = g.progress ?? 0;
+        const onTarget = g.gap !== null && g.gap <= 0;
+        const eData = SD.events.find(e=>e.ev===g.ev);
+        return (
+          <div key={g.ev} className="panel" style={{padding:'14px 18px',cursor:'pointer'}} onClick={()=>onEvent(g.ev)}>
+            <div style={{display:'flex',alignItems:'center',gap:10}}>
+              <StrokeDot stroke={g.stroke} size={10}/>
+              <div style={{fontWeight:700,fontSize:15}}>{g.ev}</div>
+              {g.targetTier && <TierChip tier={g.targetTier}/>}
+              <div style={{flex:1}}/>
+              {onTarget
+                ? <span className="mono" style={{fontSize:12,color:'var(--good)',fontWeight:700}}>GOAL ACHIEVED</span>
+                : g.gap !== null && <span className="mono" style={{fontSize:12,color:'var(--signal)',fontWeight:700}}>−{g.gap.toFixed(2)}s to go</span>}
+            </div>
+
+            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:16,marginTop:12}}>
+              <div>
+                <div className="kpi-label">CURRENT PB</div>
+                <div className="mono" style={{fontSize:22,fontWeight:500,marginTop:2}}>{g.current ? fmtT(g.current) : '—'}</div>
+                {eData && <div style={{marginTop:2}}><TierChip tier={eData.tier}/></div>}
+              </div>
+              <div>
+                <div className="kpi-label">TARGET</div>
+                <div className="mono" style={{fontSize:22,fontWeight:500,color:'var(--signal)',marginTop:2}}>{fmtT(g.target)}</div>
+                {g.targetTier && <div style={{marginTop:2}}><TierChip tier={g.targetTier}/></div>}
+              </div>
+              <div>
+                <div className="kpi-label">PROGRESS</div>
+                <div style={{display:'flex',alignItems:'baseline',gap:4,marginTop:2}}>
+                  <div className="mono" style={{fontSize:22,fontWeight:500,color:onTarget?'var(--good)':'var(--ink)'}}>{pct.toFixed(0)}%</div>
+                </div>
+              </div>
+            </div>
+
+            <div style={{marginTop:12}}>
+              <div style={{height:8,background:'#EEF0F3',position:'relative'}}>
+                <div style={{position:'absolute',left:0,top:0,bottom:0,width:`${Math.min(100,pct)}%`,background:onTarget?'var(--good)':SD.strokes[g.stroke]?.color||'var(--signal)'}}/>
+              </div>
+            </div>
+            {g.notes && <div className="mono" style={{fontSize:10,color:'var(--muted)',marginTop:8}}>{g.notes}</div>}
+          </div>
+        );
+      })}
+
+      <div className="panel" style={{padding:'14px 18px',marginTop:8}}>
+        <div style={{fontWeight:700,fontSize:12,marginBottom:8}}>ADD OR EDIT GOALS</div>
+        <div className="mono" style={{fontSize:11,color:'var(--muted)',lineHeight:1.7}}>
+          Edit <strong>goals.csv</strong> in the project root, then run:<br/>
+          <span style={{background:'var(--panel-alt)',padding:'2px 8px',display:'inline-block',marginTop:4}}>python generate_data.py</span><br/>
+          then push to deploy the update.
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ─── Tab: Data Guide ─────────────────────────────────────────────────────────
+const DataGuide = () => {
+  const steps = [
+    {n:'01',title:'Export from GoMotion',body:'Log in to your GoMotion / TeamUnify account. Go to My Account → Swim Times. Export as HTML and save as swim_history.html in the project folder.'},
+    {n:'02',title:'Run the pipeline',body:'Open a terminal in the project folder and run the scripts in order:\n  python scraper.py\n  python cleaner.py\n  python grader.py\nThis produces graded_swim_data.xlsx with all your swims graded against USA Swimming standards.'},
+    {n:'03',title:'Add high school swims (optional)',body:'For meets not in GoMotion, add rows to high_school_swims.csv using the same column format (Date, Age, Distance, Stroke, Round, Course, Finals, Time_Seconds, Meet). Then run:\n  python merge_swims.py\nbefore step 02.'},
+    {n:'04',title:'Regenerate the UI data',body:'Run:\n  python generate_data.py\nThis reads graded_swim_data.xlsx and outputs swim_data.json, which the website loads.'},
+    {n:'05',title:'Deploy',body:'Commit and push:\n  git add swim_data.json\n  git commit -m "Update swim data"\n  git push\nThe site updates automatically within seconds.'},
+  ];
+  return (
+    <div style={{flex:1,overflow:'auto',padding:24,maxWidth:680}}>
+      <div style={{fontWeight:800,fontSize:20,marginBottom:4}}>Data Pipeline Guide</div>
+      <div className="mono muted" style={{fontSize:11,marginBottom:24}}>How to update the swim tracker with new meet results</div>
+      <div style={{display:'flex',flexDirection:'column',gap:0}}>
+        {steps.map((s,i) => (
+          <div key={s.n} style={{display:'grid',gridTemplateColumns:'32px 1fr',gap:16,paddingBottom:24,position:'relative'}}>
+            {i < steps.length-1 && <div style={{position:'absolute',left:15,top:32,bottom:0,width:2,background:'var(--line)'}}/>}
+            <div style={{width:32,height:32,background:'var(--ink)',color:'#fff',display:'flex',alignItems:'center',justifyContent:'center',fontFamily:'var(--mono)',fontSize:11,fontWeight:700,flexShrink:0,zIndex:1}}>{s.n}</div>
+            <div>
+              <div style={{fontWeight:700,fontSize:14,marginTop:5}}>{s.title}</div>
+              <div style={{marginTop:8,fontSize:12,color:'var(--ink-2)',lineHeight:1.7,whiteSpace:'pre-wrap'}}>{s.body}</div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+// ─── Tab: Settings ────────────────────────────────────────────────────────────
+const Settings = () => {
+  const SD = useData();
+  const fields = [
+    ['Athlete name', SD.athlete.name],
+    ['Age', SD.athlete.age],
+    ['Team', SD.athlete.team],
+    ['LSC', SD.athlete.lsc],
+    ['Current season', SD.athlete.season],
+    ['Data generated', SD.generatedAt?.slice(0,19).replace('T',' ') || '—'],
+  ];
+  return (
+    <div style={{flex:1,overflow:'auto',padding:24,maxWidth:480}}>
+      <div style={{fontWeight:800,fontSize:18,marginBottom:4}}>Settings</div>
+      <div className="mono muted" style={{fontSize:11,marginBottom:20}}>Athlete configuration — edit generate_data.py to change</div>
+      <div className="panel">
+        {fields.map(([k,v],i) => (
+          <div key={k} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'12px 16px',borderBottom:i<fields.length-1?'1px solid var(--line)':'none'}}>
+            <div style={{fontSize:12,color:'var(--ink-2)'}}>{k}</div>
+            <div className="mono" style={{fontSize:13,fontWeight:500}}>{v}</div>
+          </div>
+        ))}
+      </div>
+      <div style={{marginTop:20,padding:'14px 16px',background:'var(--panel-alt)',border:'1px solid var(--line)',fontSize:12,color:'var(--ink-2)',lineHeight:1.7}}>
+        To update athlete details, edit the config block at the top of <strong>generate_data.py</strong>, re-run it, and push.
+      </div>
+    </div>
+  );
+};
+
+// ─── Shell ────────────────────────────────────────────────────────────────────
+const Shell = ({ SD }) => {
+  const [tab, setTab] = useState('Stroke Overview');
+  const [openEv, setOpenEv] = useState(null);
+  const openEvent = (ev) => setOpenEv(ev);
+
+  return (
+    <DataCtx.Provider value={SD}>
+      <div style={{flex:1,display:'flex',overflow:'hidden',position:'relative'}}>
+        <SideNav active={tab} onSelect={t=>{setTab(t);setOpenEv(null);}}/>
+        <div style={{flex:1,display:'flex',flexDirection:'column',overflow:'hidden'}}>
+          <TopBar title={tab}/>
+          {tab==='Stroke Overview' && <StrokeOverview onEvent={openEvent}/>}
+          {tab==='Quick Lookup'    && <QuickLookup    onEvent={openEvent}/>}
+          {tab==='Swim History'    && <SwimHistory/>}
+          {tab==='Deep Analytics'  && <DeepAnalytics  onEvent={openEvent}/>}
+          {tab==='IMX Score'       && <IMXScore/>}
+          {tab==='Goals'           && <Goals           onEvent={openEvent}/>}
+          {tab==='Data Guide'      && <DataGuide/>}
+          {tab==='Settings'        && <Settings/>}
+        </div>
+        {openEv && <EventDetail ev={openEv} onClose={()=>setOpenEv(null)}/>}
+      </div>
+    </DataCtx.Provider>
+  );
+};
+
+// ─── App root — loads swim_data.json ─────────────────────────────────────────
+const App = () => {
+  const [SD, setSD] = useState(null);
+  const [err, setErr] = useState(null);
+
+  useEffect(() => {
+    fetch('swim_data.json?v='+Date.now())
+      .then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
+      .then(data => {
+        // Attach tierIdx helper
+        data.tierIdx = k => data.tiers.findIndex(t => t.key === k);
+        setSD(data);
+      })
+      .catch(e => setErr(e.message));
+  }, []);
+
+  if (err) return (
+    <div style={{flex:1,display:'flex',alignItems:'center',justifyContent:'center',flexDirection:'column',gap:12,fontFamily:'var(--sans)'}}>
+      <div style={{fontWeight:700,fontSize:16,color:'var(--signal)'}}>Could not load swim_data.json</div>
+      <div className="mono" style={{fontSize:12,color:'var(--muted)'}}>{err}</div>
+      <div style={{fontSize:12,color:'var(--muted)'}}>Run <code>python generate_data.py</code> then refresh.</div>
+    </div>
+  );
+
+  if (!SD) return (
+    <div style={{flex:1,display:'flex',alignItems:'center',justifyContent:'center',flexDirection:'column',gap:12,fontFamily:'var(--sans)'}}>
+      <div style={{width:32,height:32,border:'3px solid var(--line)',borderTop:'3px solid var(--signal)',borderRadius:'50%',animation:'spin 0.8s linear infinite'}}/>
+      <div style={{fontSize:12,color:'var(--muted)'}}>Loading swim data…</div>
+      <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
+    </div>
+  );
+
+  return <Shell SD={SD}/>;
+};
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>
