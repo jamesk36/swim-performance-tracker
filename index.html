@@ -38,6 +38,9 @@ table.data tr:hover td{background:#FCFCFD}
 table.data td.num,table.data th.num{text-align:right;font-family:var(--mono);font-variant-numeric:tabular-nums}
 @keyframes slide{from{transform:translateX(30px);opacity:0}to{transform:translateX(0);opacity:1}}
 @keyframes fadeIn{from{opacity:0}to{opacity:1}}
+.ev-cell{background:#fff;transition:background 0.08s}
+.ev-cell.has-data{cursor:pointer}
+.ev-cell.has-data:hover{background:#F5F6F7}
 </style>
 </head>
 <body>
@@ -220,15 +223,14 @@ const SideNav = ({ active, onSelect }) => {
   );
 };
 
-const TopBar = ({ title }) => {
-  const [c, setC] = useState('SCY');
+const TopBar = ({ title, course, onCourse }) => {
   return (
     <div style={{display:'flex',alignItems:'center',gap:16,padding:'10px 18px',borderBottom:'1px solid var(--line)',background:'#fff',flexShrink:0}}>
       <div style={{fontWeight:700,fontSize:14}}>{title}</div>
       <div style={{flex:1}}/>
       <div style={{display:'flex',gap:0,border:'1px solid var(--line-strong)'}}>
         {['SCY','SCM','LCM'].map(x => (
-          <button key={x} onClick={()=>setC(x)} className={'btn '+(c===x?'active':'')}
+          <button key={x} onClick={()=>onCourse(x)} className={'btn '+(course===x?'active':'')}
             style={{border:'none',borderRight:x!=='LCM'?'1px solid var(--line-strong)':'none',borderRadius:0}}>{x}</button>
         ))}
       </div>
@@ -500,10 +502,14 @@ const StrokeOverview = ({ onEvent, onTab }) => {
 };
 
 // ─── Tab: Event Detail Drawer ─────────────────────────────────────────────────
-const EventDetail = ({ ev, onClose }) => {
+const EventDetail = ({ ev, onClose, course }) => {
   const SD = useData();
-  const e = SD.events.find(x => x.ev === ev) || SD.events[0];
+  // Look up in SCY events first, then LCM events
+  const e = SD.events.find(x => x.ev === ev)
+         || (SD.lcmQualified?.events||[]).find(x => x.ev === ev)
+         || SD.events[0];
   if (!e) return null;
+  const evCourse = e.course || course || 'SCY';
   const stroke = SD.strokes[e.stroke] || {name:e.stroke,color:'#333'};
 
   // Build history for this event
@@ -528,7 +534,7 @@ const EventDetail = ({ ev, onClose }) => {
         <div style={{padding:'12px 18px',borderBottom:'1px solid var(--line)',display:'flex',alignItems:'center',gap:10,flexShrink:0}}>
           <StrokeDot stroke={e.stroke} size={10}/>
           <div style={{fontWeight:800,fontSize:18}}>{e.ev}</div>
-          <div className="mono" style={{fontSize:10,color:'var(--muted)'}}>SCY · {stroke.name}</div>
+          <div className="mono" style={{fontSize:10,color:'var(--muted)'}}>{evCourse} · {stroke.name}</div>
           <div style={{flex:1}}/>
           <button className="btn" onClick={onClose}>Close ✕</button>
         </div>
@@ -579,7 +585,7 @@ const EventDetail = ({ ev, onClose }) => {
           {/* Tier cuts reference */}
           {Object.keys(e.cuts||{}).length > 0 && (
             <div>
-              <div style={{fontWeight:700,fontSize:12,marginBottom:6}}>USA SWIMMING CUTS · {e.ev} · SCY 15-16 Male</div>
+              <div style={{fontWeight:700,fontSize:12,marginBottom:6}}>USA SWIMMING CUTS · {e.ev} · {evCourse} 15-16 Male</div>
               <div style={{display:'grid',gridTemplateColumns:'repeat(6,1fr)',gap:1,background:'var(--line)'}}>
                 {['B','BB','A','AA','AAA','AAAA'].map(tier => {
                   const t = SD.tiers.find(x=>x.key===tier);
@@ -624,85 +630,107 @@ const EventDetail = ({ ev, onClose }) => {
 };
 
 // ─── Tab: Quick Lookup ────────────────────────────────────────────────────────
-const QuickLookup = ({ onEvent }) => {
+const STROKE_COLS = [
+  { key:'FR', name:'Free'   },
+  { key:'BK', name:'Back'   },
+  { key:'BR', name:'Breast' },
+  { key:'FL', name:'Fly'    },
+  { key:'IM', name:'IM'     },
+];
+
+const QuickLookup = ({ onEvent, course }) => {
   const SD = useData();
-  const [q, setQ] = useState('');
-  const list = useMemo(() => SD.events.filter(e => !q || (e.ev+' '+(SD.strokes[e.stroke]?.name||'')).toLowerCase().includes(q.toLowerCase())), [q]);
-  const [sel, setSel] = useState(list[0]?.ev);
-  useEffect(() => { if (list.length && !list.find(l=>l.ev===sel)) setSel(list[0].ev); }, [list]);
-  const e = SD.events.find(x => x.ev === sel);
+
+  // Source depends on selected course
+  const evList = course === 'LCM' ? (SD.lcmQualified?.events || [])
+               : course === 'SCY' ? SD.events
+               : [];
+
+  const evMap = {};
+  evList.forEach(e => { evMap[e.ev] = e; });
+
+  // All distances present in this course's data, ascending
+  const dists = [...new Set(evList.map(e => parseInt(e.ev.split(' ')[0])))].sort((a,b)=>a-b);
+
+  if (evList.length === 0) return (
+    <div style={{flex:1,display:'flex',alignItems:'center',justifyContent:'center',flexDirection:'column',gap:10,color:'var(--muted)'}}>
+      <div style={{fontSize:14,fontWeight:600}}>No {course} data yet</div>
+      <div className="mono" style={{fontSize:11}}>
+        {course==='SCM' ? 'No short-course meters swims on record.' : 'Run the pipeline after uploading a swim history HTML.'}
+      </div>
+    </div>
+  );
+
+  const HEADER_H = 36;
 
   return (
-    <div style={{flex:1,overflow:'hidden',display:'grid',gridTemplateColumns:'300px 1fr',gap:1,background:'var(--line)'}}>
-      <div style={{background:'#fff',display:'flex',flexDirection:'column',overflow:'hidden'}}>
-        <div style={{padding:10,borderBottom:'1px solid var(--line)'}}>
-          <input autoFocus value={q} onChange={ev=>setQ(ev.target.value)} placeholder="50 fr · fly · 200 im…"
-            style={{width:'100%',padding:'7px 9px',fontFamily:'var(--mono)',fontSize:12,border:'1px solid var(--line-strong)',outline:'none',background:'var(--panel-alt)'}}/>
-          <div className="mono muted" style={{fontSize:9.5,marginTop:4}}>{list.length} results</div>
-        </div>
-        <div style={{flex:1,overflow:'auto'}}>
-          {list.map(x => (
-            <div key={x.ev} onClick={()=>setSel(x.ev)} style={{
-              padding:'8px 12px',borderBottom:'1px solid var(--line)',cursor:'pointer',
-              background:sel===x.ev?'#F5F6F7':'#fff',
-              borderLeft:sel===x.ev?'2px solid var(--signal)':'2px solid transparent',
-            }}>
-              <div style={{display:'flex',alignItems:'center',gap:6}}>
-                <StrokeDot stroke={x.stroke} size={7}/>
-                <span style={{fontWeight:600,fontSize:12}}>{x.ev}</span>
-                <div style={{flex:1}}/><TierChip tier={x.tier} size="sm"/>
-              </div>
-              <div className="mono" style={{fontSize:10,color:'var(--muted)',marginTop:2,display:'flex',gap:10}}>
-                <span>{fmtT(x.pb)}</span>
-                {x.next.tier && <span>→ {x.next.tier}</span>}
-                {x.next.gap>0 && <span style={{color:'var(--signal)'}}>−{x.next.gap.toFixed(2)}s</span>}
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-      <div style={{background:'#fff',padding:20,overflow:'auto'}}>
-        {e && (
-          <div>
-            <div style={{display:'flex',alignItems:'baseline',gap:10}}>
-              <StrokeDot stroke={e.stroke} size={10}/>
-              <div style={{fontWeight:800,fontSize:22}}>{e.ev}</div>
-              <div className="mono muted" style={{fontSize:11}}>{SD.strokes[e.stroke]?.name} · SCY</div>
-              <div style={{flex:1}}/>
-              <button className="btn" onClick={()=>onEvent(e.ev)}>Open detail ↗</button>
-            </div>
-            <div style={{display:'grid',gridTemplateColumns:'2fr 1fr',gap:20,marginTop:16}}>
-              <div>
-                {e.next.gap > 0
-                  ? <><div className="kpi-label">GAP TO NEXT STANDARD</div>
-                    <div style={{display:'flex',alignItems:'baseline',gap:8,marginTop:4}}>
-                      <div className="mono" style={{fontSize:46,color:'var(--signal)',fontWeight:500,letterSpacing:'-0.02em'}}>−{e.next.gap.toFixed(2)}</div>
-                      <div className="mono" style={{color:'var(--muted)'}}>s → {e.next.tier}</div>
-                    </div></>
-                  : <div className="mono" style={{fontSize:20,color:'var(--good)',marginTop:8}}>
-                      {e.next.tier ? 'Cut achieved' : 'Top tier (AAAA)'}
-                    </div>
-                }
-                <div style={{marginTop:14}}><TierLadderV2 tier={e.tier} pb={e.pb} nextCut={e.next.cut}/></div>
-                <div style={{marginTop:18,display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:0,border:'1px solid var(--line)'}}>
-                  {[['PB',fmtT(e.pb)],['TIER',e.tier],['90d',`${(e.trend||0).toFixed(1)}%`],['COURSE','SCY']].map(([k,v],i)=>(
-                    <div key={k} style={{padding:'8px 10px',borderRight:i<3?'1px solid var(--line)':'none'}}>
-                      <div className="kpi-label">{k}</div><div className="mono" style={{fontSize:15}}>{v}</div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-              <div>
-                <div className="kpi-label">TREND</div>
-                {SD.trend[e.ev]
-                  ? <><Sparkline data={SD.trend[e.ev]} w={260} h={80} color={SD.strokes[e.stroke]?.color||'#333'} fill/>
-                    <div className="mono muted" style={{fontSize:10,marginTop:4,display:'flex',justifyContent:'space-between'}}>
-                      <span>{fmtT(SD.trend[e.ev][0])}</span><span>{fmtT(e.pb)}</span></div></>
-                  : <div className="mono muted" style={{fontSize:11,marginTop:8}}>not enough data</div>}
-              </div>
-            </div>
+    <div style={{flex:1,overflow:'auto'}}>
+      <div style={{
+        display:'grid',
+        gridTemplateColumns:`52px repeat(5,1fr)`,
+        gap:'1px',
+        background:'var(--line)',
+        minWidth:520,
+      }}>
+        {/* ── Header row ── */}
+        <div style={{background:'var(--panel-alt)',height:HEADER_H,position:'sticky',top:0,zIndex:3}}/>
+        {STROKE_COLS.map(col => (
+          <div key={col.key} style={{
+            background:'var(--panel-alt)',height:HEADER_H,
+            display:'flex',alignItems:'center',gap:6,
+            padding:'0 14px',fontWeight:700,fontSize:12,
+            position:'sticky',top:0,zIndex:3,
+            borderBottom:'2px solid var(--line-strong)',
+          }}>
+            <StrokeDot stroke={col.key} size={8}/>
+            {col.name}
           </div>
-        )}
+        ))}
+
+        {/* ── Data rows ── */}
+        {dists.flatMap(dist => [
+          /* distance label */
+          <div key={`lbl-${dist}`} style={{
+            background:'var(--panel-alt)',
+            display:'flex',alignItems:'center',justifyContent:'center',
+            padding:'14px 4px',
+          }}>
+            <span className="mono" style={{fontSize:11,fontWeight:700,color:'var(--muted)'}}>{dist}</span>
+          </div>,
+
+          /* one cell per stroke */
+          ...STROKE_COLS.map(col => {
+            const evKey = `${dist} ${col.key}`;
+            const e = evMap[evKey];
+            const sc = SD.strokes[col.key]?.color || '#333';
+            return (
+              <div key={`${dist}-${col.key}`}
+                className={`ev-cell${e?' has-data':''}`}
+                onClick={e ? () => onEvent(evKey) : undefined}
+                style={{padding:'12px 14px',minHeight:72}}
+              >
+                {e ? (<>
+                  <div className="mono" style={{fontSize:19,fontWeight:600,letterSpacing:'-0.01em',color:'var(--ink)',marginBottom:5}}>
+                    {fmtT(e.pb)}
+                  </div>
+                  <div style={{display:'flex',alignItems:'center',gap:5,flexWrap:'wrap'}}>
+                    <TierChip tier={e.tier} size="sm"/>
+                    {e.next?.gap > 0 &&
+                      <span className="mono" style={{fontSize:10,color:'var(--signal)',fontWeight:600}}>−{e.next.gap.toFixed(2)}s</span>}
+                    {(!e.next?.gap || e.next.gap === 0) && e.next?.tier === null &&
+                      <span className="mono" style={{fontSize:9,color:'var(--good)'}}>AAAA</span>}
+                  </div>
+                  {e.next?.tier && e.next.gap > 0 &&
+                    <div className="mono" style={{fontSize:9,color:'var(--muted-2)',marginTop:3}}>
+                      → {e.next.tier} {fmtT(e.next.cut)}
+                    </div>}
+                </>) : (
+                  <span className="mono" style={{color:'var(--line-strong)',fontSize:18}}>—</span>
+                )}
+              </div>
+            );
+          }),
+        ])}
       </div>
     </div>
   );
@@ -1192,6 +1220,7 @@ const Settings = () => {
 const Shell = ({ SD }) => {
   const [tab, setTab] = useState('Stroke Overview');
   const [openEv, setOpenEv] = useState(null);
+  const [course, setCourse] = useState('SCY');
   const openEvent = (ev) => setOpenEv(ev);
 
   return (
@@ -1199,17 +1228,17 @@ const Shell = ({ SD }) => {
       <div style={{flex:1,display:'flex',overflow:'hidden',position:'relative'}}>
         <SideNav active={tab} onSelect={t=>{setTab(t);setOpenEv(null);}}/>
         <div style={{flex:1,display:'flex',flexDirection:'column',overflow:'hidden'}}>
-          <TopBar title={tab}/>
+          <TopBar title={tab} course={course} onCourse={setCourse}/>
           {tab==='Stroke Overview' && <StrokeOverview onEvent={openEvent} onTab={t=>{setTab(t);setOpenEv(null);}}/>}
-          {tab==='Quick Lookup'    && <QuickLookup    onEvent={openEvent}/>}
-          {tab==='Swim History'    && <SwimHistory/>}
+          {tab==='Quick Lookup'    && <QuickLookup    onEvent={openEvent} course={course}/>}
+          {tab==='Swim History'    && <SwimHistory     course={course}/>}
           {tab==='Deep Analytics'  && <DeepAnalytics  onEvent={openEvent}/>}
           {tab==='IMX Score'       && <IMXScore/>}
           {tab==='Goals'           && <Goals           onEvent={openEvent}/>}
           {tab==='Data Guide'      && <DataGuide/>}
           {tab==='Settings'        && <Settings/>}
         </div>
-        {openEv && <EventDetail ev={openEv} onClose={()=>setOpenEv(null)}/>}
+        {openEv && <EventDetail ev={openEv} onClose={()=>setOpenEv(null)} course={course}/>}
       </div>
     </DataCtx.Provider>
   );
