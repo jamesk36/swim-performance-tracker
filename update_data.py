@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-update_data.py — Full pipeline: swim_history.html → swim_data.json
+update_data.py -- Full pipeline: swim_history.html -> swim_data.json
 
 Usage:
     1. Save your GoMotion HTML export as 'swim_history.html' in this folder
@@ -11,9 +11,14 @@ Usage:
            git push
     4. On the server: ssh root@5.78.198.96 "cd /var/www/swim && git pull"
 """
+import os
 import sys
 import subprocess
 from pathlib import Path
+
+# Force UTF-8 output so emoji from sub-scripts don't crash on Windows
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
 ROOT = Path(__file__).parent
 
@@ -28,45 +33,51 @@ STEPS = [
 def check_input(filename):
     path = ROOT / filename
     if not path.exists():
-        print(f"\n❌  Missing input: {filename}")
+        print(f"\nERROR: Missing input file: {filename}")
         if filename == "swim_history.html":
-            print("   → Download your swim history from GoMotion and save it here as 'swim_history.html'")
+            print("  -> Download your swim history from GoMotion and save it")
+            print("     in this folder as 'swim_history.html', then re-run.")
         sys.exit(1)
 
 def run_step(script, input_file, output_file):
-    print(f"\n▶  {script}  ({input_file} → {output_file})")
+    print(f"\n[{STEPS.index((script,input_file,output_file))+1}/5]  {script}")
+    print(f"      {input_file} -> {output_file}")
     check_input(input_file)
+    env = {**os.environ, "PYTHONIOENCODING": "utf-8"}
     result = subprocess.run(
         [sys.executable, str(ROOT / script)],
         cwd=ROOT,
         capture_output=True,
         text=True,
+        encoding="utf-8",
+        errors="replace",
+        env=env,
     )
-    # Print script output
     for line in (result.stdout + result.stderr).splitlines():
-        print(f"   {line}")
+        # Strip emoji that might crash older terminals
+        print(f"      {line}")
     if result.returncode != 0:
-        print(f"\n❌  {script} failed (exit {result.returncode})")
+        print(f"\nERROR: {script} failed (exit code {result.returncode})")
         sys.exit(result.returncode)
     out = ROOT / output_file
     if not out.exists():
-        print(f"\n❌  {script} ran but {output_file} was not created")
+        print(f"\nERROR: {script} ran OK but {output_file} was not created")
         sys.exit(1)
-    print(f"   ✓  {output_file} written ({out.stat().st_size // 1024} KB)")
+    print(f"      OK - {output_file} ({out.stat().st_size // 1024} KB)")
 
 if __name__ == "__main__":
     print("=" * 60)
     print("  Swim Data Pipeline")
     print("=" * 60)
 
-    for script, inp, out in STEPS:
-        run_step(script, inp, out)
+    for step in STEPS:
+        run_step(*step)
 
     print("\n" + "=" * 60)
-    print("  ✅  swim_data.json is ready!")
+    print("  Done! swim_data.json is ready.")
     print("=" * 60)
     print("""
-Next steps to go live:
+To go live, run these commands:
 
   git add swim_data.json
   git commit -m "Update swim data"
