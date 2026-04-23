@@ -6,6 +6,7 @@ Run after each data pipeline update:
 Output: swim_data.json  (committed to repo, served by Caddy alongside index.html)
 """
 import json
+import os
 import sys
 from pathlib import Path
 from datetime import datetime, timedelta, date
@@ -120,6 +121,58 @@ def days_until(target_date_str: str, from_date: date) -> int:
     td = date.fromisoformat(target_date_str)
     return (td - from_date).days
 
+TRUNCATED_LEN = 28   # HY-TEK Meet Manager caps names at 30 chars
+
+def resolve_meet_names(raw_names: list, cache: dict, base: Path) -> dict:
+    """
+    Expand truncated HY-TEK meet names via Claude API.
+    Results are persisted to meet_name_cache.json so the API is only called
+    for names seen for the first time.
+    """
+    to_resolve = [n for n in raw_names if n not in cache and len(str(n)) >= TRUNCATED_LEN]
+    if not to_resolve:
+        return cache
+
+    api_key = os.environ.get("ANTHROPIC_API_KEY")
+    if not api_key:
+        print(f"  NOTE: {len(to_resolve)} meet name(s) look truncated but ANTHROPIC_API_KEY is not set - skipping expansion")
+        return cache
+
+    try:
+        import anthropic
+        client = anthropic.Anthropic(api_key=api_key)
+        names_json = json.dumps(to_resolve, indent=2)
+        msg = client.messages.create(
+            model="claude-3-5-haiku-20241022",
+            max_tokens=1024,
+            messages=[{
+                "role": "user",
+                "content": (
+                    "These are youth swim meet names exported from HY-TEK Meet Manager.\n"
+                    "HY-TEK truncates meet names at 30 characters, so some are cut off mid-word.\n"
+                    "Expand any truncated names to their most likely full name.\n"
+                    "These are USA Swimming / Arkansas (ARSI) region meets.\n\n"
+                    f"Input names (JSON array):\n{names_json}\n\n"
+                    "Return a JSON object mapping each input name to its best full name.\n"
+                    "For names that are already complete, map them to themselves (unchanged).\n"
+                    "Return ONLY valid JSON — no explanation, no markdown."
+                ),
+            }],
+        )
+        resolved = json.loads(msg.content[0].text.strip())
+        cache.update(resolved)
+        cache_path = base / "meet_name_cache.json"
+        with open(cache_path, "w", encoding="utf-8") as f:
+            json.dump(cache, f, indent=2, sort_keys=True, ensure_ascii=False)
+        changed = {k: v for k, v in resolved.items() if k != v}
+        print(f"  Meet names resolved via Claude: {len(changed)} expanded, {len(resolved)-len(changed)} already complete")
+        for k, v in changed.items():
+            print(f"    {k!r}  →  {v!r}")
+    except Exception as exc:
+        print(f"  Meet name resolution failed: {exc}")
+
+    return cache
+
 def parse_time_str(t: str) -> float:
     """'1:10.59' or '0:30.19' or '27.39' → seconds (float)."""
     t = str(t).strip()
@@ -139,6 +192,14 @@ def main():
     standards = json.loads((base / "standards.json").read_text())
     meets_data = json.loads((base / "meets.json").read_text()) if (base / "meets.json").exists() else {"meets": []}
     print(f"  {len(df_all)} swims loaded, {len(meets_data['meets'])} meets in meets.json")
+
+    # ── Resolve truncated meet names ─────────────────────────────────────────────
+    cache_path = base / "meet_name_cache.json"
+    name_cache = json.loads(cache_path.read_text(encoding="utf-8")) if cache_path.exists() else {}
+    raw_names  = df_all["Meet"].dropna().unique().tolist()
+    name_cache = resolve_meet_names(raw_names, name_cache, base)
+    if name_cache:
+        df_all["Meet"] = df_all["Meet"].apply(lambda n: name_cache.get(str(n), str(n)))
 
     # ── Normalise ───────────────────────────────────────────────────────────────
     df_all["date"]    = pd.to_datetime(df_all["Date"]).dt.date
