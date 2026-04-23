@@ -56,6 +56,7 @@ COURSE_MAP = {
 STD_TO_UI = {
     "50 Free":   "50 FR",  "100 Free":  "100 FR", "200 Free":  "200 FR",
     "500 Free":  "500 FR", "1000 Free": "1000 FR","1650 Free": "1650 FR",
+    "800 Free":  "800 FR", "1500 Free": "1500 FR",
     "50 Back":   "50 BK",  "100 Back":  "100 BK", "200 Back":  "200 BK",
     "50 Breast": "50 BR",  "100 Breast":"100 BR",  "200 Breast":"200 BR",
     "50 Fly":    "50 FL",  "100 Fly":   "100 FL",  "200 Fly":   "200 FL",
@@ -114,6 +115,19 @@ def get_cut(standards, ag, gender, course, std_ev, tier):
 def season_label(start_year: int) -> str:
     return f"{start_year}–{str(start_year + 1)[2:]} SC"
 
+def days_until(target_date_str: str, from_date: date) -> int:
+    """Days from from_date to target_date_str (YYYY-MM-DD). Negative = in the past."""
+    td = date.fromisoformat(target_date_str)
+    return (td - from_date).days
+
+def parse_time_str(t: str) -> float:
+    """'1:10.59' or '0:30.19' or '27.39' → seconds (float)."""
+    t = str(t).strip()
+    if ":" in t:
+        m, s = t.split(":")
+        return float(m) * 60 + float(s)
+    return float(t)
+
 # ─── Main ──────────────────────────────────────────────────────────────────────
 def main():
     base = Path(__file__).parent
@@ -123,7 +137,8 @@ def main():
     df_all = pd.read_excel(base / "graded_swim_data.xlsx")
     goals_df = pd.read_csv(base / "goals.csv")
     standards = json.loads((base / "standards.json").read_text())
-    print(f"  {len(df_all)} swims loaded")
+    meets_data = json.loads((base / "meets.json").read_text()) if (base / "meets.json").exists() else {"meets": []}
+    print(f"  {len(df_all)} swims loaded, {len(meets_data['meets'])} meets in meets.json")
 
     # ── Normalise ───────────────────────────────────────────────────────────────
     df_all["date"]    = pd.to_datetime(df_all["Date"]).dt.date
@@ -414,22 +429,149 @@ def main():
             best_per_event[ev] = round(float(grp["time_s"].min()), 2)
         season_pbs[s] = best_per_event
 
+    # ── LCM PBs + qualified swims ────────────────────────────────────────────────
+    lcm = df[df["course"] == "LCM"].copy()
+    lcm_pbs: dict[str, dict] = {}  # ev → {time, date, tier}
+
+    for ev, grp in lcm.groupby("event"):
+        best_row = grp.loc[grp["time_s"].idxmin()]
+        std_ev   = UI_TO_STD.get(ev)
+        raw_std  = str(best_row["std"] or "")
+        current_t = raw_std if raw_std in TIER_ORDER else None
+        if not current_t and std_ev:
+            for tier in TIER_ORDER:
+                cut = get_cut(standards, ag, ATHLETE_GENDER, "LCM", std_ev, tier)
+                if cut and float(best_row["time_s"]) <= cut:
+                    current_t = tier
+                    break
+        if not current_t:
+            current_t = ""
+        lcm_pbs[ev] = {
+            "time": round(float(best_row["time_s"]), 2),
+            "date": str(best_row["date"]),
+            "tier": current_t,
+        }
+
+    # Build lcmEvents list (events that have both a PB and standards entry)
+    lcm_events_out = []
+    for ev in sorted(lcm_pbs.keys()):
+        std_ev = UI_TO_STD.get(ev)
+        if not std_ev:
+            continue
+        pb_info  = lcm_pbs[ev]
+        pb_time  = pb_info["time"]
+        stroke   = next((c for c in ["BK","BR","FL","IM"] if c in ev), "FR")
+        current_t = pb_info["tier"]
+
+        next_t   = next_tier(current_t) if current_t in TIER_ORDER else "BB"
+        next_cut = get_cut(standards, ag, ATHLETE_GENDER, "LCM", std_ev, next_t) if next_t else None
+        bb_cut   = get_cut(standards, ag, ATHLETE_GENDER, "LCM", std_ev, "BB")
+        bb_qual  = bool(bb_cut and pb_time <= bb_cut)
+        gap      = round(pb_time - next_cut, 2) if next_cut else 0.0
+
+        all_cuts = {}
+        for t in TIER_ORDER:
+            c = get_cut(standards, ag, ATHLETE_GENDER, "LCM", std_ev, t)
+            if c:
+                all_cuts[t] = round(c, 2)
+
+        lcm_events_out.append({
+            "ev":     ev,
+            "stroke": stroke,
+            "course": "LCM",
+            "pb":     pb_time,
+            "date":   pb_info["date"],
+            "tier":   current_t,
+            "bbQual": bb_qual,
+            "cuts":   all_cuts,
+            "next":   {
+                "tier": next_t,
+                "cut":  round(next_cut, 2) if next_cut else None,
+                "gap":  max(0.0, gap) if next_cut else 0.0,
+            },
+        })
+
+    # ── Upcoming meets + countdown ────────────────────────────────────────────────
+    upcoming_meets = []
+    past_meets_meta = []
+    for m in meets_data["meets"]:
+        days = days_until(m["startDate"], today)
+        meet_entry = {
+            "id":        m["id"],
+            "name":      m["name"],
+            "shortName": m.get("shortName", m["name"]),
+            "location":  m.get("location", ""),
+            "startDate": m["startDate"],
+            "endDate":   m.get("endDate", m["startDate"]),
+            "daysAway":  days,
+            "course":    m.get("course", "LCM"),
+            "type":      m.get("type", "invitational"),
+            "qualifyingRequired": m.get("qualifyingRequired", False),
+        }
+        if m.get("entries"):
+            meet_entry["entries"] = m["entries"]
+
+        # Compute qualification status vs this meet's qualifying times
+        if m.get("qualifyingTimes") and lcm_pbs:
+            qual_events  = []
+            uqual_events = []
+            for ev_ui, qt_str in m["qualifyingTimes"].items():
+                qt_s   = parse_time_str(qt_str)
+                pb_info = lcm_pbs.get(ev_ui)
+                pb_s   = pb_info["time"] if pb_info else None
+                qualified = bool(pb_s is not None and pb_s <= qt_s)
+                rec = {
+                    "event":     ev_ui,
+                    "qualTime":  qt_s,
+                    "pb":        pb_s,
+                    "qualified": qualified,
+                }
+                (qual_events if qualified else uqual_events).append(rec)
+            meet_entry["qualifiedEvents"]   = sorted(qual_events, key=lambda x: x["event"])
+            meet_entry["unqualifiedEvents"] = sorted(uqual_events, key=lambda x: x["event"])
+            meet_entry["qualifiedCount"]    = len(qual_events)
+            meet_entry["totalQualEvents"]   = len(qual_events) + len(uqual_events)
+
+        if days >= 0:
+            upcoming_meets.append(meet_entry)
+        else:
+            past_meets_meta.append(meet_entry)
+
+    upcoming_meets.sort(key=lambda x: x["startDate"])
+    next_meet = upcoming_meets[0] if upcoming_meets else None
+
+    # LCM qualified summary (vs BB standard)
+    lcm_bb_qual  = [e for e in lcm_events_out if e["bbQual"]]
+    lcm_bb_total = [e for e in lcm_events_out if e.get("cuts", {}).get("BB")]
+
+    lcm_qualified = {
+        "bbCount":  len(lcm_bb_qual),
+        "bbTotal":  len(lcm_bb_total),
+        "events":   lcm_events_out,
+    }
+    print(f"  LCM: {len(lcm_pbs)} events, {len(lcm_bb_qual)}/{len(lcm_bb_total)} BB-qualified")
+    if next_meet:
+        print(f"  Next meet: {next_meet['shortName']} in {next_meet['daysAway']} day(s)")
+
     # ── Assemble final JSON ───────────────────────────────────────────────────────
     out = {
-        "generatedAt": datetime.now().isoformat(timespec="seconds"),
-        "athlete":     athlete,
-        "strokes":     STROKE_META,
-        "tiers":       TIER_META,
-        "events":      events_out,
-        "meets":       meet_list,
-        "imx":         imx,
-        "imxHistory":  imx_history,
-        "trend":       trend_series,
-        "pbTimeline":  pb_timeline,
-        "history":     history,
-        "penetration": penetration,
-        "goals":       goals_out,
-        "seasonPbs":   season_pbs,
+        "generatedAt":   datetime.now().isoformat(timespec="seconds"),
+        "athlete":       athlete,
+        "strokes":       STROKE_META,
+        "tiers":         TIER_META,
+        "events":        events_out,
+        "meets":         meet_list,
+        "imx":           imx,
+        "imxHistory":    imx_history,
+        "trend":         trend_series,
+        "pbTimeline":    pb_timeline,
+        "history":       history,
+        "penetration":   penetration,
+        "goals":         goals_out,
+        "seasonPbs":     season_pbs,
+        "lcmQualified":  lcm_qualified,
+        "upcomingMeets": upcoming_meets,
+        "nextMeet":      next_meet,
     }
 
     out_path = base / "swim_data.json"

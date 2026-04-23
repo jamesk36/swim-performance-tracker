@@ -136,6 +136,49 @@ const strokeOf = ev => {
 // ─── Navigation ───────────────────────────────────────────────────────────────
 const TABS = ['Stroke Overview','Quick Lookup','Swim History','Deep Analytics','IMX Score','Goals','Data Guide','Settings'];
 
+// ─── Countdown widget (sidebar) ───────────────────────────────────────────────
+const MeetCountdown = () => {
+  const SD = useData();
+  const meet = SD.nextMeet;
+  if (!meet) return null;
+
+  const days = meet.daysAway;
+  const urgent = days <= 1;
+  const soon   = days <= 7;
+  const accentColor = urgent ? 'var(--signal)' : soon ? '#B77A2B' : 'var(--muted)';
+  const bgColor     = urgent ? '#FFF5F3' : soon ? '#FEF9F0' : 'var(--panel-alt)';
+
+  const fmtDate = d => {
+    const dt = new Date(d + 'T12:00:00');
+    return dt.toLocaleDateString('en-US', {month:'short', day:'numeric'});
+  };
+
+  const countdownLabel = days === 0 ? 'TODAY' :
+                         days === 1 ? 'TOMORROW' :
+                         `${days} DAYS`;
+
+  return (
+    <div style={{margin:'8px 10px',padding:'9px 10px',background:bgColor,border:`1px solid ${urgent?'#F5C8C0':soon?'#F0DEB4':'var(--line)'}`,fontSize:10}}>
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:4}}>
+        <span style={{fontFamily:'var(--mono)',fontSize:9,letterSpacing:'0.1em',color:'var(--muted)',fontWeight:600}}>NEXT MEET</span>
+        <span style={{fontFamily:'var(--mono)',fontSize:9,fontWeight:700,color:accentColor,letterSpacing:'0.04em'}}>{countdownLabel}</span>
+      </div>
+      <div style={{fontWeight:700,fontSize:11,color:'var(--ink)',lineHeight:1.3,marginBottom:2}}>{meet.shortName}</div>
+      <div style={{color:'var(--muted)',fontSize:10}}>{fmtDate(meet.startDate)} · {meet.course}</div>
+      {meet.entries && meet.entries.length > 0 && (
+        <div style={{marginTop:5,paddingTop:5,borderTop:'1px dotted var(--line-strong)',color:'var(--ink-2)',fontSize:9,fontFamily:'var(--mono)'}}>
+          {meet.entries.map(e => (
+            <div key={e.eventNum} style={{display:'flex',justifyContent:'space-between',marginBottom:1}}>
+              <span>{e.event}</span>
+              <span style={{color:'var(--muted)'}}>{e.seedTime} <span style={{color:accentColor}}>#{e.seedRank}</span></span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
 const SideNav = ({ active, onSelect }) => {
   const SD = useData();
   return (
@@ -145,6 +188,7 @@ const SideNav = ({ active, onSelect }) => {
         <div style={{fontWeight:700,fontSize:14,letterSpacing:'-0.01em',marginTop:2}}>{SD.athlete.name}</div>
         <div className="mono" style={{fontSize:10,color:'var(--muted)',marginTop:2}}>{SD.athlete.age}yo · {SD.athlete.lsc} · {SD.athlete.team}</div>
       </div>
+      {SD.nextMeet && <MeetCountdown/>}
       <nav style={{padding:'6px 0',flex:1,overflowY:'auto'}}>
         {TABS.map(label => (
           <div key={label} onClick={()=>onSelect(label)} style={{
@@ -249,6 +293,79 @@ const StrokeOverview = ({ onEvent, onTab }) => {
           )}
         </div>
       )}
+
+      {/* LC Season Readiness */}
+      {SD.lcmQualified && (() => {
+        const lcmQ = SD.lcmQualified;
+        const stateNext = (SD.upcomingMeets||[]).find(m => m.qualifyingRequired);
+        const qual     = stateNext ? stateNext.qualifiedCount : lcmQ.bbCount;
+        const total    = stateNext ? stateNext.totalQualEvents : lcmQ.bbTotal;
+        const meetName = stateNext ? stateNext.shortName : 'USA-S BB Standard';
+        const daysAway = stateNext ? stateNext.daysAway : null;
+
+        // Build unified event list: [{ev, pb, isQual, qualTime}]
+        const displayEvents = stateNext
+          ? [
+              ...(stateNext.qualifiedEvents||[]).map(e=>({ev:e.event, pb:e.pb, isQual:true,  qualTime:e.qualTime})),
+              ...(stateNext.unqualifiedEvents||[]).map(e=>({ev:e.event, pb:e.pb, isQual:false, qualTime:e.qualTime})),
+            ].sort((a,b)=>a.ev.localeCompare(b.ev))
+          : lcmQ.events.map(e=>({ev:e.ev, pb:e.pb, isQual:e.bbQual, qualTime:null}));
+
+        const unqual = displayEvents.filter(e=>!e.isQual);
+
+        return (
+          <div className="panel" style={{padding:'13px 20px',display:'grid',gridTemplateColumns:'auto 1fr',gap:20,alignItems:'start'}}>
+            <div style={{minWidth:110}}>
+              <div className="kpi-label">LC STATE READINESS</div>
+              <div style={{display:'flex',alignItems:'baseline',gap:4,marginTop:3}}>
+                <div className="mono" style={{fontSize:40,fontWeight:700,letterSpacing:'-0.03em',lineHeight:1,color:'var(--good)'}}>{qual}</div>
+                <div className="mono" style={{fontSize:16,color:'var(--muted)'}}>/ {total}</div>
+              </div>
+              <div style={{fontSize:11,color:'var(--muted)',marginTop:4}}>events qualified</div>
+              <div style={{marginTop:6,height:5,background:'#EEF0F3',position:'relative',width:90}}>
+                <div style={{position:'absolute',left:0,top:0,bottom:0,width:`${Math.round(qual/total*100)}%`,background:'var(--good)'}}/>
+              </div>
+              <div className="mono" style={{fontSize:10,color:'var(--muted)',marginTop:5}}>{meetName}</div>
+              {daysAway !== null && (
+                <div className="mono" style={{fontSize:10,color:daysAway<=7?'var(--signal)':'var(--muted)',marginTop:2,fontWeight:600}}>
+                  {daysAway === 0 ? 'TODAY' : daysAway === 1 ? '1 day away' : `${daysAway} days away`}
+                </div>
+              )}
+            </div>
+            <div>
+              <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(72px,1fr))',gap:4,marginBottom:6}}>
+                {displayEvents.map(ev => (
+                  <div key={ev.ev} style={{
+                    padding:'5px 7px',
+                    background: ev.isQual ? '#EFF8F1' : '#FEF0ED',
+                    border: `1px solid ${ev.isQual ? '#A8D5B5' : '#F5C8C0'}`,
+                    fontSize:10,display:'flex',flexDirection:'column',gap:1
+                  }}>
+                    <div style={{display:'flex',alignItems:'center',gap:4}}>
+                      <span style={{width:5,height:5,borderRadius:'50%',background:ev.isQual?'var(--good)':'var(--signal)',display:'inline-block',flexShrink:0}}/>
+                      <span style={{fontWeight:700}}>{ev.ev}</span>
+                    </div>
+                    <div className="mono" style={{fontSize:9,color:'var(--muted)',paddingLeft:9}}>{fmtT(ev.pb)}</div>
+                    {ev.qualTime && <div className="mono" style={{fontSize:9,color:ev.isQual?'var(--good)':'var(--signal)',paddingLeft:9}}>
+                      {ev.isQual ? `−${(ev.qualTime - ev.pb).toFixed(2)}` : `+${(ev.pb - ev.qualTime).toFixed(2)}`}
+                    </div>}
+                  </div>
+                ))}
+              </div>
+              {unqual.length > 0 && (
+                <div style={{fontSize:10,color:'var(--muted)'}}>
+                  <span style={{fontWeight:600,color:'var(--signal)'}}>Still to qualify: </span>
+                  {unqual.map((e,i) => (
+                    <span key={e.ev} className="mono">
+                      {e.ev} (need {e.qualTime ? fmtT(e.qualTime) : 'BB'}){i<unqual.length-1?', ':''}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Hero */}
       <div className="panel" style={{padding:'16px 20px',display:'grid',gridTemplateColumns:'1.1fr 1fr 1fr',gap:22}}>

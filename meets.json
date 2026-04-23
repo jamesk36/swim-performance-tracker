@@ -1,0 +1,84 @@
+{
+  "meets": [
+    {
+      "id": "2026-lc-opener",
+      "name": "2026 AquaHawgs Long Course Opener",
+      "shortName": "LC Opener",
+      "host": "Razorback Aquatic Club AquaHawgs",
+      "location": "Fayetteville, AR",
+      "startDate": "2026-04-24",
+      "endDate": "2026-04-26",
+      "course": "LCM",
+      "type": "invitational",
+      "qualifyingRequired": false,
+      "entries": [
+        {"eventNum": 204, "event": "100 BK", "session": "Sat", "seedTime": "1:10.10", "seedRank": 14},
+        {"eventNum": 206, "event": "100 BR", "session": "Sat", "seedTime": "1:29.06", "seedRank": 34},
+        {"eventNum": 210, "event": "200 IM", "session": "Sat", "seedTime": "2:31.22", "seedRank": 13},
+        {"eventNum": 304, "event": "200 BK", "session": "Sun", "seedTime": "2:35.38", "seedRank": 14},
+        {"eventNum": 308, "event": "100 FL", "session": "Sun", "seedTime": "1:09.42", "seedRank": 19},
+        {"eventNum": 310, "event": "200 BR", "session": "Sun", "seedTime": "3:06.33", "seedRank": 20}
+      ]
+    },
+    {
+      "id": "2026-arsi-lc-champs",
+      "name": "2026 ARSI Long Course Championships",
+      "shortName": "LC State Champs",
+      "host": "Arkansas Swimming, Inc.",
+      "location": "Fort Smith, AR",
+      "startDate": "2026-07-16",
+      "endDate": "2026-07-19",
+      "course": "LCM",
+      "type": "championship",
+      "qualifyingRequired": true,
+      "qualifyingStandard": "BB",
+      "qualifyingAgeGroup": "15-Over",
+      "note": "Estimated dates — 2026 meet info TBD. Qualifying times use BB standard.",
+      "qualifyingTimes": {
+        "50 FR":    "0:30.59",
+        "100 FR":   "1:06.69",
+        "200 FR":   "2:25.39",
+        "400 FR":   "5:10.19",
+        "1500 FR":  "20:33.39",
+        "100 BK":   "1:19.39",
+        "200 BK":   "2:39.49",
+        "100 BR":   "1:23.09",
+        "200 BR":   "3:00.59",
+        "100 FL":   "1:11.29",
+        "200 FL":   "2:39.49",
+        "200 IM":   "2:43.59",
+        "400 IM":   "5:47.99"
+      },
+      "entries": []
+    },
+    {
+      "id": "2025-arsi-lc-champs",
+      "name": "2025 Arkansas Long Course Championships",
+      "shortName": "2025 LC State Champs",
+      "host": "Arkansas Swimming, Inc.",
+      "location": "Creekmore Park Pool, Fort Smith, AR",
+      "startDate": "2025-07-17",
+      "endDate": "2025-07-20",
+      "course": "LCM",
+      "type": "championship",
+      "qualifyingRequired": true,
+      "qualifyingStandard": "BB",
+      "qualifyingAgeGroup": "15-Over",
+      "qualifyingTimes": {
+        "50 FR":    "0:30.59",
+        "100 FR":   "1:06.69",
+        "200 FR":   "2:25.39",
+        "400 FR":   "5:10.19",
+        "1500 FR":  "20:33.39",
+        "100 BK":   "1:19.39",
+        "200 BK":   "2:39.49",
+        "100 BR":   "1:23.09",
+        "200 BR":   "3:00.59",
+        "100 FL":   "1:11.29",
+        "200 FL":   "2:39.49",
+        "200 IM":   "2:43.59",
+        "400 IM":   "5:47.99"
+      }
+    }
+  ]
+}
