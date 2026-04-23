@@ -14,8 +14,8 @@ import pandas as pd
 # ─── Athlete config ────────────────────────────────────────────────────────────
 ATHLETE_NAME = "Jack Kirby"
 ATHLETE_DOB  = datetime(2010, 11, 17)   # matches swim_app.py SWIMMER_DOB
-ATHLETE_TEAM = "Riverside Aquatic Club"
-ATHLETE_LSC  = "PV"
+ATHLETE_TEAM = "NWAA Sharks"
+ATHLETE_LSC  = "AR"
 ATHLETE_GENDER = "Male"
 
 # ─── Mappings ──────────────────────────────────────────────────────────────────
