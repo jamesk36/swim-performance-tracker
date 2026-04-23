@@ -634,7 +634,7 @@ const QuickLookup = ({ onEvent }) => {
 
   return (
     <div style={{flex:1,overflow:'hidden',display:'grid',gridTemplateColumns:'300px 1fr',gap:1,background:'var(--line)'}}>
-      <div style={{background:'#fff',display:'flex',flexDirection:'column'}}>
+      <div style={{background:'#fff',display:'flex',flexDirection:'column',overflow:'hidden'}}>
         <div style={{padding:10,borderBottom:'1px solid var(--line)'}}>
           <input autoFocus value={q} onChange={ev=>setQ(ev.target.value)} placeholder="50 fr · fly · 200 im…"
             style={{width:'100%',padding:'7px 9px',fontFamily:'var(--mono)',fontSize:12,border:'1px solid var(--line-strong)',outline:'none',background:'var(--panel-alt)'}}/>
