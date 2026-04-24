@@ -143,7 +143,7 @@ def resolve_meet_names(raw_names: list, cache: dict, base: Path) -> dict:
         client = anthropic.Anthropic(api_key=api_key)
         names_json = json.dumps(to_resolve, indent=2)
         msg = client.messages.create(
-            model="claude-3-5-haiku-20241022",
+            model="claude-haiku-4-5",
             max_tokens=1024,
             messages=[{
                 "role": "user",
@@ -159,7 +159,14 @@ def resolve_meet_names(raw_names: list, cache: dict, base: Path) -> dict:
                 ),
             }],
         )
-        resolved = json.loads(msg.content[0].text.strip())
+        raw = msg.content[0].text.strip()
+        # Strip markdown code fences if the model wrapped the JSON
+        if raw.startswith("```"):
+            raw = raw.split("```", 2)[1]          # drop opening fence
+            if raw.startswith("json"):
+                raw = raw[4:]                      # drop "json" language tag
+            raw = raw.rsplit("```", 1)[0].strip()  # drop closing fence
+        resolved = json.loads(raw)
         cache.update(resolved)
         cache_path = base / "meet_name_cache.json"
         with open(cache_path, "w", encoding="utf-8") as f:
