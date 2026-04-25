@@ -740,14 +740,65 @@ const QuickLookup = ({ onEvent, course }) => {
 const SwimHistory = () => {
   const SD = useData();
   const [filter, setFilter] = useState({stroke:'ALL',pb:false,q:''});
+  const [liveSwims, setLiveSwims] = useState(SD.liveSwims || []);
+  const [uploading, setUploading] = useState(false);
+  const [uploadMsg, setUploadMsg] = useState('');
+  const fileRef = React.useRef();
+
+  const handlePhoto = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    setUploading(true);
+    setUploadMsg('Reading screenshot…');
+    const fd = new FormData();
+    fd.append('photo', file);
+    try {
+      const r = await fetch('/api/photo-swim', {method:'POST', body:fd});
+      const swim = await r.json();
+      if (swim.error) throw new Error(swim.error);
+      setLiveSwims(prev => [...prev, swim]);
+      setUploadMsg('✓ Added: '+swim.event+' '+fmtT(swim.time));
+    } catch(err) {
+      setUploadMsg('Error: '+err.message);
+    } finally {
+      setUploading(false);
+      e.target.value = '';
+      setTimeout(()=>setUploadMsg(''), 4000);
+    }
+  };
+
+  const dismissLive = async (id) => {
+    await fetch('/api/live-swims/'+id, {method:'DELETE'});
+    setLiveSwims(prev => prev.filter(s => s.id !== id));
+  };
+
   const rows = useMemo(() => SD.history.filter(r => {
     if (filter.stroke !== 'ALL' && strokeOf(r.event) !== filter.stroke) return false;
     if (filter.pb && !r.pb) return false;
     if (filter.q && !(r.event+r.meet).toLowerCase().includes(filter.q.toLowerCase())) return false;
     return true;
   }), [filter]);
+
   return (
     <div style={{flex:1,overflow:'hidden',display:'flex',flexDirection:'column'}}>
+      {/* Live results banner */}
+      {liveSwims.length > 0 && (
+        <div style={{background:'#FFFBEB',borderBottom:'1px solid #F59E0B',padding:'8px 16px',flexShrink:0}}>
+          <div style={{fontSize:10,fontWeight:700,color:'#92400E',marginBottom:6,letterSpacing:'0.05em'}}>LIVE RESULTS — not yet in pipeline</div>
+          <div style={{display:'flex',flexWrap:'wrap',gap:8}}>
+            {liveSwims.map(s => (
+              <div key={s.id} style={{background:'#FEF3C7',border:'1px solid #F59E0B',padding:'4px 10px',display:'flex',alignItems:'center',gap:8,fontSize:11}}>
+                <StrokeDot stroke={strokeOf(s.event)} size={6}/>
+                <span style={{fontWeight:600}}>{s.event}</span>
+                <span className="mono" style={{fontWeight:700}}>{fmtT(s.time)}</span>
+                {s.place && <span className="mono muted">#{s.place}</span>}
+                <span className="muted" style={{fontSize:10}}>{s.course}</span>
+                <button onClick={()=>dismissLive(s.id)} style={{background:'none',border:'none',cursor:'pointer',color:'#92400E',fontSize:12,padding:'0 2px',lineHeight:1}}>×</button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
       <div style={{padding:'10px 16px',borderBottom:'1px solid var(--line)',background:'#fff',display:'flex',alignItems:'center',gap:10,flexShrink:0,flexWrap:'wrap'}}>
         <input value={filter.q} onChange={e=>setFilter({...filter,q:e.target.value})} placeholder="Filter by event or meet…"
           style={{width:230,padding:'5px 8px',fontFamily:'var(--mono)',fontSize:11,border:'1px solid var(--line-strong)',outline:'none',background:'var(--panel-alt)'}}/>
@@ -762,6 +813,13 @@ const SwimHistory = () => {
           <input type="checkbox" checked={filter.pb} onChange={e=>setFilter({...filter,pb:e.target.checked})}/> PBs only
         </label>
         <div style={{flex:1}}/>
+        {uploadMsg && <span className="mono" style={{fontSize:10,color:uploadMsg.startsWith('✓')?'var(--signal)':'#DC2626'}}>{uploadMsg}</span>}
+        <input ref={fileRef} type="file" accept="image/*" style={{display:'none'}} onChange={handlePhoto}/>
+        <button onClick={()=>fileRef.current.click()} disabled={uploading}
+          className="btn" title="Add swim from Meet Mobile screenshot"
+          style={{padding:'4px 10px',fontSize:11,display:'flex',alignItems:'center',gap:5,opacity:uploading?0.6:1}}>
+          {uploading ? '…' : '📷'} Add swim
+        </button>
         <div className="mono muted" style={{fontSize:10}}>{rows.length} of {SD.history.length} swims</div>
       </div>
       <div style={{flex:1,overflow:'auto',background:'#fff'}}>
@@ -1250,14 +1308,14 @@ const App = () => {
   const [err, setErr] = useState(null);
 
   useEffect(() => {
-    fetch('swim_data.json?v='+Date.now())
-      .then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
-      .then(data => {
-        // Attach tierIdx helper
-        data.tierIdx = k => data.tiers.findIndex(t => t.key === k);
-        setSD(data);
-      })
-      .catch(e => setErr(e.message));
+    Promise.all([
+      fetch('swim_data.json?v='+Date.now()).then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); }),
+      fetch('/api/live-swims').then(r => r.ok ? r.json() : []).catch(() => []),
+    ]).then(([data, live]) => {
+      data.tierIdx = k => data.tiers.findIndex(t => t.key === k);
+      data.liveSwims = live;
+      setSD(data);
+    }).catch(e => setErr(e.message));
   }, []);
 
   if (err) return (

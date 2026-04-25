@@ -91,6 +91,9 @@ dmypy.json
 *.crdownload
 *.part
 
+# Meet documents / psych sheets (local reference only)
+*.pdf
+
 # Windows
 desktop.ini
 
