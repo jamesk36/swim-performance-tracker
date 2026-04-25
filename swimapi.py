@@ -6,7 +6,7 @@ Runs on port 5001 alongside the static site.
 import base64
 import json
 import os
-from datetime import date
+from datetime import date, datetime
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -17,6 +17,65 @@ load_dotenv(Path(__file__).parent / ".env")
 app  = Flask(__name__)
 BASE = Path(__file__).parent
 LIVE = BASE / "live_swims.json"
+
+# ── Standards lookup ──────────────────────────────────────────────────────────
+ATHLETE_DOB    = datetime(2010, 11, 17)
+ATHLETE_GENDER = "Male"
+TIER_ORDER     = ["AAAA", "AAA", "AA", "A", "BB", "B"]
+UI_TO_STD = {
+    "50 FR":"50 Free","100 FR":"100 Free","200 FR":"200 Free",
+    "500 FR":"500 Free","1000 FR":"1000 Free","1650 FR":"1650 Free",
+    "800 FR":"800 Free","1500 FR":"1500 Free",
+    "50 BK":"50 Back","100 BK":"100 Back","200 BK":"200 Back",
+    "50 BR":"50 Breast","100 BR":"100 Breast","200 BR":"200 Breast",
+    "50 FL":"50 Fly","100 FL":"100 Fly","200 FL":"200 Fly",
+    "100 IM":"100 IM","200 IM":"200 IM","400 IM":"400 IM",
+}
+
+def _load_standards():
+    p = BASE / "standards.json"
+    return json.loads(p.read_text()) if p.exists() else {}
+
+STANDARDS = _load_standards()
+
+def _age_at(swim_date):
+    d = swim_date if isinstance(swim_date, date) else date.fromisoformat(swim_date)
+    dob = ATHLETE_DOB.date()
+    return d.year - dob.year - ((d.month, d.day) < (dob.month, dob.day))
+
+def _age_group(age):
+    if age <= 10: return "10&U"
+    if age <= 12: return "11-12"
+    if age <= 14: return "13-14"
+    if age <= 16: return "15-16"
+    return "17-18"
+
+def _era(swim_date):
+    d = swim_date if isinstance(swim_date, date) else date.fromisoformat(swim_date)
+    return "2024-2028" if d >= date(2024, 9, 1) else "2021-2024"
+
+def _parse_std_time(t):
+    t = str(t).strip()
+    if ":" in t:
+        m, s = t.split(":")
+        return float(m) * 60 + float(s)
+    return float(t)
+
+def lookup_tier(swim_date, course, event_ui, time_s):
+    std_ev = UI_TO_STD.get(event_ui)
+    if not std_ev:
+        return ""
+    age = _age_at(swim_date)
+    ag  = _age_group(age)
+    era = _era(swim_date)
+    for tier in TIER_ORDER:
+        try:
+            cut = _parse_std_time(STANDARDS[era][ag][ATHLETE_GENDER][course][std_ev][tier])
+            if time_s <= cut:
+                return tier
+        except (KeyError, TypeError):
+            continue
+    return ""
 
 COURSE_MAP = {
     "lcm": "LCM", "long course": "LCM", "long course meters": "LCM",
@@ -134,16 +193,22 @@ def photo_swim():
     swims = load_live()
     new_id = max((s["id"] for s in swims), default=0) + 1
 
+    swim_date  = ex.get("date", str(date.today()))
+    course     = COURSE_MAP.get(str(ex.get("course", "LCM")).lower(), "LCM")
+    event_norm = normalise_event(ex.get("event", ""))
+    time_s     = parse_time(ex.get("time", 0))
+    tier       = lookup_tier(swim_date, course, event_norm, time_s)
+
     swim = {
         "id":     new_id,
-        "date":   ex.get("date", str(date.today())),
+        "date":   swim_date,
         "meet":   ex.get("meet", ""),
-        "course": COURSE_MAP.get(str(ex.get("course", "LCM")).lower(), "LCM"),
-        "event":  normalise_event(ex.get("event", "")),
-        "time":   parse_time(ex.get("time", 0)),
+        "course": course,
+        "event":  event_norm,
+        "time":   time_s,
         "place":  ex.get("place"),
         "splits": ex.get("splits", []),
-        "tier":   "",
+        "tier":   tier,
         "pb":     False,
         "live":   True,
     }
