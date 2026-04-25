@@ -808,7 +808,9 @@ const SwimHistory = () => {
           style={{padding:'4px 10px',fontSize:11,display:'flex',alignItems:'center',gap:5,opacity:uploading?0.6:1}}>
           {uploading ? '…' : '📷'} Add swim
         </button>
-        <div className="mono muted" style={{fontSize:10}}>{rows.length} of {SD.history.length + liveSwims.length} swims</div>
+        {(filter.q || filter.stroke !== 'ALL' || filter.pb) && (
+          <div className="mono muted" style={{fontSize:10}}>{rows.length} of {SD.history.length + liveSwims.length} swims</div>
+        )}
       </div>
       <div style={{flex:1,overflow:'auto',background:'#fff'}}>
         <table className="data">
@@ -829,10 +831,7 @@ const SwimHistory = () => {
                 <td className="num" style={{fontWeight:r.pb?700:500}}>{fmtT(r.time)}</td>
                 <td className="mono muted" style={{fontSize:10}}>{r.course}</td>
                 <td>{r.tier ? <TierChip tier={r.tier} size="sm"/> : <span className="mono muted" style={{fontSize:9}}>&lt;B</span>}</td>
-                <td>{r.live
-                  ? <button onClick={()=>dismissLive(r.id)} style={{background:'none',border:'none',cursor:'pointer',color:'#92400E',fontSize:11,padding:0}}>×</button>
-                  : r.pb?<span className="mono" style={{color:'var(--signal)',fontSize:10,fontWeight:700}}>PB</span>:''
-                }</td>
+                <td>{r.pb && !r.live ? <span className="mono" style={{color:'var(--signal)',fontSize:10,fontWeight:700}}>PB</span> : ''}</td>
               </tr>
             ))}
           </tbody>
