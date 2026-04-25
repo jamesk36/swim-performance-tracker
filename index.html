@@ -787,11 +787,6 @@ const SwimHistory = () => {
 
   return (
     <div style={{flex:1,overflow:'hidden',display:'flex',flexDirection:'column'}}>
-      {liveSwims.length > 0 && (
-        <div style={{background:'#FFFBEB',borderBottom:'1px solid #F59E0B',padding:'4px 16px',flexShrink:0,fontSize:10,color:'#92400E'}}>
-          ★ {liveSwims.length} live result{liveSwims.length>1?'s':''} below — marked * — will merge on next pipeline run
-        </div>
-      )}
       <div style={{padding:'10px 16px',borderBottom:'1px solid var(--line)',background:'#fff',display:'flex',alignItems:'center',gap:10,flexShrink:0,flexWrap:'wrap'}}>
         <input value={filter.q} onChange={e=>setFilter({...filter,q:e.target.value})} placeholder="Filter by event or meet…"
           style={{width:230,padding:'5px 8px',fontFamily:'var(--mono)',fontSize:11,border:'1px solid var(--line-strong)',outline:'none',background:'var(--panel-alt)'}}/>
@@ -843,6 +838,11 @@ const SwimHistory = () => {
           </tbody>
         </table>
       </div>
+      {liveSwims.length > 0 && (
+        <div style={{padding:'6px 16px',borderTop:'1px solid #F59E0B',background:'#FFFBEB',flexShrink:0,fontSize:10,color:'#92400E'}}>
+          ★ {liveSwims.length} live result{liveSwims.length>1?'s':''} marked * — will merge on next pipeline run
+        </div>
+      )}
     </div>
   );
 };
