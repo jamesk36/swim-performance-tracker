@@ -45,13 +45,20 @@ def parse_time(t):
     return round(float(t), 2)
 
 def normalise_event(raw):
-    """'100 Back' → '100 BK', '200 Butterfly' → '200 FL'"""
-    parts = str(raw).strip().split()
+    """'100 Back' / 'Boys 100 Meter Back' / '100 Backstroke' → '100 BK'"""
+    import re
+    # Strip gender prefix (Boys/Girls/Men/Women) and noise words
+    s = re.sub(r'(?i)^(boys?|girls?|men|women)\s+', '', str(raw).strip())
+    # Strip units like "Meter", "Yard", "LCM", "SCY" etc.
+    s = re.sub(r'(?i)\b(meter|meters|yard|yards?|lcm|scy|scm)\b', '', s).strip()
+    parts = s.split()
     if not parts:
         return raw
-    dist = parts[0]
-    stroke_raw = " ".join(parts[1:]).lower().strip()
-    code = STROKE_CODE.get(stroke_raw, stroke_raw.upper()[:2])
+    # Find the numeric distance
+    dist = next((p for p in parts if p.isdigit()), parts[0])
+    stroke_parts = [p for p in parts if not p.isdigit()]
+    stroke_raw = " ".join(stroke_parts).lower().strip()
+    code = STROKE_CODE.get(stroke_raw, stroke_raw.upper()[:2] if stroke_raw else 'FR')
     return f"{dist} {code}"
 
 # ── Routes ────────────────────────────────────────────────────────────────────
@@ -97,14 +104,16 @@ def photo_swim():
                         "This is a Meet Mobile screenshot of a swim result.\n"
                         "Extract the data and return ONLY this JSON (no markdown, no explanation):\n"
                         "{\n"
-                        '  "meet": "full meet name",\n'
-                        '  "event": "e.g. 100 Back",\n'
+                        '  "meet": "full meet name e.g. 2026 AquaHawgs Long Course Opener",\n'
+                        '  "event": "distance + stroke only, e.g. 100 Back, 200 Butterfly, 50 Free, 200 IM",\n'
                         '  "course": "LCM or SCY or SCM",\n'
                         '  "date": "YYYY-MM-DD",\n'
-                        '  "time": "e.g. 1:10.84",\n'
+                        '  "time": "finals time e.g. 1:10.84",\n'
                         '  "place": 17,\n'
                         '  "splits": [35.24, 35.60]\n'
                         "}\n"
+                        "For event: strip gender (Boys/Girls) and units (Meter/Yard). "
+                        "Just distance number and stroke name. "
                         "splits = individual leg times only (not cumulative). "
                         "Empty array if not shown."
                     ),

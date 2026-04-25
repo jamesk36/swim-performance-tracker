@@ -788,13 +788,20 @@ const SwimHistory = () => {
           <div style={{fontSize:10,fontWeight:700,color:'#92400E',marginBottom:6,letterSpacing:'0.05em'}}>LIVE RESULTS — not yet in pipeline</div>
           <div style={{display:'flex',flexWrap:'wrap',gap:8}}>
             {liveSwims.map(s => (
-              <div key={s.id} style={{background:'#FEF3C7',border:'1px solid #F59E0B',padding:'4px 10px',display:'flex',alignItems:'center',gap:8,fontSize:11}}>
-                <StrokeDot stroke={strokeOf(s.event)} size={6}/>
-                <span style={{fontWeight:600}}>{s.event}</span>
-                <span className="mono" style={{fontWeight:700}}>{fmtT(s.time)}</span>
-                {s.place && <span className="mono muted">#{s.place}</span>}
-                <span className="muted" style={{fontSize:10}}>{s.course}</span>
-                <button onClick={()=>dismissLive(s.id)} style={{background:'none',border:'none',cursor:'pointer',color:'#92400E',fontSize:12,padding:'0 2px',lineHeight:1}}>×</button>
+              <div key={s.id} style={{background:'#FEF3C7',border:'1px solid #F59E0B',padding:'6px 10px',display:'flex',alignItems:'flex-start',gap:8,fontSize:11,flexDirection:'column'}}>
+                <div style={{display:'flex',alignItems:'center',gap:8,width:'100%'}}>
+                  <StrokeDot stroke={strokeOf(s.event)} size={6}/>
+                  <span style={{fontWeight:700}}>{s.event}</span>
+                  <span className="mono" style={{fontWeight:700,fontSize:13}}>{fmtT(s.time)}</span>
+                  {s.place && <span className="mono muted">#{s.place}</span>}
+                  <span className="muted" style={{fontSize:10}}>{s.course}</span>
+                  <button onClick={()=>dismissLive(s.id)} style={{background:'none',border:'none',cursor:'pointer',color:'#92400E',fontSize:14,padding:'0 2px',lineHeight:1,marginLeft:'auto'}}>×</button>
+                </div>
+                <div style={{fontSize:10,color:'#92400E',display:'flex',gap:12}}>
+                  <span>{s.date}</span>
+                  {s.meet && <span>{s.meet}</span>}
+                  {s.splits && s.splits.length > 0 && <span>Splits: {s.splits.join(' / ')}</span>}
+                </div>
               </div>
             ))}
           </div>
