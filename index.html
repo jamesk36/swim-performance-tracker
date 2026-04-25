@@ -753,7 +753,8 @@ const SwimHistory = () => {
     const fd = new FormData();
     fd.append('photo', file);
     try {
-      const r = await fetch('/api/photo-swim', {method:'POST', body:fd});
+      const r = await fetch('/api/photo-swim', {method:'POST', body:fd, credentials:'same-origin'});
+      if (!r.ok) throw new Error(`Server error ${r.status} — try again`);
       const swim = await r.json();
       if (swim.error) throw new Error(swim.error);
       setLiveSwims(prev => [...prev, swim]);
