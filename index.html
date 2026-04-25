@@ -1312,7 +1312,19 @@ const App = () => {
       fetch('/api/live-swims').then(r => r.ok ? r.json() : []).catch(() => []),
     ]).then(([data, live]) => {
       data.tierIdx = k => data.tiers.findIndex(t => t.key === k);
-      data.liveSwims = live;
+      // Auto-dismiss live swims that now exist in official data (within 1s)
+      const official = data.history || [];
+      const stillPending = [];
+      const toRemove = [];
+      live.forEach(s => {
+        const match = official.find(r =>
+          r.date === s.date && r.event === s.event && Math.abs(r.time - s.time) < 1.0
+        );
+        if (match) toRemove.push(s.id);
+        else stillPending.push(s);
+      });
+      toRemove.forEach(id => fetch('/api/live-swims/'+id, {method:'DELETE'}).catch(()=>{}));
+      data.liveSwims = stillPending;
       setSD(data);
     }).catch(e => setErr(e.message));
   }, []);
