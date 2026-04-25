@@ -773,38 +773,23 @@ const SwimHistory = () => {
     setLiveSwims(prev => prev.filter(s => s.id !== id));
   };
 
-  const rows = useMemo(() => SD.history.filter(r => {
+  const allRows = useMemo(() => {
+    const live = liveSwims.map(s => ({...s, live:true}));
+    return [...SD.history, ...live].sort((a,b) => b.date.localeCompare(a.date));
+  }, [liveSwims]);
+
+  const rows = useMemo(() => allRows.filter(r => {
     if (filter.stroke !== 'ALL' && strokeOf(r.event) !== filter.stroke) return false;
     if (filter.pb && !r.pb) return false;
     if (filter.q && !(r.event+r.meet).toLowerCase().includes(filter.q.toLowerCase())) return false;
     return true;
-  }), [filter]);
+  }), [filter, allRows]);
 
   return (
     <div style={{flex:1,overflow:'hidden',display:'flex',flexDirection:'column'}}>
-      {/* Live results banner */}
       {liveSwims.length > 0 && (
-        <div style={{background:'#FFFBEB',borderBottom:'1px solid #F59E0B',padding:'8px 16px',flexShrink:0}}>
-          <div style={{fontSize:10,fontWeight:700,color:'#92400E',marginBottom:6,letterSpacing:'0.05em'}}>LIVE RESULTS — not yet in pipeline</div>
-          <div style={{display:'flex',flexWrap:'wrap',gap:8}}>
-            {liveSwims.map(s => (
-              <div key={s.id} style={{background:'#FEF3C7',border:'1px solid #F59E0B',padding:'6px 10px',display:'flex',alignItems:'flex-start',gap:8,fontSize:11,flexDirection:'column'}}>
-                <div style={{display:'flex',alignItems:'center',gap:8,width:'100%'}}>
-                  <StrokeDot stroke={strokeOf(s.event)} size={6}/>
-                  <span style={{fontWeight:700}}>{s.event}</span>
-                  <span className="mono" style={{fontWeight:700,fontSize:13}}>{fmtT(s.time)}</span>
-                  {s.place && <span className="mono muted">#{s.place}</span>}
-                  <span className="muted" style={{fontSize:10}}>{s.course}</span>
-                  <button onClick={()=>dismissLive(s.id)} style={{background:'none',border:'none',cursor:'pointer',color:'#92400E',fontSize:14,padding:'0 2px',lineHeight:1,marginLeft:'auto'}}>×</button>
-                </div>
-                <div style={{fontSize:10,color:'#92400E',display:'flex',gap:12}}>
-                  <span>{s.date}</span>
-                  {s.meet && <span>{s.meet}</span>}
-                  {s.splits && s.splits.length > 0 && <span>Splits: {s.splits.join(' / ')}</span>}
-                </div>
-              </div>
-            ))}
-          </div>
+        <div style={{background:'#FFFBEB',borderBottom:'1px solid #F59E0B',padding:'4px 16px',flexShrink:0,fontSize:10,color:'#92400E'}}>
+          ★ {liveSwims.length} live result{liveSwims.length>1?'s':''} below — marked * — will merge on next pipeline run
         </div>
       )}
       <div style={{padding:'10px 16px',borderBottom:'1px solid var(--line)',background:'#fff',display:'flex',alignItems:'center',gap:10,flexShrink:0,flexWrap:'wrap'}}>
@@ -828,7 +813,7 @@ const SwimHistory = () => {
           style={{padding:'4px 10px',fontSize:11,display:'flex',alignItems:'center',gap:5,opacity:uploading?0.6:1}}>
           {uploading ? '…' : '📷'} Add swim
         </button>
-        <div className="mono muted" style={{fontSize:10}}>{rows.length} of {SD.history.length} swims</div>
+        <div className="mono muted" style={{fontSize:10}}>{rows.length} of {SD.history.length + liveSwims.length} swims</div>
       </div>
       <div style={{flex:1,overflow:'auto',background:'#fff'}}>
         <table className="data">
@@ -838,15 +823,21 @@ const SwimHistory = () => {
           </tr></thead>
           <tbody>
             {rows.map((r,i)=>(
-              <tr key={r.id} style={{background:r.pb?'#FFF6F3':undefined}}>
-                <td className="mono muted" style={{fontSize:10}}>{String(i+1).padStart(3,'0')}</td>
+              <tr key={r.live ? 'live-'+r.id : r.id} style={{background:r.live?'#FFFBEB':r.pb?'#FFF6F3':undefined}}>
+                <td className="mono muted" style={{fontSize:10}}>{r.live ? '★' : String(i+1).padStart(3,'0')}</td>
                 <td className="mono" style={{fontSize:11}}>{r.date}</td>
-                <td style={{maxWidth:240,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{r.meet}</td>
-                <td><StrokeDot stroke={strokeOf(r.event)} size={6}/>{r.event}</td>
+                <td style={{maxWidth:240,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
+                  {r.meet}
+                  {r.live && r.splits && r.splits.length > 0 && <span className="mono muted" style={{fontSize:9,marginLeft:6}}>{r.splits.join(' / ')}</span>}
+                </td>
+                <td><StrokeDot stroke={strokeOf(r.event)} size={6}/>{r.event}{r.live&&<span style={{color:'#F59E0B',marginLeft:3}}>*</span>}</td>
                 <td className="num" style={{fontWeight:r.pb?700:500}}>{fmtT(r.time)}</td>
                 <td className="mono muted" style={{fontSize:10}}>{r.course}</td>
                 <td>{r.tier ? <TierChip tier={r.tier} size="sm"/> : <span className="mono muted" style={{fontSize:9}}>&lt;B</span>}</td>
-                <td>{r.pb?<span className="mono" style={{color:'var(--signal)',fontSize:10,fontWeight:700}}>PB</span>:''}</td>
+                <td>{r.live
+                  ? <button onClick={()=>dismissLive(r.id)} style={{background:'none',border:'none',cursor:'pointer',color:'#92400E',fontSize:11,padding:0}}>×</button>
+                  : r.pb?<span className="mono" style={{color:'var(--signal)',fontSize:10,fontWeight:700}}>PB</span>:''
+                }</td>
               </tr>
             ))}
           </tbody>

@@ -378,6 +378,32 @@ def main():
         })
     print(f"  {len(history)} history rows")
 
+    # ── Merge live swims (from photo uploads) if present locally ─────────────────
+    live_path = base / "live_swims.json"
+    if live_path.exists():
+        live_swims = json.loads(live_path.read_text(encoding="utf-8"))
+        # Only include live swims not already covered by official data
+        official_keys = {(r["date"], r["event"]) for r in history}
+        added = 0
+        for s in live_swims:
+            key = (s.get("date",""), s.get("event",""))
+            if key not in official_keys:
+                history.append({
+                    "id":      s.get("id", 9000 + added),
+                    "date":    s.get("date",""),
+                    "meet":    s.get("meet",""),
+                    "course":  s.get("course","LCM"),
+                    "event":   s.get("event",""),
+                    "time":    s.get("time", 0),
+                    "tier":    s.get("tier",""),
+                    "pb":      False,
+                    "pending": True,
+                    "splits":  s.get("splits",[]),
+                })
+                added += 1
+        if added:
+            print(f"  + {added} pending live swim(s) merged from live_swims.json")
+
     # ── PB timeline (chronological personal bests with tier at time) ─────────────
     pb_timeline = []
     seen: dict[str, float] = {}
