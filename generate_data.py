@@ -253,13 +253,14 @@ def main():
     season_swims = len(df_season)
 
     athlete = {
-        "name":   ATHLETE_NAME,
-        "age":    ath_age,
-        "team":   ATHLETE_TEAM,
-        "lsc":    ATHLETE_LSC,
-        "season": season_label(season_year),
-        "meets":  int(season_meets),
-        "swims":  int(season_swims),
+        "name":     ATHLETE_NAME,
+        "age":      ath_age,
+        "ageGroup": age_group(ath_age),
+        "team":     ATHLETE_TEAM,
+        "lsc":      ATHLETE_LSC,
+        "season":   season_label(season_year),
+        "meets":    int(season_meets),
+        "swims":    int(season_swims),
     }
 
     # ── Per-event PBs + standards ────────────────────────────────────────────────
@@ -643,6 +644,20 @@ def main():
     upcoming_meets.sort(key=lambda x: x["startDate"])
     next_meet = upcoming_meets[0] if upcoming_meets else None
 
+    # ── Current standards grid (current age group, for Time Standards tab) ─────────
+    current_ag = age_group(current_age(ATHLETE_DOB))
+    current_standards: dict = {"SCY": {}, "LCM": {}}
+    for std_ev, ui_ev in STD_TO_UI.items():
+        for course_key in ["SCY", "LCM"]:
+            cuts: dict = {}
+            for tier in TIER_ORDER:
+                c = get_cut(standards, current_ag, ATHLETE_GENDER, course_key, std_ev, tier)
+                if c:
+                    cuts[tier] = round(c, 2)
+            if cuts:
+                current_standards[course_key][ui_ev] = cuts
+    print(f"  Current standards ({current_ag}): {sum(len(v) for v in current_standards.values())} event/course combos")
+
     # LCM qualified summary (vs BB standard)
     lcm_bb_qual  = [e for e in lcm_events_out if e["bbQual"]]
     lcm_bb_total = [e for e in lcm_events_out if e.get("cuts", {}).get("BB")]
@@ -672,9 +687,10 @@ def main():
         "penetration":   penetration,
         "goals":         goals_out,
         "seasonPbs":     season_pbs,
-        "lcmQualified":  lcm_qualified,
-        "upcomingMeets": upcoming_meets,
-        "nextMeet":      next_meet,
+        "lcmQualified":     lcm_qualified,
+        "upcomingMeets":    upcoming_meets,
+        "nextMeet":         next_meet,
+        "currentStandards": current_standards,
     }
 
     out_path = base / "swim_data.json"

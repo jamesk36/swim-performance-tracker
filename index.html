@@ -137,7 +137,7 @@ const strokeOf = ev => {
 };
 
 // ─── Navigation ───────────────────────────────────────────────────────────────
-const TABS = ['Stroke Overview','Quick Lookup','Swim History','Deep Analytics','IMX Score','Goals','Data Guide','Settings'];
+const TABS = ['Stroke Overview','Quick Lookup','Swim History','Deep Analytics','IMX Score','Goals','Time Standards','Settings'];
 
 // ─── Countdown widget (sidebar) ───────────────────────────────────────────────
 const MeetCountdown = () => {
@@ -229,7 +229,7 @@ const TopBar = ({ title, course, onCourse }) => {
       <div style={{fontWeight:700,fontSize:14}}>{title}</div>
       <div style={{flex:1}}/>
       <div style={{display:'flex',gap:0,border:'1px solid var(--line-strong)'}}>
-        {['SCY','SCM','LCM'].map(x => (
+        {['SCY','LCM'].map(x => (
           <button key={x} onClick={()=>onCourse(x)} className={'btn '+(course===x?'active':'')}
             style={{border:'none',borderRight:x!=='LCM'?'1px solid var(--line-strong)':'none',borderRadius:0}}>{x}</button>
         ))}
@@ -504,16 +504,20 @@ const StrokeOverview = ({ onEvent, onTab }) => {
 // ─── Tab: Event Detail Drawer ─────────────────────────────────────────────────
 const EventDetail = ({ ev, onClose, course }) => {
   const SD = useData();
-  // Look up in SCY events first, then LCM events
-  const e = SD.events.find(x => x.ev === ev)
-         || (SD.lcmQualified?.events||[]).find(x => x.ev === ev)
-         || SD.events[0];
+  // Prioritise the correct course pool when looking up event data
+  const evCourse = course || 'SCY';
+  let e;
+  if (evCourse === 'LCM') {
+    e = (SD.lcmQualified?.events||[]).find(x => x.ev === ev) || SD.events.find(x => x.ev === ev);
+  } else {
+    e = SD.events.find(x => x.ev === ev) || (SD.lcmQualified?.events||[]).find(x => x.ev === ev);
+  }
+  e = e || SD.events[0];
   if (!e) return null;
-  const evCourse = e.course || course || 'SCY';
   const stroke = SD.strokes[e.stroke] || {name:e.stroke,color:'#333'};
 
-  // Build history for this event
-  const races = SD.history.filter(r => r.event === ev).sort((a,b) => a.date.localeCompare(b.date));
+  // Build history for this event, filtered to the active course
+  const races = SD.history.filter(r => r.event === ev && r.course === evCourse).sort((a,b) => a.date.localeCompare(b.date));
   const times = races.map(r => r.time);
   const best = Math.min(...times), worst = Math.max(...times);
   const W=680,H=200,pL=42,pR=12,pT=12,pB=22;
@@ -706,7 +710,7 @@ const QuickLookup = ({ onEvent, course }) => {
             return (
               <div key={`${dist}-${col.key}`}
                 className={`ev-cell${e?' has-data':''}`}
-                onClick={e ? () => onEvent(evKey) : undefined}
+                onClick={e ? () => onEvent(evKey, course) : undefined}
                 style={{padding:'12px 14px',minHeight:72}}
               >
                 {e ? (<>
@@ -1214,29 +1218,104 @@ const Goals = ({ onEvent }) => {
 };
 
 // ─── Tab: Data Guide ─────────────────────────────────────────────────────────
-const DataGuide = () => {
-  const steps = [
-    {n:'01',title:'Export from GoMotion',body:'Log in to your GoMotion / TeamUnify account. Go to My Account → Swim Times. Export as HTML and save as swim_history.html in the project folder.'},
-    {n:'02',title:'Run the pipeline',body:'Open a terminal in the project folder and run the scripts in order:\n  python scraper.py\n  python cleaner.py\n  python grader.py\nThis produces graded_swim_data.xlsx with all your swims graded against USA Swimming standards.'},
-    {n:'03',title:'Add high school swims (optional)',body:'For meets not in GoMotion, add rows to high_school_swims.csv using the same column format (Date, Age, Distance, Stroke, Round, Course, Finals, Time_Seconds, Meet). Then run:\n  python merge_swims.py\nbefore step 02.'},
-    {n:'04',title:'Regenerate the UI data',body:'Run:\n  python generate_data.py\nThis reads graded_swim_data.xlsx and outputs swim_data.json, which the website loads.'},
-    {n:'05',title:'Deploy',body:'Commit and push:\n  git add swim_data.json\n  git commit -m "Update swim data"\n  git push\nThe site updates automatically within seconds.'},
-  ];
+// ─── Tab: Time Standards ──────────────────────────────────────────────────────
+const TIME_STANDARDS_EVENTS = [
+  '50 FR','100 FR','200 FR','500 FR','1000 FR','1650 FR',
+  '50 BK','100 BK','200 BK',
+  '50 BR','100 BR','200 BR',
+  '50 FL','100 FL','200 FL',
+  '100 IM','200 IM','400 IM',
+];
+const TIERS_DISPLAY = ['AAAA','AAA','AA','A','BB','B'];
+
+const TimeStandards = ({ course }) => {
+  const SD = useData();
+  const cs = SD.currentStandards || {};
+  const courseData = cs[course] || {};
+
+  // Current PBs for highlighting
+  const pbMap = {};
+  const eventList = course === 'LCM' ? (SD.lcmQualified?.events || []) : SD.events;
+  eventList.forEach(e => { pbMap[e.ev] = {time: e.pb, tier: e.tier}; });
+  // Also include live swims
+  (SD.liveSwims || []).filter(s => s.course === course).forEach(s => {
+    if (!pbMap[s.event] || s.time < pbMap[s.event].time) {
+      pbMap[s.event] = {time: s.time, tier: s.tier};
+    }
+  });
+
+  const hasCuts = Object.keys(courseData).length > 0;
+  if (!hasCuts) return (
+    <div style={{flex:1,display:'flex',alignItems:'center',justifyContent:'center',flexDirection:'column',gap:10,color:'var(--muted)'}}>
+      <div style={{fontSize:14,fontWeight:600}}>No {course} standards available</div>
+      <div className="mono" style={{fontSize:11}}>Re-run generate_data.py to populate standards.</div>
+    </div>
+  );
+
+  const ag = SD.athlete?.ageGroup || '15-16';
+
   return (
-    <div style={{flex:1,overflow:'auto',padding:24,maxWidth:680}}>
-      <div style={{fontWeight:800,fontSize:20,marginBottom:4}}>Data Pipeline Guide</div>
-      <div className="mono muted" style={{fontSize:11,marginBottom:24}}>How to update the swim tracker with new meet results</div>
-      <div style={{display:'flex',flexDirection:'column',gap:0}}>
-        {steps.map((s,i) => (
-          <div key={s.n} style={{display:'grid',gridTemplateColumns:'32px 1fr',gap:16,paddingBottom:24,position:'relative'}}>
-            {i < steps.length-1 && <div style={{position:'absolute',left:15,top:32,bottom:0,width:2,background:'var(--line)'}}/>}
-            <div style={{width:32,height:32,background:'var(--ink)',color:'#fff',display:'flex',alignItems:'center',justifyContent:'center',fontFamily:'var(--mono)',fontSize:11,fontWeight:700,flexShrink:0,zIndex:1}}>{s.n}</div>
-            <div>
-              <div style={{fontWeight:700,fontSize:14,marginTop:5}}>{s.title}</div>
-              <div style={{marginTop:8,fontSize:12,color:'var(--ink-2)',lineHeight:1.7,whiteSpace:'pre-wrap'}}>{s.body}</div>
+    <div style={{flex:1,overflow:'auto'}}>
+      <div style={{padding:'10px 18px',borderBottom:'1px solid var(--line)',background:'var(--panel-alt)',display:'flex',alignItems:'center',gap:8}}>
+        <span style={{fontSize:12,fontWeight:700}}>USA SWIMMING STANDARDS · {course} · {ag} Male</span>
+        <span className="mono muted" style={{fontSize:10}}>— Jack's current PB highlighted</span>
+      </div>
+      <div style={{
+        display:'grid',
+        gridTemplateColumns:'110px repeat(6,1fr)',
+        gap:'1px',
+        background:'var(--line)',
+        minWidth:620,
+      }}>
+        {/* Header */}
+        <div style={{background:'var(--panel-alt)',padding:'8px 10px',fontWeight:700,fontSize:11,display:'flex',alignItems:'center'}}>Event</div>
+        {TIERS_DISPLAY.map(tier => {
+          const t = SD.tiers.find(x=>x.key===tier);
+          return (
+            <div key={tier} style={{background: t?.color||'#fff',padding:'8px 10px',textAlign:'center'}}>
+              <span style={{fontFamily:'var(--mono)',fontSize:11,fontWeight:700,color:t?.fg||'#333'}}>{tier}</span>
             </div>
-          </div>
-        ))}
+          );
+        })}
+        {/* Rows */}
+        {TIME_STANDARDS_EVENTS.map(ev => {
+          const cuts = courseData[ev];
+          if (!cuts && !pbMap[ev]) return null;
+          const pb = pbMap[ev];
+          const stroke = strokeOf(ev);
+          return (
+            <React.Fragment key={ev}>
+              <div style={{background:'#fff',padding:'9px 10px',display:'flex',alignItems:'center',gap:5,borderBottom:'1px solid var(--line)'}}>
+                <StrokeDot stroke={stroke} size={6}/>
+                <span style={{fontSize:11,fontWeight:600}}>{ev}</span>
+                {pb && <span className="mono" style={{fontSize:9,color:'var(--muted)',marginLeft:'auto'}}>{fmtT(pb.time)}</span>}
+              </div>
+              {TIERS_DISPLAY.map(tier => {
+                const t = SD.tiers.find(x=>x.key===tier);
+                const cut = cuts ? cuts[tier] : null;
+                const isCurrentTier = pb && pb.tier === tier;
+                const isFaster = pb && cut && pb.time <= cut;
+                const bg = isCurrentTier ? t?.color : isFaster ? (t?.color+'22') : '#fff';
+                return (
+                  <div key={tier} style={{
+                    background: bg,
+                    padding:'9px 10px',
+                    textAlign:'center',
+                    borderBottom:'1px solid var(--line)',
+                    position:'relative',
+                  }}>
+                    <div className="mono" style={{fontSize:12,color: isCurrentTier ? t?.fg : cut ? 'var(--ink)' : 'var(--line-strong)'}}>
+                      {cut ? fmtT(cut) : '—'}
+                    </div>
+                    {isCurrentTier && (
+                      <div style={{fontSize:8,color:t?.fg,opacity:0.8,marginTop:1}}>current</div>
+                    )}
+                  </div>
+                );
+              })}
+            </React.Fragment>
+          );
+        }).filter(Boolean)}
       </div>
     </div>
   );
@@ -1275,9 +1354,9 @@ const Settings = () => {
 // ─── Shell ────────────────────────────────────────────────────────────────────
 const Shell = ({ SD }) => {
   const [tab, setTab] = useState('Stroke Overview');
-  const [openEv, setOpenEv] = useState(null);
+  const [openEv, setOpenEv] = useState(null);   // {ev, course} or null
   const [course, setCourse] = useState('SCY');
-  const openEvent = (ev) => setOpenEv(ev);
+  const openEvent = (ev, evCourse) => setOpenEv({ev, course: evCourse || 'SCY'});
 
   return (
     <DataCtx.Provider value={SD}>
@@ -1291,14 +1370,69 @@ const Shell = ({ SD }) => {
           {tab==='Deep Analytics'  && <DeepAnalytics  onEvent={openEvent}/>}
           {tab==='IMX Score'       && <IMXScore/>}
           {tab==='Goals'           && <Goals           onEvent={openEvent}/>}
-          {tab==='Data Guide'      && <DataGuide/>}
+          {tab==='Time Standards'  && <TimeStandards course={course}/>}
           {tab==='Settings'        && <Settings/>}
         </div>
-        {openEv && <EventDetail ev={openEv} onClose={()=>setOpenEv(null)} course={course}/>}
+        {openEv && <EventDetail ev={openEv.ev} onClose={()=>setOpenEv(null)} course={openEv.course}/>}
       </div>
     </DataCtx.Provider>
   );
 };
+
+// ─── Live swim merger ─────────────────────────────────────────────────────────
+// Called once at load time to fold live swims into pre-computed metrics so that
+// Quick Lookup, Stroke Overview, IMX, and EventDetail all reflect photo-uploaded swims.
+function mergeLiveIntoSD(data, live) {
+  if (!live || !live.length) return;
+
+  live.forEach(s => {
+    // 1. Add to history so EventDetail race log shows the swim
+    const alreadyIn = data.history.some(h =>
+      h.date === s.date && h.event === s.event && Math.abs(h.time - s.time) < 1.0
+    );
+    if (!alreadyIn) {
+      data.history.push({
+        date: s.date, meet: s.meet, course: s.course,
+        event: s.event, time: s.time, tier: s.tier || '',
+        pb: false, live: true,
+      });
+    }
+
+    // 2. Update event summary (SCY → data.events, LCM → data.lcmQualified.events)
+    const isSCY = s.course === 'SCY';
+    const isLCM = s.course === 'LCM';
+    let eventList = isSCY ? data.events
+                  : isLCM ? (data.lcmQualified?.events || [])
+                  : null;
+    if (!eventList) return;
+
+    const existing = eventList.find(e => e.ev === s.event);
+    if (existing) {
+      if (s.time < existing.pb) {
+        existing.pb = s.time;
+        if (s.tier) existing.tier = s.tier;
+        if (existing.next?.cut != null) {
+          existing.next.gap = Math.max(0, Math.round((s.time - existing.next.cut) * 100) / 100);
+        }
+      }
+    } else {
+      // New event — add a minimal entry so it shows up in Quick Lookup grid
+      const stroke = strokeOf(s.event);
+      const cuts = (data.currentStandards?.[s.course]?.[s.event]) || {};
+      const newEv = {
+        ev: s.event, stroke, course: s.course,
+        pb: s.time, tier: s.tier || '',
+        cuts, next: {tier: null, cut: null, gap: 0},
+        trend: 0, live: true,
+      };
+      if (isLCM && data.lcmQualified) {
+        data.lcmQualified.events = [...eventList, newEv];
+      } else if (isSCY) {
+        data.events.push(newEv);
+      }
+    }
+  });
+}
 
 // ─── App root — loads swim_data.json ─────────────────────────────────────────
 const App = () => {
@@ -1324,6 +1458,8 @@ const App = () => {
       });
       toRemove.forEach(id => fetch('/api/live-swims/'+id, {method:'DELETE'}).catch(()=>{}));
       data.liveSwims = stillPending;
+      // Merge live swims into computed metrics so they flow into all tabs
+      mergeLiveIntoSD(data, stillPending);
       setSD(data);
     }).catch(e => setErr(e.message));
   }, []);
