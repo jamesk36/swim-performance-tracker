@@ -827,7 +827,11 @@ const SwimHistory = () => {
           <tbody>
             {rows.map((r,i)=>(
               <tr key={r.live ? 'live-'+r.id : r.id} style={{background:r.live?'#FFFBEB':r.pb?'#FFF6F3':undefined}}>
-                <td className="mono muted" style={{fontSize:10}}>{r.live ? '★' : String(i+1).padStart(3,'0')}</td>
+                <td className="mono muted" style={{fontSize:10,position:'relative'}}>
+                  {r.live
+                    ? <button onClick={()=>dismissLive(r.id)} title="Remove live swim" style={{background:'none',border:'none',cursor:'pointer',color:'#F59E0B',fontWeight:700,fontSize:13,padding:0,lineHeight:1}}>✕</button>
+                    : String(i+1).padStart(3,'0')}
+                </td>
                 <td className="mono" style={{fontSize:11}}>{r.date}</td>
                 <td style={{maxWidth:240,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
                   {r.meet}
