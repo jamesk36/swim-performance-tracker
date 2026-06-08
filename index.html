@@ -1439,6 +1439,26 @@ function mergeLiveIntoSD(data, live) {
       }
     }
   });
+
+  // Recalculate IMX if any live swim touched an IMX event (SCY only)
+  const IMX_EVENTS_SET = new Set(['200 FR','100 BK','100 BR','100 FL','400 IM']);
+  const hasIMXSwim = live.some(s => s.course === 'SCY' && IMX_EVENTS_SET.has(s.event));
+  if (hasIMXSwim && data.imx) {
+    data.imx.events = data.imx.events.map(imxEv => {
+      const evData = data.events.find(e => e.ev === imxEv.ev);
+      if (!evData) return imxEv;
+      const stds = data.currentStandards?.SCY?.[imxEv.ev];
+      if (!stds) return imxEv;
+      const bCut    = stds['B'];
+      const aaaaCut = stds['AAAA'];
+      if (bCut && aaaaCut && bCut > aaaaCut) {
+        const pts = Math.min(1000, Math.max(0, Math.round((bCut - evData.pb) / (bCut - aaaaCut) * 1000)));
+        return { ...imxEv, pts };
+      }
+      return imxEv;
+    });
+    data.imx.total = data.imx.events.reduce((sum, e) => sum + (e.pts || 0), 0);
+  }
 }
 
 // ─── App root — loads swim_data.json ─────────────────────────────────────────
