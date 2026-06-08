@@ -149,7 +149,7 @@ def photo_swim():
     client = anthropic.Anthropic(api_key=api_key)
     msg = client.messages.create(
         model="claude-haiku-4-5",
-        max_tokens=512,
+        max_tokens=1024,
         messages=[{
             "role": "user",
             "content": [
@@ -160,21 +160,28 @@ def photo_swim():
                 {
                     "type": "text",
                     "text": (
-                        "This is a Meet Mobile screenshot of a swim result.\n"
-                        "Extract the data and return ONLY this JSON (no markdown, no explanation):\n"
+                        "This is a Meet Mobile screenshot showing swim result(s) for one event.\n"
+                        "Extract ALL rounds that have actual swim times (Prelims, Finals, etc.).\n"
+                        "Return ONLY this JSON (no markdown, no explanation):\n"
                         "{\n"
-                        '  "meet": "full meet name e.g. 2026 AquaHawgs Long Course Opener",\n'
-                        '  "event": "distance + stroke only, e.g. 100 Back, 200 Butterfly, 50 Free, 200 IM",\n'
+                        '  "meet": "full meet name e.g. 2026 NWAA Memorial Classic v2",\n'
+                        '  "event": "distance + stroke only, e.g. 100 Back, 400 Free, 200 IM",\n'
                         '  "course": "LCM or SCY or SCM",\n'
                         '  "date": "YYYY-MM-DD",\n'
-                        '  "time": "finals time e.g. 1:10.84",\n'
-                        '  "place": 17,\n'
-                        '  "splits": [35.24, 35.60]\n'
-                        "}\n"
-                        "For event: strip gender (Boys/Girls) and units (Meter/Yard). "
-                        "Just distance number and stroke name. "
-                        "splits = individual leg times only (not cumulative). "
-                        "Empty array if not shown."
+                        '  "rounds": [\n'
+                        '    {"round": "Prelims", "time": "1:09.45", "place": 5, "splits": [34.5, 34.95]},\n'
+                        '    {"round": "Finals", "time": "1:08.73", "place": 3, "splits": [34.1, 34.63]}\n'
+                        '  ]\n'
+                        "}\n\n"
+                        "Rules:\n"
+                        "- course: if the event name contains 'meter' → LCM; 'yard' → SCY. "
+                        "Long course summer meets in meters are LCM, not SCM.\n"
+                        "- event: strip gender prefix (Boys/Girls) and units (Meter/Yard/LCM/SCY). "
+                        "Just distance number and stroke name.\n"
+                        "- rounds: include Prelims and Finals if both are shown. "
+                        "Skip the Entry/seed row — it is not an actual swim result.\n"
+                        "- splits: individual leg times only (not cumulative). Empty array if not shown.\n"
+                        "- place: finishing place as integer. null if not shown."
                     ),
                 },
             ],
@@ -190,31 +197,36 @@ def photo_swim():
 
     ex = json.loads(raw)
 
-    swims = load_live()
-    new_id = max((s["id"] for s in swims), default=0) + 1
-
-    swim_date  = ex.get("date", str(date.today()))
-    course     = COURSE_MAP.get(str(ex.get("course", "LCM")).lower(), "LCM")
+    swims     = load_live()
+    new_id    = max((s["id"] for s in swims), default=0) + 1
+    swim_date = ex.get("date", str(date.today()))
+    course    = COURSE_MAP.get(str(ex.get("course", "LCM")).lower(), "LCM")
     event_norm = normalise_event(ex.get("event", ""))
-    time_s     = parse_time(ex.get("time", 0))
-    tier       = lookup_tier(swim_date, course, event_norm, time_s)
 
-    swim = {
-        "id":     new_id,
-        "date":   swim_date,
-        "meet":   ex.get("meet", ""),
-        "course": course,
-        "event":  event_norm,
-        "time":   time_s,
-        "place":  ex.get("place"),
-        "splits": ex.get("splits", []),
-        "tier":   tier,
-        "pb":     False,
-        "live":   True,
-    }
-    swims.append(swim)
+    new_swims = []
+    for rnd in ex.get("rounds", []):
+        time_s = parse_time(rnd.get("time", 0))
+        tier   = lookup_tier(swim_date, course, event_norm, time_s)
+        swim = {
+            "id":     new_id,
+            "date":   swim_date,
+            "meet":   ex.get("meet", ""),
+            "course": course,
+            "event":  event_norm,
+            "round":  rnd.get("round", ""),
+            "time":   time_s,
+            "place":  rnd.get("place"),
+            "splits": rnd.get("splits", []),
+            "tier":   tier,
+            "pb":     False,
+            "live":   True,
+        }
+        swims.append(swim)
+        new_swims.append(swim)
+        new_id += 1
+
     save_live(swims)
-    return jsonify(swim)
+    return jsonify(new_swims)
 
 if __name__ == "__main__":
     app.run(host="127.0.0.1", port=5001)
