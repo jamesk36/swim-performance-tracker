@@ -1,236 +1,137 @@
 # Swim Data Processing Guide
-### From GoMotion Download to Graded Results (+ High School Swims)
+### From GoMotion Download to Live Website
+**Updated 2026-07-09** — one-command pipeline, correct server path, HS merge now automatic.
 
 ---
 
-## 📥 PART 1: Download New Results from GoMotion
+## TL;DR (the whole update in 4 steps)
 
-1. Go to GoMotion website
-2. Navigate to swimmer's results page
-3. **Save page as HTML:**
-   - Right-click on page → "Save As..."
-   - Save as: `swim_history.html`
-   - Location: Desktop → PY folder
-   - ⚠️ **Important:** Use the exact filename `swim_history.html`
+```powershell
+# Location: C:\Users\james\Projects\swim-tracker
+# Environment: PowerShell
+python update_data.py
+git add swim_data.json graded_swim_data.xlsx
+git commit -m "Update swim data"
+git push
+ssh root@5.78.198.96 "cd /var/www/swimtracker && git checkout -- swim_data.json && git pull && venv/bin/python3 generate_data.py"
+```
+
+Site: https://swim.james-kirby.uk
 
 ---
 
-## 🏫 PART 2: Add High School Swims (Optional)
+## PART 1: Download New Results from GoMotion
 
-If your son has swims from high school meets:
+1. Go to GoMotion, navigate to Jack's results page
+2. Right-click on page → "Save As..." → **"Webpage, Complete"**
+   - ⚠️ NOT "Text" or Ctrl+A copy/paste — the scraper needs real HTML `<table>` tags
+3. Save as exactly `swim_history.html` in `C:\Users\james\Projects\swim-tracker`
+   - (The old Desktop\PY location is retired — everything lives in the repo now)
 
-### First Time Setup:
-1. Open `high_school_swims.csv` in Excel
-2. Delete the example rows (keep the header row!)
-
-### Adding New High School Swims:
-1. Open `high_school_swims.csv` in Excel
-2. Add a new row for each swim
-3. Fill in the columns:
-   - **Date**: Format as YYYY-MM-DD (e.g., 2024-12-05)
-   - **Age**: Swimmer's age at time of meet
-   - **Distance**: Just the number (e.g., 100, 200, 500)
-   - **Stroke**: Free, Back, Breast, Fly, or IM
-   - **Round**: Finals or Prelims
-   - **Course**: Yards or LCM
-   - **Finals**: Time with Y or L (e.g., 52.45Y or 1:02.34L)
-   - **Time_Seconds**: Time in seconds (e.g., 52.45 or 62.34)
-   - **Meet**: Meet name (e.g., "HS Dual Meet vs Rogers")
-
-### Example Row:
-```
-2024-12-05,14,100,Free,Finals,Yards,52.45Y,52.45,HS Dual Meet vs Rogers
-```
-
-4. Save the file (keep as .csv format)
+**Sanity check:** the file should be roughly 200 KB. If it's ~35 KB, you got the
+text-only version — re-save as "Webpage, Complete".
 
 ---
 
-## 🔄 PART 3: Run the Data Pipeline
+## PART 2: Add High School Swims (Optional)
 
-Open **Command Prompt** or **Terminal** and navigate to your PY folder:
+New HS meet? Add a row per swim to `high_school_swims.csv` **before** running the pipeline:
 
-```bash
-cd Desktop/PY
-```
+| Column | Format | Example |
+|---|---|---|
+| Date | YYYY-MM-DD | 2025-12-12 |
+| Age | Age at meet | 15 |
+| Distance | Number only | 200 |
+| Stroke | Free/Back/Breast/Fly/IM | Free |
+| Round | Finals or Prelims | Finals |
+| Course | Yards or LCM | Yards |
+| Finals | Time with Y or L | 2:01.24Y |
+| Time_Seconds | Numeric seconds | 121.24 |
+| Meet | Meet name | Bentonville Schools Classic |
 
-### 3a. Extract Data from HTML → CSV
-
-```bash
-python scraper.py
-```
-
-✅ **Expected Output:**
-- Creates: `raw_swim_data.csv`
-- Message: "✅ Success! Found X tables in the file"
-
----
-
-### 3b. Clean and Format the Data
-
-```bash
-python cleaner.py
-```
-
-✅ **Expected Output:**
-- Creates: `clean_swim_data.xlsx`
-- Message: "✅ Success! Expanded X raw rows into Y individual swims"
+The merge step now runs automatically inside `update_data.py` — no separate command needed.
 
 ---
 
-### 3c. Merge High School Swims (if you have any)
+## PART 3: Run the Pipeline
 
-```bash
-python merge_swims.py
+```powershell
+# Location: C:\Users\james\Projects\swim-tracker
+# Environment: PowerShell
+python update_data.py
 ```
 
-✅ **Expected Output:**
-- Updates: `clean_swim_data.xlsx` (adds high school swims)
-- Message: "✅ SUCCESS! Combined data saved"
-- Shows count of GoMotion swims + High School swims
+This runs six steps in order:
 
-⚠️ **Skip this step if you don't have high school swims to add**
+```
+swim_history.html → scraper.py → raw_swim_data.csv
+                  → cleaner.py → clean_swim_data.xlsx
+                  → merge_swims.py → (adds high_school_swims.csv)
+                  → grader.py → graded_swim_data.xlsx
+                  → create_dashboard.py → Swim_Dashboard.xlsx
+                  → generate_data.py → swim_data.json
+```
+
+Individual scripts can still be run one at a time for debugging.
 
 ---
 
-### 3d. Grade the Performances
+## PART 4: Deploy to the Website
 
-```bash
-python grader.py
+```powershell
+# Location: C:\Users\james\Projects\swim-tracker
+# Environment: PowerShell
+git add swim_data.json graded_swim_data.xlsx
+git commit -m "Update swim data"
+git push
+ssh root@5.78.198.96 "cd /var/www/swimtracker && git checkout -- swim_data.json && git pull && venv/bin/python3 generate_data.py"
 ```
 
-✅ **Expected Output:**
-- Creates: `graded_swim_data.xlsx`
-- Message: "✅ Success! Graded data saved to graded_swim_data.xlsx"
+**Why each piece matters:**
 
----
+- `graded_swim_data.xlsx` must be committed — the server rebuilds `swim_data.json` from it
+- The server directory is **`/var/www/swimtracker`** — NOT `/var/www/swim` (an unused
+  leftover clone; pulling there does nothing to the live site)
+- `git checkout -- swim_data.json` first: a **3 AM nightly cron** on the server re-runs
+  `generate_data.py`, which locally modifies `swim_data.json` and would otherwise block the pull
+- Running `generate_data.py` after the pull makes the site update immediately instead
+  of waiting for the 3 AM cron
 
-### 3e. Create Interactive Dashboard
-
-```bash
-python create_dashboard.py
+**Server cron (for reference):**
 ```
-
-✅ **Expected Output:**
-- Creates: `Swim_Dashboard.xlsx`
-- Message: "✅ Dashboard created: Swim_Dashboard.xlsx"
-
----
-
-## 📊 PART 4: View Results
-
-Open `Swim_Dashboard.xlsx` in Excel to see:
-- Interactive lookup tool with dropdown lists
-- Personal bests for every event
-- Time progression charts
-- Complete swim history (GoMotion + High School combined!)
-
----
-
-## 🔍 Quick Reference
-
-### FULL WORKFLOW (with High School swims):
-```
-1. Download swim_history.html from GoMotion
-2. python scraper.py
-3. python cleaner.py
-4. [Add high school swims to high_school_swims.csv in Excel]
-5. python merge_swims.py
-6. python grader.py
-7. python create_dashboard.py
-8. Open Swim_Dashboard.xlsx
-```
-
-### QUICK WORKFLOW (GoMotion only, no high school):
-```
-1. Download swim_history.html from GoMotion
-2. python scraper.py
-3. python cleaner.py
-4. python grader.py
-5. python create_dashboard.py
-6. Open Swim_Dashboard.xlsx
+0 3 * * * cd /var/www/swimtracker && /var/www/swimtracker/venv/bin/python3 generate_data.py >> /var/log/swimtracker-generate.log 2>&1
 ```
 
 ---
 
-## 📁 Important Files
+## Important Files
 
-**Data Pipeline:**
-- `swim_history.html` - Downloaded from GoMotion
-- `high_school_swims.csv` - Manually maintained (add new HS swims here!)
-- `clean_swim_data.xlsx` - Combined GoMotion + High School data
-- `graded_swim_data.xlsx` - All swims with USA Swimming standards
-- `Swim_Dashboard.xlsx` - Interactive Excel dashboard
-
-**Scripts:**
-- `scraper.py` - Extract from HTML
-- `cleaner.py` - Clean and format
-- `merge_swims.py` - Combine GoMotion + High School 🆕
-- `grader.py` - Add standards
-- `create_dashboard.py` - Build dashboard
-
-**Reference:**
-- `standards.json` - USA Swimming time standards (don't delete!)
+- `swim_history.html` — GoMotion download (input)
+- `high_school_swims.csv` — manually maintained HS swims (never overwritten by scripts)
+- `graded_swim_data.xlsx` — all swims + USA Swimming standards (committed to git)
+- `swim_data.json` — feeds the website (committed, but server regenerates nightly)
+- `standards.json` — USA Swimming time standards (don't delete!)
+- `Swim_Dashboard.xlsx` — Excel dashboard (local only, gitignored)
 
 ---
 
-## ❓ Troubleshooting
+## Troubleshooting
 
-**Problem:** "File not found" when running merge_swims.py
-- ✅ Make sure you ran `cleaner.py` first to create `clean_swim_data.xlsx`
-- ✅ If you don't have high school swims yet, skip the merge step
+**Scraper says "couldn't find any table tags"**
+- The HTML download was text-only. Re-save from GoMotion as "Webpage, Complete".
 
-**Problem:** High school swims not showing in dashboard
-- ✅ Make sure you ran `merge_swims.py` BEFORE `grader.py`
-- ✅ Check that dates in high_school_swims.csv are formatted correctly (YYYY-MM-DD)
-- ✅ Make sure Time_Seconds column has numeric values (no "Y" or "L")
+**Website didn't update after deploy**
+- Did you pull in `/var/www/swimtracker`? (`/var/www/swim` is the decoy.)
+- Did the pull fail on local changes? Use the `git checkout -- swim_data.json` prefix.
+- Check the site's data freshness: `swim.james-kirby.uk/swim_data.json` → `generatedAt` field.
+- Cron log on server: `/var/log/swimtracker-generate.log`
 
-**Problem:** Times in high_school_swims.csv are wrong
-- ✅ Finals column should have Y or L (e.g., "52.45Y")
-- ✅ Time_Seconds should be just the number (e.g., 52.45)
-- ✅ For times over 1 minute: Finals = "1:02.34Y", Time_Seconds = 62.34
+**HS swims missing from site**
+- Confirm `merge_swims.py` ran (it's step 3 of `update_data.py`) and you committed
+  `graded_swim_data.xlsx`, not just `swim_data.json`.
 
----
+**All swims show "Unrated"**
+- `standards.json` missing or the limited version. Restore from git.
 
-## 💡 Pro Tips
-
-### Managing High School Swims:
-1. **Update after each HS meet** - Add new swims to `high_school_swims.csv` immediately
-2. **Keep it simple** - The CSV is meant for manual entry of just a few swims
-3. **Run full pipeline** - After adding HS swims, run merge → grade → dashboard
-
-### When to Run Merge:
-- ✅ Run merge_swims.py whenever you add new high school swims
-- ✅ Run merge_swims.py after cleaner.py and before grader.py
-- ⚠️ Don't need to run merge if you haven't added any new HS swims
-
-### Backup Your High School Data:
-- Keep a backup copy of `high_school_swims.csv` 
-- This file is manually maintained and won't be overwritten by scripts
-
----
-
-## 🎯 Example: Adding a High School Meet
-
-Let's say your son swam at a dual meet on December 10, 2024:
-
-1. Open `high_school_swims.csv` in Excel
-2. Add rows:
-```
-2024-12-10,14,50,Free,Finals,Yards,23.45Y,23.45,HS Dual Meet vs Bentonville West
-2024-12-10,14,100,Back,Finals,Yards,58.67Y,58.67,HS Dual Meet vs Bentonville West
-```
-3. Save the file
-4. Run the pipeline:
-```bash
-python scraper.py       # Get latest GoMotion data
-python cleaner.py       # Clean GoMotion data
-python merge_swims.py   # Add high school swims
-python grader.py        # Grade everything
-python create_dashboard.py  # Update dashboard
-```
-5. Open `Swim_Dashboard.xlsx` - the HS swims are now included!
-
----
-
-**Questions?** The high_school_swims.csv file is your friend for manually entering any swims that aren't on GoMotion!
+**Time format errors in high_school_swims.csv**
+- Finals needs Y or L suffix ("1:02.34Y"); Time_Seconds is plain numeric (62.34).

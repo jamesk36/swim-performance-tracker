@@ -4,12 +4,18 @@ update_data.py -- Full pipeline: swim_history.html -> swim_data.json
 
 Usage:
     1. Save your GoMotion HTML export as 'swim_history.html' in this folder
-    2. Run: python update_data.py
-    3. Then commit and push:
-           git add swim_data.json
+       (right-click page -> Save As -> "Webpage, Complete" -- NOT plain text)
+    2. New high school swims? Add them to high_school_swims.csv first.
+    3. Run: python update_data.py
+    4. Then commit and push:
+           git add swim_data.json graded_swim_data.xlsx
            git commit -m "Update swim data"
            git push
-    4. On the server: ssh root@5.78.198.96 "cd /var/www/swim && git pull"
+    5. Deploy (NOTE: /var/www/swimtracker, not /var/www/swim):
+           ssh root@5.78.198.96 "cd /var/www/swimtracker && git checkout -- swim_data.json && git pull && venv/bin/python3 generate_data.py"
+       The 'git checkout' discards the server's nightly-cron copy of
+       swim_data.json so the pull isn't blocked; the 3 AM cron rebuilds it
+       from graded_swim_data.xlsx every night anyway.
 """
 import os
 import sys
@@ -25,6 +31,7 @@ ROOT = Path(__file__).parent
 STEPS = [
     ("scraper.py",          "swim_history.html",    "raw_swim_data.csv"),
     ("cleaner.py",          "raw_swim_data.csv",    "clean_swim_data.xlsx"),
+    ("merge_swims.py",      "clean_swim_data.xlsx", "clean_swim_data.xlsx"),
     ("grader.py",           "clean_swim_data.xlsx", "graded_swim_data.xlsx"),
     ("create_dashboard.py", "graded_swim_data.xlsx","Swim_Dashboard.xlsx"),
     ("generate_data.py",    "Swim_Dashboard.xlsx",  "swim_data.json"),
@@ -40,7 +47,7 @@ def check_input(filename):
         sys.exit(1)
 
 def run_step(script, input_file, output_file):
-    print(f"\n[{STEPS.index((script,input_file,output_file))+1}/5]  {script}")
+    print(f"\n[{STEPS.index((script,input_file,output_file))+1}/{len(STEPS)}]  {script}")
     print(f"      {input_file} -> {output_file}")
     check_input(input_file)
     env = {**os.environ, "PYTHONIOENCODING": "utf-8"}
@@ -79,10 +86,11 @@ if __name__ == "__main__":
     print("""
 To go live, run these commands:
 
-  git add swim_data.json
+  git add swim_data.json graded_swim_data.xlsx
   git commit -m "Update swim data"
   git push
-  ssh root@5.78.198.96 "cd /var/www/swim && git pull"
+  ssh root@5.78.198.96 "cd /var/www/swimtracker && git checkout -- swim_data.json && git pull && venv/bin/python3 generate_data.py"
 
-The site updates instantly after the git pull.
+The site updates instantly after the ssh command.
+(The server is /var/www/swimtracker -- NOT /var/www/swim.)
 """)
