@@ -1,6 +1,6 @@
 # Swim Data Processing Guide
 ### From GoMotion Download to Live Website
-**Updated 2026-07-09** — one-command pipeline, correct server path, HS merge now automatic.
+**Updated 2026-07-12** — stale `/var/www/swim` clone deleted from server; site is served by **Caddy** (not nginx), config at `/etc/caddy/Caddyfile`.
 
 ---
 
@@ -90,8 +90,8 @@ ssh root@5.78.198.96 "cd /var/www/swimtracker && git checkout -- swim_data.json 
 **Why each piece matters:**
 
 - `graded_swim_data.xlsx` must be committed — the server rebuilds `swim_data.json` from it
-- The server directory is **`/var/www/swimtracker`** — NOT `/var/www/swim` (an unused
-  leftover clone; pulling there does nothing to the live site)
+- The server directory is **`/var/www/swimtracker`** — the only clone on the server
+  (the stale `/var/www/swim` duplicate was verified unused and deleted 2026-07-12)
 - `git checkout -- swim_data.json` first: a **3 AM nightly cron** on the server re-runs
   `generate_data.py`, which locally modifies `swim_data.json` and would otherwise block the pull
 - Running `generate_data.py` after the pull makes the site update immediately instead
@@ -101,6 +101,12 @@ ssh root@5.78.198.96 "cd /var/www/swimtracker && git checkout -- swim_data.json 
 ```
 0 3 * * * cd /var/www/swimtracker && /var/www/swimtracker/venv/bin/python3 generate_data.py >> /var/log/swimtracker-generate.log 2>&1
 ```
+
+**Server stack (for reference):**
+- Hetzner VPS, Ubuntu 24.04, `root@5.78.198.96`
+- Web server: **Caddy** (nginx is NOT installed) — config: `/etc/caddy/Caddyfile`
+- Caddy serves `swim.james-kirby.uk` from `root * /var/www/swimtracker`, with no-cache
+  rules on `/index.html`, `/swim_data.json`, `/live_swims.json`
 
 ---
 
@@ -121,7 +127,6 @@ ssh root@5.78.198.96 "cd /var/www/swimtracker && git checkout -- swim_data.json 
 - The HTML download was text-only. Re-save from GoMotion as "Webpage, Complete".
 
 **Website didn't update after deploy**
-- Did you pull in `/var/www/swimtracker`? (`/var/www/swim` is the decoy.)
 - Did the pull fail on local changes? Use the `git checkout -- swim_data.json` prefix.
 - Check the site's data freshness: `swim.james-kirby.uk/swim_data.json` → `generatedAt` field.
 - Cron log on server: `/var/log/swimtracker-generate.log`

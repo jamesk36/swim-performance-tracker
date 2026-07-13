@@ -11,7 +11,7 @@ Usage:
            git add swim_data.json graded_swim_data.xlsx
            git commit -m "Update swim data"
            git push
-    5. Deploy (NOTE: /var/www/swimtracker, not /var/www/swim):
+    5. Deploy (server dir: /var/www/swimtracker — the stale /var/www/swim clone was deleted 2026-07-12):
            ssh root@5.78.198.96 "cd /var/www/swimtracker && git checkout -- swim_data.json && git pull && venv/bin/python3 generate_data.py"
        The 'git checkout' discards the server's nightly-cron copy of
        swim_data.json so the pull isn't blocked; the 3 AM cron rebuilds it
@@ -92,5 +92,5 @@ To go live, run these commands:
   ssh root@5.78.198.96 "cd /var/www/swimtracker && git checkout -- swim_data.json && git pull && venv/bin/python3 generate_data.py"
 
 The site updates instantly after the ssh command.
-(The server is /var/www/swimtracker -- NOT /var/www/swim.)
+(Server dir: /var/www/swimtracker. Served by Caddy -- /etc/caddy/Caddyfile.)
 """)
