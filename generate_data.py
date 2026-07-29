@@ -658,6 +658,34 @@ def main():
                 current_standards[course_key][ui_ev] = cuts
     print(f"  Current standards ({current_ag}): {sum(len(v) for v in current_standards.values())} event/course combos")
 
+    # ── Sectional / Zone cuts (hand-maintained, separate from USA-S tiers) ──────────
+    sectional_path = base / "sectional_standards.json"
+    sectional_standards = None
+    if sectional_path.exists():
+        sec_data = json.loads(sectional_path.read_text())
+        sec_ag_data = sec_data.get("Sectional", {}).get(current_ag, {}).get(ATHLETE_GENDER, {})
+        zone_ag_data = sec_data.get("Zone", {}).get(current_ag, {}).get(ATHLETE_GENDER, {})
+        sectional_grid: dict = {"SCY": {}, "LCM": {}}
+        for course_key in ["SCY", "LCM"]:
+            for std_ev, ui_ev in STD_TO_UI.items():
+                cuts: dict = {}
+                sec_t = sec_ag_data.get(course_key, {}).get(std_ev)
+                zone_t = zone_ag_data.get(course_key, {}).get(std_ev)
+                if sec_t:
+                    cuts["Sectional"] = round(parse_std_time(sec_t), 2)
+                if zone_t:
+                    cuts["Zone"] = round(parse_std_time(zone_t), 2)
+                if cuts:
+                    sectional_grid[course_key][ui_ev] = cuts
+        sectional_standards = {
+            "meta": sec_data.get("meta", {}),
+            "SCY": sectional_grid["SCY"],
+            "LCM": sectional_grid["LCM"],
+        }
+        n_combos = sum(len(v) for v in sectional_grid.values())
+        verified = sec_data.get("meta", {}).get("verified", False)
+        print(f"  Sectional/Zone cuts ({current_ag}): {n_combos} event/course combos (verified={verified})")
+
     # LCM qualified summary (vs BB standard)
     lcm_bb_qual  = [e for e in lcm_events_out if e["bbQual"]]
     lcm_bb_total = [e for e in lcm_events_out if e.get("cuts", {}).get("BB")]
@@ -691,6 +719,7 @@ def main():
         "upcomingMeets":    upcoming_meets,
         "nextMeet":         next_meet,
         "currentStandards": current_standards,
+        "sectionalStandards": sectional_standards,
     }
 
     out_path = base / "swim_data.json"

@@ -1,0 +1,97 @@
+{
+  "meta": {
+    "verified": false,
+    "note": "PLACEHOLDER \u2014 NOT an official time standard. Generated from 15-16 Male AAAA cuts (x0.985 / x1.03) only so the UI has something to display. Replace with the real Region VIII / Central Zone Sectional and/or Zone qualifying times, then set verified=true. See PROCESS_GUIDE.md.",
+    "ageGroup": "15-16",
+    "gender": "Male",
+    "season": "2025-2026"
+  },
+  "Sectional": {
+    "15-16": {
+      "Male": {
+        "SCY": {
+          "50 Free": "20.87",
+          "100 Free": "45.79",
+          "200 Free": "1:40.46",
+          "500 Free": "4:32.15",
+          "1000 Free": "9:30.21",
+          "1650 Free": "15:50.52",
+          "50 Back": "23.43",
+          "100 Back": "49.93",
+          "200 Back": "1:49.03",
+          "50 Breast": "27.08",
+          "100 Breast": "56.82",
+          "200 Breast": "2:03.41",
+          "50 Fly": "23.33",
+          "100 Fly": "49.63",
+          "200 Fly": "1:51.00",
+          "200 IM": "1:51.49",
+          "400 IM": "3:57.97"
+        },
+        "LCM": {
+          "50 Free": "24.32",
+          "100 Free": "52.98",
+          "200 Free": "1:55.73",
+          "400 Free": "4:06.83",
+          "800 Free": "8:32.68",
+          "1500 Free": "16:21.25",
+          "50 Back": "27.96",
+          "100 Back": "58.60",
+          "200 Back": "2:07.25",
+          "50 Breast": "30.82",
+          "100 Breast": "1:06.08",
+          "200 Breast": "2:23.70",
+          "50 Fly": "26.39",
+          "100 Fly": "56.73",
+          "200 Fly": "2:06.86",
+          "200 IM": "2:10.11",
+          "400 IM": "4:36.87"
+        }
+      }
+    }
+  },
+  "Zone": {
+    "15-16": {
+      "Male": {
+        "SCY": {
+          "50 Free": "21.83",
+          "100 Free": "47.88",
+          "200 Free": "1:45.05",
+          "500 Free": "4:44.58",
+          "1000 Free": "9:56.26",
+          "1650 Free": "16:33.94",
+          "50 Back": "24.50",
+          "100 Back": "52.21",
+          "200 Back": "1:54.01",
+          "50 Breast": "28.31",
+          "100 Breast": "59.42",
+          "200 Breast": "2:09.05",
+          "50 Fly": "24.40",
+          "100 Fly": "51.90",
+          "200 Fly": "1:56.07",
+          "200 IM": "1:56.59",
+          "400 IM": "4:08.84"
+        },
+        "LCM": {
+          "50 Free": "25.43",
+          "100 Free": "55.40",
+          "200 Free": "2:01.01",
+          "400 Free": "4:18.11",
+          "800 Free": "8:56.10",
+          "1500 Free": "17:06.08",
+          "50 Back": "29.24",
+          "100 Back": "1:01.27",
+          "200 Back": "2:13.07",
+          "50 Breast": "32.23",
+          "100 Breast": "1:09.10",
+          "200 Breast": "2:30.27",
+          "50 Fly": "27.59",
+          "100 Fly": "59.32",
+          "200 Fly": "2:12.65",
+          "200 IM": "2:16.05",
+          "400 IM": "4:49.52"
+        }
+      }
+    }
+  }
+}
