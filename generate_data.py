@@ -57,7 +57,7 @@ COURSE_MAP = {
 STD_TO_UI = {
     "50 Free":   "50 FR",  "100 Free":  "100 FR", "200 Free":  "200 FR",
     "500 Free":  "500 FR", "1000 Free": "1000 FR","1650 Free": "1650 FR",
-    "800 Free":  "800 FR", "1500 Free": "1500 FR",
+    "400 Free":  "400 FR", "800 Free":  "800 FR", "1500 Free": "1500 FR",
     "50 Back":   "50 BK",  "100 Back":  "100 BK", "200 Back":  "200 BK",
     "50 Breast": "50 BR",  "100 Breast":"100 BR",  "200 Breast":"200 BR",
     "50 Fly":    "50 FL",  "100 Fly":   "100 FL",  "200 Fly":   "200 FL",
@@ -658,23 +658,27 @@ def main():
                 current_standards[course_key][ui_ev] = cuts
     print(f"  Current standards ({current_ag}): {sum(len(v) for v in current_standards.values())} event/course combos")
 
-    # ── Sectional / Zone cuts (hand-maintained, separate from USA-S tiers) ──────────
+    # ── Sectional cuts (hand-maintained, separate from USA-S tiers) ─────────────────
+    # Sectional standards are "Open" (all ages 15-18ish), not age-bracketed like
+    # standards.json, so we look under "Open" first and fall back to the athlete's
+    # current age-group key for forwards-compatibility with future data sources.
     sectional_path = base / "sectional_standards.json"
     sectional_standards = None
     if sectional_path.exists():
         sec_data = json.loads(sectional_path.read_text())
-        sec_ag_data = sec_data.get("Sectional", {}).get(current_ag, {}).get(ATHLETE_GENDER, {})
-        zone_ag_data = sec_data.get("Zone", {}).get(current_ag, {}).get(ATHLETE_GENDER, {})
+        sec_by_ag = sec_data.get("Sectional", {})
+        sec_ag_data = sec_by_ag.get("Open", sec_by_ag.get(current_ag, {})).get(ATHLETE_GENDER, {})
         sectional_grid: dict = {"SCY": {}, "LCM": {}}
         for course_key in ["SCY", "LCM"]:
             for std_ev, ui_ev in STD_TO_UI.items():
-                cuts: dict = {}
-                sec_t = sec_ag_data.get(course_key, {}).get(std_ev)
-                zone_t = zone_ag_data.get(course_key, {}).get(std_ev)
-                if sec_t:
-                    cuts["Sectional"] = round(parse_std_time(sec_t), 2)
-                if zone_t:
-                    cuts["Zone"] = round(parse_std_time(zone_t), 2)
+                entry = sec_ag_data.get(course_key, {}).get(std_ev)
+                if not entry:
+                    continue
+                cuts = {}
+                if entry.get("Priority"):
+                    cuts["Priority"] = round(parse_std_time(entry["Priority"]), 2)
+                if entry.get("Bonus"):
+                    cuts["Bonus"] = round(parse_std_time(entry["Bonus"]), 2)
                 if cuts:
                     sectional_grid[course_key][ui_ev] = cuts
         sectional_standards = {
@@ -684,7 +688,7 @@ def main():
         }
         n_combos = sum(len(v) for v in sectional_grid.values())
         verified = sec_data.get("meta", {}).get("verified", False)
-        print(f"  Sectional/Zone cuts ({current_ag}): {n_combos} event/course combos (verified={verified})")
+        print(f"  Sectional cuts: {n_combos} event/course combos (verified={verified})")
 
     # LCM qualified summary (vs BB standard)
     lcm_bb_qual  = [e for e in lcm_events_out if e["bbQual"]]
