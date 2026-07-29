@@ -120,17 +120,16 @@ Oklahoma, Midwestern, Ozark LSCs), sanctioned by Missouri Valley Swimming.
 There is no "Zone" comparison — Central Zone's age-group championship is
 14-and-under only, so it doesn't apply to Jack at 15+.
 
-`sectional_standards.json` is currently seeded from the **2026 CSRVIII
-Spring meet book** (SCY meet, held March 12-15, 2026 — already past by the
-time you read this, so treat it as a benchmark, not an upcoming entry). Its
-`meta.note` field documents two caveats worth knowing:
-- The LCM cuts come from that same meet book's "long-course equivalent"
-  entry-proof column, not a dedicated Summer (LCM) Sectional standard.
-  If Arkansas Swimming/CSRVIII publishes a separate Summer meet book, load
-  that instead for a more precise LCM comparison (see steps below).
-- 50 Back/Breast/Fly cuts are intentionally omitted — the source PDF had
-  those rows duplicated from the 100-distance event (a document error, not
-  a rule), so they were left blank rather than publish wrong numbers.
+`sectional_standards.json` is seeded from CSRVIII's **2026 Spring (SCY,
+March 12-15) and Summer (LCM, July 15-18) meet books** — both already past
+by the time you read this, so treat this as a benchmark, not an upcoming
+entry. CSRVIII publishes one shared qualifying-times table covering both
+meets; both books were checked cell-by-cell and are numerically identical,
+so both the SCY and LCM cuts here are directly confirmed (not an
+approximation). One caveat remains: 50 Back/Breast/Fly cuts are
+intentionally omitted — both source PDFs have those rows duplicated from
+the 100-distance event (a document error, not a rule), so they were left
+blank rather than publish wrong numbers.
 
 **To update with a newer/corrected standards document:**
 1. Get the current Region VIII (CSRVIII) Sectional meet book/time-standards
