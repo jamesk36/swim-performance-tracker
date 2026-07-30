@@ -110,6 +110,44 @@ ssh root@5.78.198.96 "cd /var/www/swimtracker && git checkout -- swim_data.json 
 
 ---
 
+## Sectional Standards
+
+The **Sectionals** tab compares Jack's PBs against Sectional qualifying
+cuts, read from `sectional_standards.json`. Arkansas Swimming (LSC: AR) is
+in the **Central Zone**; Jack's Sectional meet is the **Speedo Sectionals
+at Columbia, MO — Central Section Region VIII** (Arkansas, Missouri Valley,
+Oklahoma, Midwestern, Ozark LSCs), sanctioned by Missouri Valley Swimming.
+There is no "Zone" comparison — Central Zone's age-group championship is
+14-and-under only, so it doesn't apply to Jack at 15+.
+
+`sectional_standards.json` is seeded from CSRVIII's **2026 Spring (SCY,
+March 12-15) and Summer (LCM, July 15-18) meet books** — both already past
+by the time you read this, so treat this as a benchmark, not an upcoming
+entry. CSRVIII publishes one shared qualifying-times table covering both
+meets; both books were checked cell-by-cell and are numerically identical,
+so both the SCY and LCM cuts here are directly confirmed (not an
+approximation). One caveat remains: 50 Back/Breast/Fly cuts are
+intentionally omitted — both source PDFs have those rows duplicated from
+the 100-distance event (a document error, not a rule), so they were left
+blank rather than publish wrong numbers.
+
+**To update with a newer/corrected standards document:**
+1. Get the current Region VIII (CSRVIII) Sectional meet book/time-standards
+   PDF — same idea as `swim_history.html`.
+2. Edit `sectional_standards.json`: update per-event `Priority`/`Bonus`
+   cuts under `Sectional.Open.Male.{SCY,LCM}`, matching the existing
+   event-name structure (`standards.json`-style event names, e.g. `"100
+   Free"`).
+3. Update `meta` (meetName, note, etc.) to describe the new source.
+4. Re-run `python generate_data.py` (or the full pipeline) and redeploy.
+
+If a document ever needs age-bracketed splits or a genuine Zone standard,
+extend the same file with additional keys — `generate_data.py`'s lookup
+tries `"Open"` first, then falls back to the athlete's current age-group
+key.
+
+---
+
 ## Important Files
 
 - `swim_history.html` — GoMotion download (input)

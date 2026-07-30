@@ -137,7 +137,7 @@ const strokeOf = ev => {
 };
 
 // ─── Navigation ───────────────────────────────────────────────────────────────
-const TABS = ['Stroke Overview','Quick Lookup','Swim History','Deep Analytics','IMX Score','Goals','Time Standards','Settings'];
+const TABS = ['Stroke Overview','Quick Lookup','Swim History','Deep Analytics','IMX Score','Goals','Time Standards','Sectionals','Settings'];
 
 // ─── Countdown widget (sidebar) ───────────────────────────────────────────────
 const MeetCountdown = () => {
@@ -208,6 +208,9 @@ const SideNav = ({ active, onSelect }) => {
                 {SD.imx.total.toLocaleString()}
               </span>
             )}
+            {label==='Sectionals' && SD.sectionalStandards && !SD.sectionalStandards.meta?.verified && (
+              <span title="Unverified placeholder times" style={{fontSize:10}}>⚠️</span>
+            )}
           </div>
         ))}
       </nav>
@@ -239,13 +242,14 @@ const TopBar = ({ title, course, onCourse }) => {
 };
 
 // ─── Tab: Stroke Overview ─────────────────────────────────────────────────────
-const StrokeOverview = ({ onEvent, onTab }) => {
+const StrokeOverview = ({ onEvent, onTab, course }) => {
   const SD = useData();
-  const priority = [...SD.events].filter(e=>e.next&&e.next.gap>=0).sort((a,b)=>a.next.gap-b.next.gap);
+  const events = course === 'LCM' ? (SD.lcmQualified?.events || []) : SD.events;
+  const priority = [...events].filter(e=>e.next&&e.next.gap>=0).sort((a,b)=>a.next.gap-b.next.gap);
   const hero = priority[0];
   const top6 = priority.slice(1, 7);
   const rest = priority.slice(7);
-  if (!hero) return <div style={{padding:24,color:'var(--muted)'}}>No event data yet.</div>;
+  if (!hero) return <div style={{padding:24,color:'var(--muted)'}}>No {course} event data yet.</div>;
   const imx = SD.imx;
   const imxMilestones = [1000,2000,3000,4000,5000];
   const nextMilestone = imx ? imxMilestones.find(v => v > imx.total) : null;
@@ -363,6 +367,56 @@ const StrokeOverview = ({ onEvent, onTab }) => {
                     </span>
                   ))}
                 </div>
+              )}
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* Standards Readiness — AA / AAA / Sectional focus now that BB is mostly behind him */}
+      {(() => {
+        const totalEvents = events.length;
+        const aaPlus  = events.filter(e => ['AA','AAA','AAAA'].includes(e.tier)).length;
+        const aaaPlus = events.filter(e => ['AAA','AAAA'].includes(e.tier)).length;
+
+        const secData    = SD.sectionalStandards?.[course] || {};
+        const secEvents  = events.filter(e => secData[e.ev]);
+        const secTotal   = secEvents.length;
+        const priorityMet = secEvents.filter(e => secData[e.ev].Priority && e.pb <= secData[e.ev].Priority).length;
+        const bonusMet    = secEvents.filter(e => secData[e.ev].Bonus && e.pb <= secData[e.ev].Bonus).length;
+
+        if (totalEvents === 0) return null;
+
+        return (
+          <div className="panel" style={{padding:'13px 20px',display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:20}}>
+            <div style={{cursor:'pointer'}} onClick={()=>onTab('Time Standards')}>
+              <div className="kpi-label">AA STANDARD · {course}</div>
+              <div style={{display:'flex',alignItems:'baseline',gap:4,marginTop:3}}>
+                <div className="mono" style={{fontSize:28,fontWeight:700,letterSpacing:'-0.02em'}}>{aaPlus}</div>
+                <div className="mono" style={{fontSize:14,color:'var(--muted)'}}>/ {totalEvents}</div>
+              </div>
+              <div style={{fontSize:11,color:'var(--muted)',marginTop:2}}>events at AA or faster</div>
+            </div>
+            <div style={{borderLeft:'1px solid var(--line)',paddingLeft:20,cursor:'pointer'}} onClick={()=>onTab('Time Standards')}>
+              <div className="kpi-label">AAA STANDARD · {course}</div>
+              <div style={{display:'flex',alignItems:'baseline',gap:4,marginTop:3}}>
+                <div className="mono" style={{fontSize:28,fontWeight:700,letterSpacing:'-0.02em'}}>{aaaPlus}</div>
+                <div className="mono" style={{fontSize:14,color:'var(--muted)'}}>/ {totalEvents}</div>
+              </div>
+              <div style={{fontSize:11,color:'var(--muted)',marginTop:2}}>events at AAA or faster</div>
+            </div>
+            <div style={{borderLeft:'1px solid var(--line)',paddingLeft:20,cursor: secTotal>0 ? 'pointer' : 'default'}} onClick={()=> secTotal>0 && onTab('Sectionals')}>
+              <div className="kpi-label">SECTIONAL CUTS · {course}</div>
+              {secTotal > 0 ? (
+                <>
+                  <div style={{display:'flex',alignItems:'baseline',gap:4,marginTop:3}}>
+                    <div className="mono" style={{fontSize:28,fontWeight:700,letterSpacing:'-0.02em'}}>{priorityMet}</div>
+                    <div className="mono" style={{fontSize:14,color:'var(--muted)'}}>/ {secTotal} Priority</div>
+                  </div>
+                  <div style={{fontSize:11,color:'var(--muted)',marginTop:2}}>{bonusMet} / {secTotal} at Bonus or faster</div>
+                </>
+              ) : (
+                <div className="mono muted" style={{fontSize:11,marginTop:10}}>No {course} Sectional data</div>
               )}
             </div>
           </div>
@@ -1227,7 +1281,7 @@ const Goals = ({ onEvent }) => {
 // ─── Tab: Data Guide ─────────────────────────────────────────────────────────
 // ─── Tab: Time Standards ──────────────────────────────────────────────────────
 const TIME_STANDARDS_EVENTS = [
-  '50 FR','100 FR','200 FR','500 FR','1000 FR','1650 FR',
+  '50 FR','100 FR','200 FR','400 FR','500 FR','1000 FR','1650 FR',
   '50 BK','100 BK','200 BK',
   '50 BR','100 BR','200 BR',
   '50 FL','100 FL','200 FL',
@@ -1328,6 +1382,126 @@ const TimeStandards = ({ course }) => {
   );
 };
 
+// ─── Tab: Sectionals ────────────────────────────────────────────────────────────
+const SECTIONAL_TIERS_DISPLAY = ['Priority', 'Bonus'];
+
+const SectionalStandards = ({ course }) => {
+  const SD = useData();
+  const ss = SD.sectionalStandards;
+
+  if (!ss) return (
+    <div style={{flex:1,display:'flex',alignItems:'center',justifyContent:'center',flexDirection:'column',gap:10,color:'var(--muted)'}}>
+      <div style={{fontSize:14,fontWeight:600}}>No Sectional standards loaded</div>
+      <div className="mono" style={{fontSize:11,maxWidth:420,textAlign:'center'}}>
+        Add sectional_standards.json (see PROCESS_GUIDE.md) and re-run generate_data.py.
+      </div>
+    </div>
+  );
+
+  const courseData = ss[course] || {};
+  const meta = ss.meta || {};
+
+  // Current PBs for highlighting — same lookup pattern as Time Standards tab
+  const pbMap = {};
+  const eventList = course === 'LCM' ? (SD.lcmQualified?.events || []) : SD.events;
+  eventList.forEach(e => { pbMap[e.ev] = {time: e.pb, tier: e.tier}; });
+  (SD.liveSwims || []).filter(s => s.course === course).forEach(s => {
+    if (!pbMap[s.event] || s.time < pbMap[s.event].time) {
+      pbMap[s.event] = {time: s.time, tier: s.tier};
+    }
+  });
+
+  const hasCuts = Object.keys(courseData).length > 0;
+
+  return (
+    <div style={{flex:1,overflow:'auto'}}>
+      <div style={{
+        margin:'12px 18px 0',padding:'10px 14px',
+        background: meta.verified ? '#EEF6FF' : '#FFF6E5',
+        border: meta.verified ? '1px solid #A9CDEF' : '1px solid #E8B85C',
+        borderRadius:4,fontSize:11.5,lineHeight:1.5,
+        color: meta.verified ? '#1C4A73' : '#6B4A16',
+        display:'flex',gap:8,
+      }}>
+        <span style={{fontSize:14}}>{meta.verified ? 'ℹ️' : '⚠️'}</span>
+        <div>
+          <strong>{meta.verified ? (meta.meetName || 'Verified Sectional standard') : 'Unverified placeholder times.'}</strong>
+          {' '}{meta.note || 'These cuts are not from an official Sectional document yet.'}
+          <br/>Note: Zone (age-group) championships in the Central Zone are 14-and-under only, so they don't apply at Jack's current age — Sectionals is the relevant benchmark.
+        </div>
+      </div>
+      {!hasCuts ? (
+        <div style={{flex:1,display:'flex',alignItems:'center',justifyContent:'center',flexDirection:'column',gap:10,color:'var(--muted)',padding:40}}>
+          <div style={{fontSize:14,fontWeight:600}}>No {course} Sectional cuts available</div>
+        </div>
+      ) : (
+        <>
+          <div style={{padding:'10px 18px',borderBottom:'1px solid var(--line)',background:'var(--panel-alt)',display:'flex',alignItems:'center',gap:8}}>
+            <span style={{fontSize:12,fontWeight:700}}>SECTIONAL CUTS · {course} · {meta.ageGroup || SD.athlete?.ageGroup} {meta.gender || 'Male'}</span>
+            <span className="mono muted" style={{fontSize:10}}>— Jack's current PB highlighted</span>
+          </div>
+          <div style={{
+            display:'grid',
+            gridTemplateColumns:'110px 90px repeat(2,1fr)',
+            gap:'1px',
+            background:'var(--line)',
+            minWidth:520,
+          }}>
+            {/* Header */}
+            <div style={{background:'var(--panel-alt)',padding:'8px 10px',fontWeight:700,fontSize:11,display:'flex',alignItems:'center'}}>Event</div>
+            <div style={{background:'var(--panel-alt)',padding:'8px 10px',fontWeight:700,fontSize:11,display:'flex',alignItems:'center',justifyContent:'center'}}>PB</div>
+            {SECTIONAL_TIERS_DISPLAY.map(tier => (
+              <div key={tier} style={{background:'var(--panel-alt)',padding:'8px 10px',textAlign:'center'}}>
+                <span style={{fontSize:11,fontWeight:700}}>{tier}</span>
+              </div>
+            ))}
+            {/* Rows */}
+            {TIME_STANDARDS_EVENTS.map(ev => {
+              const cuts = courseData[ev];
+              if (!cuts && !pbMap[ev]) return null;
+              const pb = pbMap[ev];
+              const stroke = strokeOf(ev);
+              return (
+                <React.Fragment key={ev}>
+                  <div style={{background:'#fff',padding:'9px 10px',display:'flex',alignItems:'center',gap:5,borderBottom:'1px solid var(--line)'}}>
+                    <StrokeDot stroke={stroke} size={6}/>
+                    <span style={{fontSize:11,fontWeight:600}}>{ev}</span>
+                  </div>
+                  <div style={{background:'#fff',padding:'9px 10px',textAlign:'center',borderBottom:'1px solid var(--line)'}}>
+                    <span className="mono" style={{fontSize:11,color:'var(--muted)'}}>{pb ? fmtT(pb.time) : '—'}</span>
+                  </div>
+                  {SECTIONAL_TIERS_DISPLAY.map(tier => {
+                    const cut = cuts ? cuts[tier] : null;
+                    const met = pb && cut && pb.time <= cut;
+                    return (
+                      <div key={tier} style={{
+                        background: met ? '#E8F5E9' : '#fff',
+                        padding:'9px 10px',
+                        textAlign:'center',
+                        borderBottom:'1px solid var(--line)',
+                        borderLeft: meta.verified ? 'none' : '1px dashed var(--line-strong)',
+                      }}>
+                        <div className="mono" style={{fontSize:12,color: cut ? 'var(--ink)' : 'var(--line-strong)'}}>
+                          {cut ? fmtT(cut) : '—'}
+                        </div>
+                        {pb && cut && (
+                          <div style={{fontSize:9,marginTop:1,color: met ? 'var(--good)' : 'var(--muted)'}}>
+                            {met ? '✓ qualified' : `+${(pb.time - cut).toFixed(2)}s`}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </React.Fragment>
+              );
+            }).filter(Boolean)}
+          </div>
+        </>
+      )}
+    </div>
+  );
+};
+
 // ─── Tab: Settings ────────────────────────────────────────────────────────────
 const Settings = () => {
   const SD = useData();
@@ -1371,13 +1545,14 @@ const Shell = ({ SD }) => {
         <SideNav active={tab} onSelect={t=>{setTab(t);setOpenEv(null);}}/>
         <div style={{flex:1,display:'flex',flexDirection:'column',overflow:'hidden'}}>
           <TopBar title={tab} course={course} onCourse={setCourse}/>
-          {tab==='Stroke Overview' && <StrokeOverview onEvent={openEvent} onTab={t=>{setTab(t);setOpenEv(null);}}/>}
+          {tab==='Stroke Overview' && <StrokeOverview onEvent={openEvent} onTab={t=>{setTab(t);setOpenEv(null);}} course={course}/>}
           {tab==='Quick Lookup'    && <QuickLookup    onEvent={openEvent} course={course}/>}
           {tab==='Swim History'    && <SwimHistory     course={course}/>}
           {tab==='Deep Analytics'  && <DeepAnalytics  onEvent={openEvent}/>}
           {tab==='IMX Score'       && <IMXScore/>}
           {tab==='Goals'           && <Goals           onEvent={openEvent}/>}
           {tab==='Time Standards'  && <TimeStandards course={course}/>}
+          {tab==='Sectionals' && <SectionalStandards course={course}/>}
           {tab==='Settings'        && <Settings/>}
         </div>
         {openEv && <EventDetail ev={openEv.ev} onClose={()=>setOpenEv(null)} course={openEv.course}/>}

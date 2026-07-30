@@ -1,0 +1,49 @@
+{
+  "meta": {
+    "verified": true,
+    "note": "Real 2026 CSRVIII (Central Section Region VIII) Speedo Sectionals at Columbia, MO qualifying times — Arkansas Swimming's actual Sectional meet. CSRVIII publishes ONE shared qualifying-times table that covers both of its meets: the Spring meet book ('Speedo Sectionals at Columbia – Spring 2026', SCY, held March 12-15, 2026) and the Summer meet book ('Speedo Sectionals at Columbia – Summer 2026' / 'Central Zone South', LCM, held July 15-18, 2026, qualifying window March 5, 2025 - July 13, 2026). Both documents were checked cell-by-cell and are numerically identical, so the SCY cuts here are confirmed against the Spring book and the LCM cuts are confirmed directly against the Summer book (no longer an approximation). Both meets have already happened this season by the time you read this — treat as a benchmark, not an upcoming entry; the qualifying period rolls forward each season so re-check before the next Spring/Summer cycle. These are 'Open' standards — not split by 2-year age group like USA-S AAAA/AAA/etc. Priority = faster cut, guarantees an individual entry; Bonus = slower cut, grants a bonus-event entry (fewer total events allowed, extra fee). KNOWN GAP: 50 Back, 50 Breast, and 50 Fly were omitted — both source PDFs have those rows populated with values identical to the corresponding 100-distance event (e.g. '50 Fly' and '100 Fly' both list 52.89/53.89 SCY in both documents), which isn't physically plausible for a 50 vs a 100. This looks like a persistent copy/paste error in the meet host's shared template. Rather than publish wrong 50-stroke cuts, they're left out until a corrected source turns up. No Zone data: Central Zone's age-group championship (the 'Zone' meet) is limited to 14-and-under swimmers, so it doesn't apply to Jack at age 15 — Sectionals (this document) is the relevant multi-LSC benchmark for his current age.",
+    "ageGroup": "Open",
+    "gender": "Male",
+    "season": "2025-2026",
+    "meetName": "2026 CSRVIII Speedo Sectionals at Columbia (Spring SCY meet + Summer LCM meet — shared qualifying-times table)",
+    "region": "Central Section Region VIII (Arkansas, Missouri Valley, Oklahoma, Midwestern, Ozark)"
+  },
+  "Sectional": {
+    "Open": {
+      "Male": {
+        "SCY": {
+          "50 Free":   {"Priority": "22.09", "Bonus": "22.59"},
+          "100 Free":  {"Priority": "48.19", "Bonus": "49.19"},
+          "200 Free":  {"Priority": "1:46.09", "Bonus": "1:48.09"},
+          "500 Free":  {"Priority": "4:49.99", "Bonus": "4:54.99"},
+          "1000 Free": {"Priority": "10:05.99"},
+          "1650 Free": {"Priority": "17:04.99"},
+          "100 Back":  {"Priority": "54.19", "Bonus": "55.19"},
+          "200 Back":  {"Priority": "1:57.79", "Bonus": "1:59.79"},
+          "100 Breast":{"Priority": "1:00.69", "Bonus": "1:01.69"},
+          "200 Breast":{"Priority": "2:12.39", "Bonus": "2:14.39"},
+          "100 Fly":   {"Priority": "52.89", "Bonus": "53.89"},
+          "200 Fly":   {"Priority": "1:59.99", "Bonus": "2:01.99"},
+          "200 IM":    {"Priority": "1:58.59", "Bonus": "2:00.59"},
+          "400 IM":    {"Priority": "4:16.89", "Bonus": "4:20.89"}
+        },
+        "LCM": {
+          "50 Free":   {"Priority": "25.29", "Bonus": "25.79"},
+          "100 Free":  {"Priority": "55.09", "Bonus": "56.09"},
+          "200 Free":  {"Priority": "2:00.99", "Bonus": "2:02.99"},
+          "400 Free":  {"Priority": "4:18.79", "Bonus": "4:22.79"},
+          "800 Free":  {"Priority": "9:04.19"},
+          "1500 Free": {"Priority": "17:29.99"},
+          "100 Back":  {"Priority": "1:01.99", "Bonus": "1:02.99"},
+          "200 Back":  {"Priority": "2:13.79", "Bonus": "2:15.79"},
+          "100 Breast":{"Priority": "1:09.69", "Bonus": "1:10.69"},
+          "200 Breast":{"Priority": "2:30.99", "Bonus": "2:32.99"},
+          "100 Fly":   {"Priority": "1:00.09", "Bonus": "1:01.09"},
+          "200 Fly":   {"Priority": "2:14.99", "Bonus": "2:16.99"},
+          "200 IM":    {"Priority": "2:15.19", "Bonus": "2:17.19"},
+          "400 IM":    {"Priority": "4:51.59", "Bonus": "4:55.59"}
+        }
+      }
+    }
+  }
+}

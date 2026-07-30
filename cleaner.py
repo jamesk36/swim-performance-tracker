@@ -57,7 +57,7 @@ def clean_data():
     # 1. Find Headers
     header_row_index = None
     for i in range(15):
-        row_values = df_raw.iloc[i].astype(str).tolist()
+        row_values = [str(x) for x in df_raw.iloc[i].tolist()]
         if any("Event" in x for x in row_values) and any("Date" in x for x in row_values):
             header_row_index = i
             break
