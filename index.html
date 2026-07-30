@@ -242,13 +242,14 @@ const TopBar = ({ title, course, onCourse }) => {
 };
 
 // ─── Tab: Stroke Overview ─────────────────────────────────────────────────────
-const StrokeOverview = ({ onEvent, onTab }) => {
+const StrokeOverview = ({ onEvent, onTab, course }) => {
   const SD = useData();
-  const priority = [...SD.events].filter(e=>e.next&&e.next.gap>=0).sort((a,b)=>a.next.gap-b.next.gap);
+  const events = course === 'LCM' ? (SD.lcmQualified?.events || []) : SD.events;
+  const priority = [...events].filter(e=>e.next&&e.next.gap>=0).sort((a,b)=>a.next.gap-b.next.gap);
   const hero = priority[0];
   const top6 = priority.slice(1, 7);
   const rest = priority.slice(7);
-  if (!hero) return <div style={{padding:24,color:'var(--muted)'}}>No event data yet.</div>;
+  if (!hero) return <div style={{padding:24,color:'var(--muted)'}}>No {course} event data yet.</div>;
   const imx = SD.imx;
   const imxMilestones = [1000,2000,3000,4000,5000];
   const nextMilestone = imx ? imxMilestones.find(v => v > imx.total) : null;
@@ -366,6 +367,56 @@ const StrokeOverview = ({ onEvent, onTab }) => {
                     </span>
                   ))}
                 </div>
+              )}
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* Standards Readiness — AA / AAA / Sectional focus now that BB is mostly behind him */}
+      {(() => {
+        const totalEvents = events.length;
+        const aaPlus  = events.filter(e => ['AA','AAA','AAAA'].includes(e.tier)).length;
+        const aaaPlus = events.filter(e => ['AAA','AAAA'].includes(e.tier)).length;
+
+        const secData    = SD.sectionalStandards?.[course] || {};
+        const secEvents  = events.filter(e => secData[e.ev]);
+        const secTotal   = secEvents.length;
+        const priorityMet = secEvents.filter(e => secData[e.ev].Priority && e.pb <= secData[e.ev].Priority).length;
+        const bonusMet    = secEvents.filter(e => secData[e.ev].Bonus && e.pb <= secData[e.ev].Bonus).length;
+
+        if (totalEvents === 0) return null;
+
+        return (
+          <div className="panel" style={{padding:'13px 20px',display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:20}}>
+            <div style={{cursor:'pointer'}} onClick={()=>onTab('Time Standards')}>
+              <div className="kpi-label">AA STANDARD · {course}</div>
+              <div style={{display:'flex',alignItems:'baseline',gap:4,marginTop:3}}>
+                <div className="mono" style={{fontSize:28,fontWeight:700,letterSpacing:'-0.02em'}}>{aaPlus}</div>
+                <div className="mono" style={{fontSize:14,color:'var(--muted)'}}>/ {totalEvents}</div>
+              </div>
+              <div style={{fontSize:11,color:'var(--muted)',marginTop:2}}>events at AA or faster</div>
+            </div>
+            <div style={{borderLeft:'1px solid var(--line)',paddingLeft:20,cursor:'pointer'}} onClick={()=>onTab('Time Standards')}>
+              <div className="kpi-label">AAA STANDARD · {course}</div>
+              <div style={{display:'flex',alignItems:'baseline',gap:4,marginTop:3}}>
+                <div className="mono" style={{fontSize:28,fontWeight:700,letterSpacing:'-0.02em'}}>{aaaPlus}</div>
+                <div className="mono" style={{fontSize:14,color:'var(--muted)'}}>/ {totalEvents}</div>
+              </div>
+              <div style={{fontSize:11,color:'var(--muted)',marginTop:2}}>events at AAA or faster</div>
+            </div>
+            <div style={{borderLeft:'1px solid var(--line)',paddingLeft:20,cursor: secTotal>0 ? 'pointer' : 'default'}} onClick={()=> secTotal>0 && onTab('Sectionals')}>
+              <div className="kpi-label">SECTIONAL CUTS · {course}</div>
+              {secTotal > 0 ? (
+                <>
+                  <div style={{display:'flex',alignItems:'baseline',gap:4,marginTop:3}}>
+                    <div className="mono" style={{fontSize:28,fontWeight:700,letterSpacing:'-0.02em'}}>{priorityMet}</div>
+                    <div className="mono" style={{fontSize:14,color:'var(--muted)'}}>/ {secTotal} Priority</div>
+                  </div>
+                  <div style={{fontSize:11,color:'var(--muted)',marginTop:2}}>{bonusMet} / {secTotal} at Bonus or faster</div>
+                </>
+              ) : (
+                <div className="mono muted" style={{fontSize:11,marginTop:10}}>No {course} Sectional data</div>
               )}
             </div>
           </div>
@@ -1494,7 +1545,7 @@ const Shell = ({ SD }) => {
         <SideNav active={tab} onSelect={t=>{setTab(t);setOpenEv(null);}}/>
         <div style={{flex:1,display:'flex',flexDirection:'column',overflow:'hidden'}}>
           <TopBar title={tab} course={course} onCourse={setCourse}/>
-          {tab==='Stroke Overview' && <StrokeOverview onEvent={openEvent} onTab={t=>{setTab(t);setOpenEv(null);}}/>}
+          {tab==='Stroke Overview' && <StrokeOverview onEvent={openEvent} onTab={t=>{setTab(t);setOpenEv(null);}} course={course}/>}
           {tab==='Quick Lookup'    && <QuickLookup    onEvent={openEvent} course={course}/>}
           {tab==='Swim History'    && <SwimHistory     course={course}/>}
           {tab==='Deep Analytics'  && <DeepAnalytics  onEvent={openEvent}/>}
