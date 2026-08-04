@@ -76,6 +76,26 @@ const TierChip = ({ tier, size = 'md' }) => {
   return <span className="tier-chip" style={{background:t.color,color:t.fg,fontSize:sz.fs,padding:sz.pad,height:sz.h,minWidth:sz.h+4}}>{t.label}</span>;
 };
 
+// Shows earned tier chip; if currentTier differs (e.g. PB set at 13-14), shows both with label
+const TierBadge = ({ ev, size = 'md' }) => {
+  if (!ev) return null;
+  const earned  = ev.tier;
+  const current = ev.currentTier;
+  const same    = !current || current === earned;
+  if (same) return <TierChip tier={earned} size={size}/>;
+  return (
+    <span title={`Earned ${earned} when set · Now ${current || '<B'} at 15-16`}
+          style={{display:'inline-flex',alignItems:'center',gap:2}}>
+      <TierChip tier={earned} size={size}/>
+      <span className="mono" style={{fontSize:7,color:'var(--muted-2)',lineHeight:1}}>›15-16</span>
+      {current
+        ? <TierChip tier={current} size={size}/>
+        : <span className="mono" style={{fontSize:size==='sm'?8:9,color:'var(--muted-2)'}}>&lt;B</span>
+      }
+    </span>
+  );
+};
+
 const StrokeDot = ({ stroke, size = 8 }) => {
   const SD = useData();
   const s = SD.strokes[stroke];
@@ -300,74 +320,93 @@ const StrokeOverview = ({ onEvent, onTab, course }) => {
         </div>
       )}
 
-      {/* LC Season Readiness */}
-      {SD.lcmQualified && (() => {
-        const lcmQ = SD.lcmQualified;
-        const stateNext = (SD.upcomingMeets||[]).find(m => m.qualifyingRequired);
-        const qual     = stateNext ? stateNext.qualifiedCount : lcmQ.bbCount;
-        const total    = stateNext ? stateNext.totalQualEvents : lcmQ.bbTotal;
-        const meetName = stateNext ? stateNext.shortName : 'USA-S BB Standard';
-        const daysAway = stateNext ? stateNext.daysAway : null;
+      {/* Sectional Readiness */}
+      {(() => {
+        const secData = SD.sectionalStandards?.[course] || {};
+        const secKeys = Object.keys(secData);
+        if (secKeys.length === 0) return null;
 
-        // Build unified event list: [{ev, pb, isQual, qualTime}]
-        const displayEvents = stateNext
-          ? [
-              ...(stateNext.qualifiedEvents||[]).map(e=>({ev:e.event, pb:e.pb, isQual:true,  qualTime:e.qualTime})),
-              ...(stateNext.unqualifiedEvents||[]).map(e=>({ev:e.event, pb:e.pb, isQual:false, qualTime:e.qualTime})),
-            ].sort((a,b)=>a.ev.localeCompare(b.ev))
-          : lcmQ.events.map(e=>({ev:e.ev, pb:e.pb, isQual:e.bbQual, qualTime:null}));
+        // For every sectional event, find Jack's PB (may not exist)
+        const secList = secKeys.map(ev => {
+          const found = events.find(e => e.ev === ev);
+          const pb    = found?.pb ?? null;
+          const pCut  = secData[ev].Priority ?? null;
+          const bCut  = secData[ev].Bonus    ?? null;
+          const metP  = pb !== null && pCut !== null && pb <= pCut;
+          const metB  = pb !== null && bCut !== null && pb <= bCut;
+          const deltaP = pb !== null && pCut !== null ? pb - pCut : null;
+          return { ev, pb, pCut, bCut, metP, metB, deltaP, hasPB: pb !== null };
+        });
 
-        const unqual = displayEvents.filter(e=>!e.isQual);
+        // Sort: Priority met → Bonus-only met → closest to Priority (smallest positive gap) → no PB
+        const sorted = [...secList].sort((a, b) => {
+          if (a.metP !== b.metP) return a.metP ? -1 : 1;
+          if (a.metB !== b.metB) return a.metB ? -1 : 1;
+          if (a.deltaP !== null && b.deltaP !== null) return a.deltaP - b.deltaP;
+          if (a.deltaP !== null) return -1;
+          if (b.deltaP !== null) return 1;
+          return 0;
+        });
+
+        const priorityMet = secList.filter(e => e.metP).length;
+        const bonusOrBetter = secList.filter(e => e.metB).length; // includes priority
+        const total = secKeys.length;
 
         return (
           <div className="panel" style={{padding:'13px 20px',display:'grid',gridTemplateColumns:'auto 1fr',gap:20,alignItems:'start'}}>
-            <div style={{minWidth:110}}>
-              <div className="kpi-label">LC STATE READINESS</div>
+            <div style={{minWidth:130}}>
+              <div className="kpi-label">SECTIONAL READINESS · {course}</div>
+              {/* Priority count */}
               <div style={{display:'flex',alignItems:'baseline',gap:4,marginTop:3}}>
-                <div className="mono" style={{fontSize:40,fontWeight:700,letterSpacing:'-0.03em',lineHeight:1,color:'var(--good)'}}>{qual}</div>
+                <div className="mono" style={{fontSize:40,fontWeight:700,letterSpacing:'-0.03em',lineHeight:1,color:priorityMet>0?'var(--good)':'var(--muted)'}}>{priorityMet}</div>
                 <div className="mono" style={{fontSize:16,color:'var(--muted)'}}>/ {total}</div>
               </div>
-              <div style={{fontSize:11,color:'var(--muted)',marginTop:4}}>events qualified</div>
-              <div style={{marginTop:6,height:5,background:'#EEF0F3',position:'relative',width:90}}>
-                <div style={{position:'absolute',left:0,top:0,bottom:0,width:`${Math.round(qual/total*100)}%`,background:'var(--good)'}}/>
+              <div style={{fontSize:11,color:'var(--muted)',marginTop:4}}>Priority cuts</div>
+              <div style={{marginTop:5,height:5,background:'#EEF0F3',position:'relative',width:110}}>
+                <div style={{position:'absolute',left:0,top:0,bottom:0,width:`${Math.round(priorityMet/total*100)}%`,background:'var(--good)'}}/>
               </div>
-              <div className="mono" style={{fontSize:10,color:'var(--muted)',marginTop:5}}>{meetName}</div>
-              {daysAway !== null && (
-                <div className="mono" style={{fontSize:10,color:daysAway<=7?'var(--signal)':'var(--muted)',marginTop:2,fontWeight:600}}>
-                  {daysAway === 0 ? 'TODAY' : daysAway === 1 ? '1 day away' : `${daysAway} days away`}
+              {/* Bonus count */}
+              <div style={{marginTop:10,paddingTop:10,borderTop:'1px solid var(--line)'}}>
+                <div style={{display:'flex',alignItems:'baseline',gap:4}}>
+                  <div className="mono" style={{fontSize:22,fontWeight:600,letterSpacing:'-0.02em',color:'#B45309'}}>{bonusOrBetter}</div>
+                  <div className="mono" style={{fontSize:12,color:'var(--muted)'}}>/ {total} Bonus+</div>
                 </div>
-              )}
+                <div style={{marginTop:4,height:4,background:'#EEF0F3',position:'relative',width:110}}>
+                  <div style={{position:'absolute',left:0,top:0,bottom:0,width:`${Math.round(bonusOrBetter/total*100)}%`,background:'#B45309'}}/>
+                </div>
+              </div>
+              <div className="mono" style={{fontSize:9,color:'var(--muted-2)',marginTop:10}}>CSRVIII Open · Sectionals</div>
+              <div style={{fontSize:10,color:'var(--muted)',marginTop:4,cursor:'pointer',textDecoration:'underline'}} onClick={()=>onTab('Sectionals')}>full table →</div>
             </div>
             <div>
-              <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(72px,1fr))',gap:4,marginBottom:6}}>
-                {displayEvents.map(ev => (
-                  <div key={ev.ev} style={{
-                    padding:'5px 7px',
-                    background: ev.isQual ? '#EFF8F1' : '#FEF0ED',
-                    border: `1px solid ${ev.isQual ? '#A8D5B5' : '#F5C8C0'}`,
-                    fontSize:10,display:'flex',flexDirection:'column',gap:1
-                  }}>
-                    <div style={{display:'flex',alignItems:'center',gap:4}}>
-                      <span style={{width:5,height:5,borderRadius:'50%',background:ev.isQual?'var(--good)':'var(--signal)',display:'inline-block',flexShrink:0}}/>
-                      <span style={{fontWeight:700}}>{ev.ev}</span>
+              <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(80px,1fr))',gap:4}}>
+                {sorted.map(e => {
+                  const bg  = e.metP ? '#EFF8F1' : e.metB ? '#FFFBEB' : e.hasPB ? '#FEF0ED' : '#F9FAFB';
+                  const bdr = e.metP ? '#A8D5B5' : e.metB ? '#FCD34D' : e.hasPB ? '#F5C8C0' : 'var(--line)';
+                  const dot = e.metP ? 'var(--good)' : e.metB ? '#D97706' : 'var(--signal)';
+                  return (
+                    <div key={e.ev} style={{padding:'5px 7px',background:bg,border:`1px solid ${bdr}`,fontSize:10,display:'flex',flexDirection:'column',gap:1}}>
+                      <div style={{display:'flex',alignItems:'center',gap:4}}>
+                        {e.hasPB && <span style={{width:5,height:5,borderRadius:'50%',background:dot,flexShrink:0,display:'inline-block'}}/>}
+                        <span style={{fontWeight:700,fontSize:9}}>{e.ev}</span>
+                      </div>
+                      <div className="mono" style={{fontSize:9,color:'var(--muted)',paddingLeft:e.hasPB?9:0}}>
+                        {e.hasPB ? fmtT(e.pb) : 'no PB'}
+                      </div>
+                      {e.hasPB && e.deltaP !== null && (
+                        <div className="mono" style={{fontSize:9,paddingLeft:9,color:e.metP?'var(--good)':e.metB?'#D97706':'var(--signal)'}}>
+                          {e.metP ? `−${Math.abs(e.deltaP).toFixed(2)}` : `+${e.deltaP.toFixed(2)}`}
+                        </div>
+                      )}
+                      {e.pCut !== null && (
+                        <div className="mono" style={{fontSize:8,color:'var(--muted-2)',paddingLeft:e.hasPB?9:0}}>
+                          P {fmtT(e.pCut)}
+                        </div>
+                      )}
                     </div>
-                    <div className="mono" style={{fontSize:9,color:'var(--muted)',paddingLeft:9}}>{fmtT(ev.pb)}</div>
-                    {ev.qualTime && <div className="mono" style={{fontSize:9,color:ev.isQual?'var(--good)':'var(--signal)',paddingLeft:9}}>
-                      {ev.isQual ? `−${(ev.qualTime - ev.pb).toFixed(2)}` : `+${(ev.pb - ev.qualTime).toFixed(2)}`}
-                    </div>}
-                  </div>
-                ))}
+                  );
+                })}
               </div>
-              {unqual.length > 0 && (
-                <div style={{fontSize:10,color:'var(--muted)'}}>
-                  <span style={{fontWeight:600,color:'var(--signal)'}}>Still to qualify: </span>
-                  {unqual.map((e,i) => (
-                    <span key={e.ev} className="mono">
-                      {e.ev} (need {e.qualTime ? fmtT(e.qualTime) : 'BB'}){i<unqual.length-1?', ':''}
-                    </span>
-                  ))}
-                </div>
-              )}
             </div>
           </div>
         );
@@ -432,7 +471,7 @@ const StrokeOverview = ({ onEvent, onTab, course }) => {
           <div onClick={()=>onEvent(hero.ev)} style={{cursor:'pointer',marginTop:4}}>
             <div style={{display:'flex',alignItems:'baseline',gap:10,flexWrap:'wrap'}}>
               <div style={{fontWeight:800,fontSize:26,letterSpacing:'-0.02em'}}>{hero.ev}</div>
-              <TierChip tier={hero.tier}/>
+              <TierBadge ev={hero}/>
               {hero.next.tier && <><span className="mono" style={{color:'var(--muted)'}}>→</span><TierChip tier={hero.next.tier} size="lg"/></>}
               <span className="mono" style={{fontSize:10,color:'var(--muted-2)',marginLeft:'auto'}}>view history ↗</span>
             </div>
@@ -501,7 +540,7 @@ const StrokeOverview = ({ onEvent, onTab, course }) => {
                 <StrokeDot stroke={e.stroke} size={10}/>
                 <div style={{fontWeight:700,fontSize:13}}>{e.ev}</div>
                 <div style={{flex:1}}/>
-                <TierChip tier={e.tier}/>
+                <TierBadge ev={e}/>
                 {e.next.tier && <><span className="mono" style={{fontSize:10,color:'var(--muted)'}}>→</span><TierChip tier={e.next.tier} size="sm"/></>}
               </div>
               <div style={{marginTop:9}}>
@@ -538,7 +577,7 @@ const StrokeOverview = ({ onEvent, onTab, course }) => {
                   <tr key={e.ev} style={{cursor:'pointer'}} onClick={()=>onEvent(e.ev)}>
                     <td><StrokeDot stroke={e.stroke}/>{e.ev}</td>
                     <td className="num">{fmtT(e.pb)}</td>
-                    <td><TierChip tier={e.tier} size="sm"/></td>
+                    <td><TierBadge ev={e} size="sm"/></td>
                     <td>{e.next.tier ? <TierChip tier={e.next.tier} size="sm"/> : <span className="mono muted" style={{fontSize:10}}>top</span>}</td>
                     <td className="num muted">{e.next.cut ? fmtT(e.next.cut) : '—'}</td>
                     <td className="num" style={{color:'var(--signal)',fontWeight:600}}>{e.next.gap>0?`−${e.next.gap.toFixed(2)}`:'✓'}</td>
@@ -895,7 +934,13 @@ const SwimHistory = () => {
                 <td><StrokeDot stroke={strokeOf(r.event)} size={6}/>{r.event}{r.live&&<span style={{color:'#F59E0B',marginLeft:3}}>*</span>}</td>
                 <td className="num" style={{fontWeight:r.pb?700:500}}>{fmtT(r.time)}</td>
                 <td className="mono muted" style={{fontSize:10}}>{r.course}</td>
-                <td>{r.tier ? <TierChip tier={r.tier} size="sm"/> : <span className="mono muted" style={{fontSize:9}}>&lt;B</span>}</td>
+                <td>
+                  {r.unofficial
+                    ? <span style={{fontSize:8,fontFamily:'var(--mono)',color:'var(--muted-2)',background:'var(--panel-alt)',border:'1px solid var(--line)',padding:'1px 5px',letterSpacing:'0.04em',textTransform:'uppercase'}}>unofficial</span>
+                    : r.tier
+                      ? <TierChip tier={r.tier} size="sm"/>
+                      : <span className="mono muted" style={{fontSize:9}}>&lt;B</span>}
+                </td>
                 <td>{r.pb && !r.live ? <span className="mono" style={{color:'var(--signal)',fontSize:10,fontWeight:700}}>PB</span> : ''}</td>
               </tr>
             ))}

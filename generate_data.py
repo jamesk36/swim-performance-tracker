@@ -73,6 +73,9 @@ TREND_EVENTS = ["50 FR", "100 FR", "100 FL", "200 IM", "100 BK"]
 
 TIER_PCT = {"AAAA": 96, "AAA": 87, "AA": 71, "A": 52, "BB": 27, "B": 10}
 
+# Events not in USA Swimming motivational standards (non-standard distances)
+UNOFFICIAL_EVENTS = {"25 BR", "25 FL"}
+
 # ─── Helpers ───────────────────────────────────────────────────────────────────
 def parse_std_time(t_str):
     """'1:00.59' or '27.39' → seconds (float)."""
@@ -285,25 +288,33 @@ def main():
         stroke     = pb_row["sc"]
         std_ev     = UI_TO_STD[ev]
 
-        # Current tier: use graded standard, else look up from standards.json
-        current_t = raw_std if raw_std in TIER_ORDER else None
-        if not current_t:
-            # Use age group and standards era at the time of the PB swim
-            swim_era = era_for_date(pb_date)
-            swim_age = age_at_date(ATHLETE_DOB, pb_date)
-            swim_ag  = age_group(swim_age)
-            for tier in TIER_ORDER:
-                cut = get_cut(standards, swim_ag, ATHLETE_GENDER, "SCY", std_ev, tier, era=swim_era)
-                if cut and pb_time <= cut:
-                    current_t = tier
-                    break
-            if not current_t:
-                current_t = "B"
+        # Earned tier: always compute from standards at age of PB swim (don't trust CSV — can have errors)
+        swim_era = era_for_date(pb_date)
+        swim_age = age_at_date(ATHLETE_DOB, pb_date)
+        swim_ag  = age_group(swim_age)
+        earned_t = None
+        for tier in TIER_ORDER:
+            cut = get_cut(standards, swim_ag, ATHLETE_GENDER, "SCY", std_ev, tier, era=swim_era)
+            if cut and pb_time <= cut:
+                earned_t = tier
+                break
+        if not earned_t:
+            # Fallback to CSV only if standards don't cover this event/era
+            earned_t = raw_std if raw_std in TIER_ORDER else "B"
 
-        ev_pbs[ev] = {"time": pb_time, "date": str(pb_date), "tier": current_t}
+        # Current tier vs today's 15-16 / 2024-28 standards (may differ if PB set at younger age)
+        current_era_now = era_for_date(today)
+        current_t = None
+        for tier in TIER_ORDER:
+            cut = get_cut(standards, ag, ATHLETE_GENDER, "SCY", std_ev, tier, era=current_era_now)
+            if cut and pb_time <= cut:
+                current_t = tier
+                break
 
-        # Next standard
-        next_t = next_tier(current_t)
+        ev_pbs[ev] = {"time": pb_time, "date": str(pb_date), "tier": earned_t}
+
+        # Next standard: based on where the time sits at current 15-16 standards
+        next_t   = next_tier(current_t) if current_t else "B"
         next_cut = get_cut(standards, ag, ATHLETE_GENDER, "SCY", std_ev, next_t) if next_t else None
         gap = round(pb_time - next_cut, 2) if next_cut else 0.0
 
@@ -324,13 +335,14 @@ def main():
                 all_cuts[t] = round(c, 2)
 
         events_out.append({
-            "ev":    ev,
-            "stroke": stroke,
-            "course": "SCY",
-            "pb":    pb_time,
-            "tier":  current_t,
-            "trend": trend,
-            "cuts":  all_cuts,
+            "ev":          ev,
+            "stroke":      stroke,
+            "course":      "SCY",
+            "pb":          pb_time,
+            "tier":        earned_t,        # tier earned when PB was set (age-appropriate standards)
+            "currentTier": current_t,       # same PB at current 15-16/2024-28 standards (None = below B)
+            "trend":       trend,
+            "cuts":        all_cuts,
             "next":  {
                 "tier": next_t,
                 "cut":  round(next_cut, 2) if next_cut else None,
@@ -353,29 +365,34 @@ def main():
         ev      = row["event"]
         pb_info = ev_pbs.get(ev, {})
         is_pb   = bool(pb_info and abs(float(row["time_s"]) - pb_info["time"]) < 0.015)
-        tier_str = str(row["std"] or "").strip()
-        # If no recorded standard, compute from age/era at time of swim
-        if tier_str not in TIER_ORDER:
-            std_ev_h = UI_TO_STD.get(ev)
-            if std_ev_h:
-                swim_era_h = era_for_date(row["date"])
-                swim_age_h = age_at_date(ATHLETE_DOB, row["date"])
-                swim_ag_h  = age_group(swim_age_h)
-                t_s = float(row["time_s"])
-                for t in TIER_ORDER:
-                    cut = get_cut(standards, swim_ag_h, ATHLETE_GENDER, str(row["course"]), std_ev_h, t, era=swim_era_h)
-                    if cut and t_s <= cut:
-                        tier_str = t
-                        break
+        # Always compute tier from standards at age of swim (more reliable than CSV 'std' column)
+        tier_str = None
+        std_ev_h = UI_TO_STD.get(ev)
+        if std_ev_h:
+            swim_era_h = era_for_date(row["date"])
+            swim_age_h = age_at_date(ATHLETE_DOB, row["date"])
+            swim_ag_h  = age_group(swim_age_h)
+            t_s = float(row["time_s"])
+            for t in TIER_ORDER:
+                cut = get_cut(standards, swim_ag_h, ATHLETE_GENDER, str(row["course"]), std_ev_h, t, era=swim_era_h)
+                if cut and t_s <= cut:
+                    tier_str = t
+                    break
+        # Fallback to CSV only if standards lookup failed (e.g. event not in standards for that age)
+        if not tier_str:
+            tier_str = str(row["std"] or "").strip()
+            if tier_str not in TIER_ORDER:
+                tier_str = ""
         history.append({
-            "id":     i + 1,
-            "date":   str(row["date"]),
-            "meet":   str(row["meet"]),
-            "course": str(row["course"]),
-            "event":  ev,
-            "time":   round(float(row["time_s"]), 2),
-            "tier":   tier_str,
-            "pb":     is_pb,
+            "id":         i + 1,
+            "date":       str(row["date"]),
+            "meet":       str(row["meet"]),
+            "course":     str(row["course"]),
+            "event":      ev,
+            "time":       round(float(row["time_s"]), 2),
+            "tier":       tier_str,
+            "pb":         is_pb,
+            "unofficial": ev in UNOFFICIAL_EVENTS,
         })
     print(f"  {len(history)} history rows")
 
@@ -536,24 +553,35 @@ def main():
         best_row = grp.loc[grp["time_s"].idxmin()]
         std_ev   = UI_TO_STD.get(ev)
         raw_std  = str(best_row["std"] or "")
-        current_t = raw_std if raw_std in TIER_ORDER else None
-        if not current_t and std_ev:
-            # Use age group and standards era at the time of the PB swim
-            pb_d     = best_row["date"]
+        pb_d      = best_row["date"]
+        pb_time_l = float(best_row["time_s"])
+        # Earned tier: always compute from standards at age of PB swim
+        earned_lcm = None
+        if std_ev:
             swim_era = era_for_date(pb_d)
             swim_age = age_at_date(ATHLETE_DOB, pb_d)
             swim_ag  = age_group(swim_age)
             for tier in TIER_ORDER:
                 cut = get_cut(standards, swim_ag, ATHLETE_GENDER, "LCM", std_ev, tier, era=swim_era)
-                if cut and float(best_row["time_s"]) <= cut:
-                    current_t = tier
+                if cut and pb_time_l <= cut:
+                    earned_lcm = tier
                     break
-        if not current_t:
-            current_t = ""
+        if not earned_lcm:
+            earned_lcm = raw_std if raw_std in TIER_ORDER else ""
+        # Current tier vs today's 15-16 standards
+        current_era_now = era_for_date(today)
+        current_lcm_t = None
+        if std_ev:
+            for tier in TIER_ORDER:
+                cut = get_cut(standards, ag, ATHLETE_GENDER, "LCM", std_ev, tier, era=current_era_now)
+                if cut and pb_time_l <= cut:
+                    current_lcm_t = tier
+                    break
         lcm_pbs[ev] = {
-            "time": round(float(best_row["time_s"]), 2),
-            "date": str(best_row["date"]),
-            "tier": current_t,
+            "time":        round(pb_time_l, 2),
+            "date":        str(pb_d),
+            "tier":        earned_lcm,
+            "currentTier": current_lcm_t,
         }
 
     # Build lcmEvents list (events that have both a PB and standards entry)
@@ -565,9 +593,10 @@ def main():
         pb_info  = lcm_pbs[ev]
         pb_time  = pb_info["time"]
         stroke   = next((c for c in ["BK","BR","FL","IM"] if c in ev), "FR")
-        current_t = pb_info["tier"]
+        earned_t     = pb_info["tier"]           # tier at age of PB swim
+        current_15_16 = pb_info.get("currentTier")  # same time vs current 15-16 standards
 
-        next_t   = next_tier(current_t) if current_t in TIER_ORDER else "BB"
+        next_t   = next_tier(current_15_16) if current_15_16 else "B"
         next_cut = get_cut(standards, ag, ATHLETE_GENDER, "LCM", std_ev, next_t) if next_t else None
         bb_cut   = get_cut(standards, ag, ATHLETE_GENDER, "LCM", std_ev, "BB")
         bb_qual  = bool(bb_cut and pb_time <= bb_cut)
@@ -580,15 +609,16 @@ def main():
                 all_cuts[t] = round(c, 2)
 
         lcm_events_out.append({
-            "ev":     ev,
-            "stroke": stroke,
-            "course": "LCM",
-            "pb":     pb_time,
-            "date":   pb_info["date"],
-            "tier":   current_t,
-            "bbQual": bb_qual,
-            "cuts":   all_cuts,
-            "next":   {
+            "ev":          ev,
+            "stroke":      stroke,
+            "course":      "LCM",
+            "pb":          pb_time,
+            "date":        pb_info["date"],
+            "tier":        earned_t,
+            "currentTier": current_15_16,
+            "bbQual":      bb_qual,
+            "cuts":        all_cuts,
+            "next":        {
                 "tier": next_t,
                 "cut":  round(next_cut, 2) if next_cut else None,
                 "gap":  max(0.0, gap) if next_cut else 0.0,
