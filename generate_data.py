@@ -6,6 +6,7 @@ Run after each data pipeline update:
 Output: swim_data.json  (committed to repo, served by Caddy alongside index.html)
 """
 import json
+import re
 import os
 import sys
 from pathlib import Path
@@ -219,10 +220,24 @@ def main():
     # ── Resolve truncated meet names ─────────────────────────────────────────────
     cache_path = base / "meet_name_cache.json"
     name_cache = json.loads(cache_path.read_text(encoding="utf-8")) if cache_path.exists() else {}
+    df_all["_raw_meet"] = df_all["Meet"]
     raw_names  = df_all["Meet"].dropna().unique().tolist()
     name_cache = resolve_meet_names(raw_names, name_cache, base)
     if name_cache:
         df_all["Meet"] = df_all["Meet"].apply(lambda n: name_cache.get(str(n), str(n)))
+    # A year cut off by HY-TEK truncation ("... 202") can't be recovered from the
+    # name alone, so the cache would pin every edition to one year. Rebuild it
+    # from the swim date instead.
+    def _fix_truncated_year(raw, resolved, swim_date):
+        m = re.search(r"\s20\d?$", str(raw))
+        if not m or len(str(raw)) < TRUNCATED_LEN or pd.isna(swim_date):
+            return resolved
+        return str(raw)[:m.start()] + " " + str(pd.to_datetime(swim_date).year)
+    df_all["Meet"] = [
+        _fix_truncated_year(r, n, d)
+        for r, n, d in zip(df_all["_raw_meet"], df_all["Meet"], df_all["Date"])
+    ]
+    df_all = df_all.drop(columns="_raw_meet")
 
     # ── Normalise ───────────────────────────────────────────────────────────────
     df_all["date"]    = pd.to_datetime(df_all["Date"]).dt.date
